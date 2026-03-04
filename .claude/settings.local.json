@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --ts --tailwind --eslint --app --src-dir --no-turbopack --import-alias \"@/*\" --use-npm --yes)",
+      "Bash(npm run build)",
+      "Bash(npm install -g vercel)",
+      "Bash(npm install --save-dev vercel)",
+      "Bash(git init)",
+      "Bash(git add -A)",
+      "Bash(git commit -m \"Initial commit: Social Command Center Next.js app\")"
+    ]
+  }
+}
