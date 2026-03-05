@@ -20,7 +20,8 @@
       "Bash(npx vercel whoami)",
       "Bash(npx vercel --prod --yes)",
       "Bash(ls \"/Users/michelleso/Social Command/social-command-center/app/\\(dashboard\\)/\")",
-      "Bash(git commit -m \"Full-stack implementation: tRPC API, OAuth, cron jobs, AI pipeline, frontend wiring\")"
+      "Bash(git commit -m \"Full-stack implementation: tRPC API, OAuth, cron jobs, AI pipeline, frontend wiring\")",
+      "Bash(git commit -m \"Fix: remove conflicting root page.jsx for route group\")"
     ]
   }
 }
