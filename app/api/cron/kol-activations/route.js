@@ -1,0 +1,194 @@
+/**
+ * Cron: KOL Activations
+ * Schedule: Every 30 minutes (* /30 * * * *)
+ *
+ * For each active KOL, searches for brand mentions by the KOL
+ * and creates KOLActivation records for newly detected activations.
+ */
+
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { verifyCronAuth } from '@/lib/cron-auth';
+import { XPlatformAdapter } from '@/lib/x-adapter';
+import { RedditAdapter } from '@/lib/reddit-adapter';
+
+export const dynamic = 'force-dynamic';
+
+/**
+ * Determine the activation type based on the raw hit data.
+ */
+function classifyActivation(hit) {
+  if (hit.referenced_tweets) {
+    const refTypes = hit.referenced_tweets.map((r) => r.type);
+    if (refTypes.includes('retweeted')) return 'RETWEET';
+    if (refTypes.includes('quoted')) return 'QUOTE_TWEET';
+    if (refTypes.includes('replied_to')) return 'REPLY';
+  }
+  if (hit.in_reply_to_id || hit.in_reply_to) return 'REPLY';
+  if (hit.is_quote_status || hit.quoted_status) return 'QUOTE_TWEET';
+  if (hit.link_id || hit.parent_id) return 'COMMENT';
+  if (hit.subreddit) return 'SUBREDDIT_POST';
+  return 'DIRECT_MENTION';
+}
+
+export async function GET(request) {
+  if (!verifyCronAuth(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const results = { activationsCreated: 0, kolsProcessed: 0, errors: [] };
+
+  try {
+    // Get all active brand accounts to build search queries
+    const brandAccounts = await prisma.account.findMany({
+      where: { isActive: true },
+    });
+
+    // Build brand handle sets per platform
+    const xBrandHandles = brandAccounts
+      .filter((a) => a.platform === 'X')
+      .map((a) => `@${a.username}`);
+    const redditBrandUsernames = brandAccounts
+      .filter((a) => a.platform === 'REDDIT')
+      .map((a) => a.username);
+
+    // Shared adapters using bearer/service tokens for reads
+    const xAdapter = new XPlatformAdapter(process.env.X_BEARER_TOKEN || '');
+    const redditAdapter = new RedditAdapter(process.env.REDDIT_SERVICE_TOKEN || '');
+
+    const activeKOLs = await prisma.kOL.findMany({
+      where: { active: true },
+    });
+
+    for (const kol of activeKOLs) {
+      try {
+        let rawHits = [];
+
+        if (kol.platform === 'X') {
+          // Search for tweets from the KOL mentioning any brand handle
+          // Query: "from:kol_username (@brand1 OR @brand2)"
+          if (xBrandHandles.length === 0) continue;
+
+          const brandQuery =
+            xBrandHandles.length === 1
+              ? xBrandHandles[0]
+              : `(${xBrandHandles.join(' OR ')})`;
+          const searchQuery = `from:${kol.username} ${brandQuery}`;
+
+          const response = await xAdapter.searchTweets(searchQuery);
+          rawHits = response?.tweets || response?.data || [];
+        } else if (kol.platform === 'REDDIT') {
+          // Search for Reddit posts/comments by the KOL mentioning brand
+          if (redditBrandUsernames.length === 0) continue;
+
+          const brandQuery = redditBrandUsernames.join(' OR ');
+          const searchQuery = `author:${kol.username} ${brandQuery}`;
+
+          const response = await redditAdapter.searchAll(searchQuery);
+          const children = response?.data?.children || [];
+          rawHits = children.map((c) => c.data);
+        }
+
+        for (const hit of rawHits) {
+          try {
+            const platformPostId =
+              hit.id || hit.id_str || hit.name || null;
+
+            if (!platformPostId) continue;
+
+            // Dedupe: check if this activation already exists
+            const existing = await prisma.kOLActivation.findFirst({
+              where: {
+                kolId: kol.id,
+                platformPostId: String(platformPostId),
+              },
+            });
+
+            if (existing) continue;
+
+            const content =
+              hit.text || hit.body || hit.selftext || hit.title || '';
+            const sourceUrl =
+              hit.url ||
+              (hit.permalink
+                ? hit.permalink.startsWith('http')
+                  ? hit.permalink
+                  : `https://reddit.com${hit.permalink}`
+                : null);
+
+            // Collect metrics at detection time
+            const metricsAtDetection = {};
+            if (kol.platform === 'X') {
+              const pm = hit.public_metrics || {};
+              metricsAtDetection.likes = pm.like_count || 0;
+              metricsAtDetection.retweets = pm.retweet_count || 0;
+              metricsAtDetection.replies = pm.reply_count || 0;
+              metricsAtDetection.quotes = pm.quote_count || 0;
+              metricsAtDetection.impressions = pm.impression_count || 0;
+              metricsAtDetection.bookmarks = pm.bookmark_count || 0;
+            } else if (kol.platform === 'REDDIT') {
+              metricsAtDetection.upvotes = hit.ups || 0;
+              metricsAtDetection.downvotes = hit.downs || 0;
+              metricsAtDetection.comments = hit.num_comments || 0;
+              metricsAtDetection.awards = hit.total_awards_received || 0;
+              metricsAtDetection.score = hit.score || 0;
+            }
+
+            const activationType = classifyActivation(hit);
+
+            await prisma.kOLActivation.create({
+              data: {
+                kolId: kol.id,
+                platform: kol.platform,
+                activationType,
+                platformPostId: String(platformPostId),
+                content: String(content),
+                sourceUrl,
+                detectionMethod: 'cron_search',
+                metricsAtDetection,
+              },
+            });
+
+            results.activationsCreated++;
+          } catch (hitError) {
+            console.error(
+              `Error processing KOL activation for KOL ${kol.id}:`,
+              hitError,
+            );
+          }
+        }
+
+        // Log API call
+        await prisma.aPICallLog.create({
+          data: {
+            provider: kol.platform === 'X' ? 'twitterapi_io' : 'reddit',
+            endpoint: 'kol-activation-search',
+            method: 'GET',
+            statusCode: 200,
+            responseTime: 0,
+            estimatedCost: kol.platform === 'X' ? 0.00015 : 0.00024,
+          },
+        });
+
+        results.kolsProcessed++;
+      } catch (kolError) {
+        console.error(
+          `Error processing KOL ${kol.id}:`,
+          kolError,
+        );
+        results.errors.push({
+          kolId: kol.id,
+          error: kolError.message,
+        });
+      }
+    }
+
+    return NextResponse.json({ ok: true, ...results });
+  } catch (error) {
+    console.error('kol-activations cron error:', error);
+    return NextResponse.json(
+      { ok: false, error: error.message },
+      { status: 500 },
+    );
+  }
+}

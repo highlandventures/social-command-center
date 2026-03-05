@@ -7,7 +7,20 @@
       "Bash(npm install --save-dev vercel)",
       "Bash(git init)",
       "Bash(git add -A)",
-      "Bash(git commit -m \"Initial commit: Social Command Center Next.js app\")"
+      "Bash(git commit -m \"Initial commit: Social Command Center Next.js app\")",
+      "Bash(npx vercel --yes)",
+      "Bash(npx vercel login)",
+      "Bash(npx vercel --yes --prod)",
+      "Bash(npx vercel --yes --prod --name social-command-center)",
+      "Bash(npm install)",
+      "Bash(npx prisma generate)",
+      "Bash(npm install superjson)",
+      "Bash(npx next build)",
+      "Bash(npx vercel --version)",
+      "Bash(npx vercel whoami)",
+      "Bash(npx vercel --prod --yes)",
+      "Bash(ls \"/Users/michelleso/Social Command/social-command-center/app/\\(dashboard\\)/\")",
+      "Bash(git commit -m \"Full-stack implementation: tRPC API, OAuth, cron jobs, AI pipeline, frontend wiring\")"
     ]
   }
 }
