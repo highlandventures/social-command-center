@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { signOut, useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc-client';
 import { Avatar } from '@/components/ui';
 
@@ -17,6 +19,8 @@ const tabs = [
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   // Fetch accounts for the account switcher in the top nav
   const { data: accounts } = trpc.accounts.list.useQuery(undefined, {
@@ -24,6 +28,8 @@ export default function DashboardLayout({ children }) {
   });
 
   const accountsList = accounts ?? [];
+  const userEmail = session?.user?.email || '';
+  const userInitial = (userEmail[0] || 'U').toUpperCase();
 
   /** Check if this tab href matches the current route */
   const isActive = (href) => {
@@ -71,8 +77,33 @@ export default function DashboardLayout({ children }) {
             </div>
 
             {/* User menu */}
-            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm font-bold">
-              M
+            <div className="relative">
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm font-bold hover:bg-indigo-700 transition-colors"
+              >
+                {userInitial}
+              </button>
+              {userMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setUserMenuOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1">
+                    <div className="px-4 py-2 border-b border-gray-100">
+                      <p className="text-sm font-medium text-gray-900 truncate">{userEmail}</p>
+                      <p className="text-xs text-gray-500">{session?.user?.role || 'User'}</p>
+                    </div>
+                    <button
+                      onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
