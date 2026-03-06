@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { randomBytes } from 'crypto';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 /**
  * GET /api/connect/reddit
@@ -9,6 +11,11 @@ import { randomBytes } from 'crypto';
  * and redirects the user to Reddit's authorization endpoint.
  */
 export async function GET() {
+  // Require authenticated session
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/auth/signin`);
+  }
   // Generate random state for CSRF protection
   const state = randomBytes(16).toString('hex');
 

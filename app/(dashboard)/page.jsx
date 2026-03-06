@@ -70,17 +70,18 @@ export default function DashboardPage() {
   const heatmapData = dashboard.heatmap ?? EMPTY_HEATMAP;
 
   const totals = useMemo(() => {
-    if (dashboard.totals) return dashboard.totals;
     return {
-      impressions: accounts.reduce((s, a) => s + (a.impressions ?? 0), 0),
-      engRate: accounts.length
-        ? +(accounts.reduce((s, a) => s + (a.engRate ?? 0), 0) / accounts.length).toFixed(1)
-        : 0,
-      followers: accounts.reduce((s, a) => s + (a.followerDelta ?? 0), 0),
-      posts: accounts.reduce((s, a) => s + (a.posts ?? 0), 0),
-      mentions: accounts.reduce((s, a) => s + (a.mentions ?? 0), 0),
+      impressions: dashboard.impressions ?? accounts.reduce((s, a) => s + (a.impressions ?? 0), 0),
+      engRate: dashboard.engagementRate
+        ? +dashboard.engagementRate.toFixed(1)
+        : accounts.length
+          ? +(accounts.reduce((s, a) => s + (a.engagementRate ?? 0), 0) / accounts.length).toFixed(1)
+          : 0,
+      followers: dashboard.totalFollowers ?? accounts.reduce((s, a) => s + (a.followers ?? 0), 0),
+      posts: accounts.reduce((s, a) => s + (a.totalPosts ?? 0), 0),
+      mentions: 0,
     };
-  }, [dashboard.totals, accounts]);
+  }, [dashboard, accounts]);
 
   const isLoading = dashboardQ.isLoading || accountBreakdownQ.isLoading;
 
@@ -105,20 +106,19 @@ export default function DashboardPage() {
           ← Back to overview
         </button>
         <div className="flex items-center gap-3 mb-6">
-          <Avatar initials={acct.avatar} platform={acct.platform} size="lg" />
+          <Avatar initials={(acct.username || '??').slice(0, 2).toUpperCase()} platform={acct.platform} size="lg" />
           <div>
-            <h2 className="text-xl font-bold text-gray-900">{acct.handle}</h2>
+            <h2 className="text-xl font-bold text-gray-900">@{acct.username}</h2>
             <PlatformBadge platform={acct.platform} />
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
-          <MetricCard label="Impressions" value={(acct.impressions ?? 0).toLocaleString()} delta={12} />
-          <MetricCard label="Eng. Rate" value={`${acct.engRate ?? 0}%`} delta={8} />
-          <MetricCard label="Followers" value={(acct.followers ?? 0).toLocaleString()} delta={acct.deltaPct} />
-          <MetricCard label="Net Growth" value={`+${acct.followerDelta ?? 0}`} delta={acct.deltaPct} />
-          <MetricCard label="Posts" value={acct.posts ?? 0} delta={0} />
-          <MetricCard label="Mentions" value={acct.mentions ?? 0} delta={22} />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
+          <MetricCard label="Impressions" value={(acct.impressions ?? 0).toLocaleString()} />
+          <MetricCard label="Eng. Rate" value={`${(acct.engagementRate ?? 0).toFixed(1)}%`} />
+          <MetricCard label="Followers" value={(acct.followers ?? 0).toLocaleString()} />
+          <MetricCard label="Total Posts" value={acct.totalPosts ?? 0} />
+          <MetricCard label="Engagements" value={acct.engagements ?? 0} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -130,7 +130,7 @@ export default function DashboardPage() {
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={4} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Line type="monotone" dataKey="engRate" stroke={COLORS.blue} strokeWidth={2} dot={false} name="Eng. Rate %" />
+                <Line type="monotone" dataKey="engagementRate" stroke={COLORS.blue} strokeWidth={2} dot={false} name="Eng. Rate %" />
                 <Line type="monotone" dataKey="engagements" stroke={COLORS.green} strokeWidth={2} dot={false} name="Engagements" />
               </LineChart>
             </ResponsiveContainer>
@@ -144,7 +144,7 @@ export default function DashboardPage() {
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={4} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Area type="monotone" dataKey="net" stroke={COLORS.green} fill="#dcfce7" strokeWidth={2} name="Net New" />
+                <Area type="monotone" dataKey="followers" stroke={COLORS.green} fill="#dcfce7" strokeWidth={2} name="Followers" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -157,7 +157,7 @@ export default function DashboardPage() {
               <ScatterChart>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="impressions" name="Impressions" tick={{ fontSize: 11 }} />
-                <YAxis dataKey="engRate" name="Eng. Rate %" tick={{ fontSize: 11 }} />
+                <YAxis dataKey="engagementRate" name="Eng. Rate %" tick={{ fontSize: 11 }} />
                 <Tooltip
                   cursor={{ strokeDasharray: '3 3' }}
                   content={({ payload }) => {
@@ -297,18 +297,30 @@ export default function DashboardPage() {
 
       {/* Aggregate summary cards */}
       {isLoading ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-8">
-          {Array.from({ length: 7 }).map((_, i) => <MetricCardSkeleton key={i} />)}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-8">
+          {Array.from({ length: 5 }).map((_, i) => <MetricCardSkeleton key={i} />)}
+        </div>
+      ) : accounts.length === 0 ? (
+        <div className="bg-white rounded-xl border border-dashed border-gray-300 p-12 mb-8 text-center">
+          <div className="text-4xl mb-3">{'\uD83D\uDCE1'}</div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-1">No accounts connected</h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Connect your X or Reddit account from the Admin tab to start tracking analytics.
+          </p>
+          <a
+            href="/admin"
+            className="inline-flex items-center px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800"
+          >
+            Go to Admin Settings
+          </a>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-8">
-          <MetricCard label="Total Impressions" value={`${(totals.impressions / 1000).toFixed(1)}K`} delta={dashboard.deltas?.impressions ?? 12} />
-          <MetricCard label="Avg Eng. Rate" value={`${totals.engRate}%`} delta={dashboard.deltas?.engRate ?? 7} />
-          <MetricCard label="Net Follower Growth" value={`+${totals.followers}`} delta={dashboard.deltas?.followers ?? -5} />
-          <MetricCard label="Brand Sentiment" value={`${lastSentimentScore}`} delta={dashboard.deltas?.sentiment ?? 4} />
-          <MetricCard label="Total Clicks / CTR" value={dashboard.clicksCtr ?? '-- / --%'} delta={dashboard.deltas?.clicks ?? 8} />
-          <MetricCard label="Posts Published" value={totals.posts} delta={dashboard.deltas?.posts ?? 0} />
-          <MetricCard label="Mentions Received" value={totals.mentions} delta={dashboard.deltas?.mentions ?? 22} />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
+          <MetricCard label="Total Impressions" value={totals.impressions > 1000 ? `${(totals.impressions / 1000).toFixed(1)}K` : totals.impressions} delta={dashboard.impressionsDelta ? +dashboard.impressionsDelta.toFixed(0) : undefined} />
+          <MetricCard label="Avg Eng. Rate" value={`${totals.engRate}%`} delta={dashboard.engagementRateDelta ? +dashboard.engagementRateDelta.toFixed(0) : undefined} />
+          <MetricCard label="Total Followers" value={totals.followers.toLocaleString()} />
+          <MetricCard label="Engagements" value={(dashboard.engagements ?? 0).toLocaleString()} />
+          <MetricCard label="Posts Tracked" value={totals.posts} />
         </div>
       )}
 
@@ -323,7 +335,7 @@ export default function DashboardPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-200">
-                {['Account', 'Platform', 'Followers', 'Growth (WoW)', '', 'Impressions', 'Eng. Rate', 'Posts', 'Mentions'].map((h) => (
+                {['Account', 'Platform', 'Followers', 'Impressions', 'Eng. Rate', 'Posts'].map((h) => (
                   <th key={h} className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">{h}</th>
                 ))}
               </tr>
@@ -337,32 +349,19 @@ export default function DashboardPage() {
                 >
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-2.5">
-                      <Avatar initials={acct.avatar} platform={acct.platform} size="sm" />
-                      <span className="font-medium text-gray-900">{acct.handle}</span>
+                      <Avatar initials={(acct.username || '??').slice(0, 2).toUpperCase()} platform={acct.platform} size="sm" />
+                      <span className="font-medium text-gray-900">@{acct.username}</span>
                     </div>
                   </td>
                   <td className="py-3 px-3"><PlatformBadge platform={acct.platform} /></td>
                   <td className="py-3 px-3 font-medium">{(acct.followers ?? 0).toLocaleString()}</td>
-                  <td className="py-3 px-3 font-medium text-green-600">+{acct.followerDelta ?? 0}</td>
-                  <td className="py-3 px-3"><DeltaBadge value={acct.followerDelta ?? 0} pct={acct.deltaPct ?? 0} /></td>
                   <td className="py-3 px-3">
-                    <div className="flex items-center gap-2">
-                      <span>{(acct.impressions ?? 0).toLocaleString()}</span>
-                      {engagementData.length >= 7 && (
-                        <Sparkline data={engagementData.slice(0, 7).map((d) => d.impressions ?? 0)} />
-                      )}
-                    </div>
+                    <span>{(acct.impressions ?? 0).toLocaleString()}</span>
                   </td>
                   <td className="py-3 px-3">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{acct.engRate ?? 0}%</span>
-                      {engagementData.length >= 7 && (
-                        <Sparkline data={engagementData.slice(0, 7).map((d) => d.engRate ?? 0)} color={COLORS.green} />
-                      )}
-                    </div>
+                    <span className="font-medium">{(acct.engagementRate ?? 0).toFixed(1)}%</span>
                   </td>
-                  <td className="py-3 px-3">{acct.posts ?? 0}</td>
-                  <td className="py-3 px-3">{acct.mentions ?? 0}</td>
+                  <td className="py-3 px-3">{acct.totalPosts ?? 0}</td>
                 </tr>
               ))}
             </tbody>
@@ -515,7 +514,7 @@ export default function DashboardPage() {
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={6} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Line type="monotone" dataKey="engRate" stroke={COLORS.blue} strokeWidth={2} dot={false} name="Eng. Rate %" />
+                <Line type="monotone" dataKey="engagementRate" stroke={COLORS.blue} strokeWidth={2} dot={false} name="Eng. Rate %" />
               </LineChart>
             </ResponsiveContainer>
           )}
@@ -531,7 +530,7 @@ export default function DashboardPage() {
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={6} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Area type="monotone" dataKey="total" stroke={COLORS.green} fill="#dcfce7" strokeWidth={2} name="Total Followers" />
+                <Area type="monotone" dataKey="followers" stroke={COLORS.green} fill="#dcfce7" strokeWidth={2} name="Total Followers" />
               </AreaChart>
             </ResponsiveContainer>
           )}

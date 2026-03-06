@@ -53,13 +53,13 @@ export default function DashboardLayout({ children }) {
                   ? accountsList.map((a) => (
                       <Avatar
                         key={a.id}
-                        initials={a.avatar ?? a.handle?.slice(1, 3).toUpperCase() ?? '??'}
+                        initials={(a.username || '??').slice(0, 2).toUpperCase()}
                         platform={a.platform}
                         size="sm"
                       />
                     ))
                   : /* Fallback while loading */
-                    [1, 2, 3].map((i) => (
+                    [1, 2].map((i) => (
                       <div
                         key={i}
                         className="w-7 h-7 rounded-full bg-gray-200 animate-pulse"

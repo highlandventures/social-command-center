@@ -16,17 +16,20 @@ export const COLORS = {
   indigo: "#6366f1",
 };
 
-export const PlatformBadge = ({ platform }) => (
-  <span
-    className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-      platform === "x"
-        ? "bg-gray-900 text-white"
-        : "bg-orange-100 text-orange-800"
-    }`}
-  >
-    {platform === "x" ? "\u{1D54F}" : "Reddit"}
-  </span>
-);
+export const PlatformBadge = ({ platform }) => {
+  const p = (platform || '').toLowerCase();
+  return (
+    <span
+      className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+        p === "x"
+          ? "bg-gray-900 text-white"
+          : "bg-orange-100 text-orange-800"
+      }`}
+    >
+      {p === "x" ? "\u{1D54F}" : "Reddit"}
+    </span>
+  );
+};
 
 export const RelevanceBadge = ({ level }) => {
   const styles = {
@@ -141,6 +144,7 @@ export const TabButton = ({ active, onClick, children, badge }) => (
 );
 
 export const Avatar = ({ initials, platform, size = "md" }) => {
+  const p = (platform || '').toLowerCase();
   const sizes = {
     sm: "w-7 h-7 text-xs",
     md: "w-9 h-9 text-sm",
@@ -149,7 +153,7 @@ export const Avatar = ({ initials, platform, size = "md" }) => {
   return (
     <div
       className={`${sizes[size]} rounded-full flex items-center justify-center font-bold text-white ${
-        platform === "reddit" ? "bg-orange-500" : "bg-gray-800"
+        p === "reddit" ? "bg-orange-500" : "bg-gray-800"
       }`}
     >
       {initials}

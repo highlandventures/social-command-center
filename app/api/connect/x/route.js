@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { randomBytes, createHash } from 'crypto';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
 /**
  * GET /api/connect/x
@@ -9,6 +11,11 @@ import { randomBytes, createHash } from 'crypto';
  * and redirects the user to Twitter's authorization endpoint.
  */
 export async function GET() {
+  // Require authenticated session
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/auth/signin`);
+  }
   // Generate PKCE code verifier (high-entropy random string)
   const codeVerifier = randomBytes(32).toString('base64url');
 
