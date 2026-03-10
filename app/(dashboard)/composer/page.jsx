@@ -46,8 +46,8 @@ export default function ComposerPage() {
 
   // ── Derived ───────────────────────────────────────────────
   const accounts = accountsQ.data ?? [];
-  const drafts = draftsQ.data ?? [];
-  const scheduledPosts = queueQ.data ?? [];
+  const drafts = draftsQ.data?.items ?? [];
+  const scheduledPosts = queueQ.data?.items ?? [];
 
   const activeTweets = tweets.filter((t) => (t || '').trim());
   const isThread = postMode === 'thread';

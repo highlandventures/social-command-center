@@ -10,6 +10,10 @@ import { encrypt } from '@/lib/encryption';
  * encrypts tokens, and upserts the Account record.
  */
 export async function GET(request) {
+  const baseUrl = (process.env.NEXTAUTH_URL || '').trim();
+  const clientId = (process.env.X_OFFICIAL_CLIENT_ID || '').trim();
+  const clientSecret = (process.env.X_OFFICIAL_CLIENT_SECRET || '').trim();
+
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
   const state = searchParams.get('state');
@@ -22,32 +26,32 @@ export async function GET(request) {
   // Handle OAuth errors from Twitter
   if (error) {
     return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/admin?error=${encodeURIComponent(error)}`
+      `${baseUrl}/admin?error=${encodeURIComponent(error)}`
     );
   }
 
   // Validate required parameters
   if (!code || !state) {
     return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/admin?error=missing_params`
+      `${baseUrl}/admin?error=missing_params`
     );
   }
 
   // Verify CSRF state
   if (state !== storedState) {
     return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/admin?error=state_mismatch`
+      `${baseUrl}/admin?error=state_mismatch`
     );
   }
 
   // Verify code verifier exists
   if (!codeVerifier) {
     return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/admin?error=missing_code_verifier`
+      `${baseUrl}/admin?error=missing_code_verifier`
     );
   }
 
-  const redirectUri = `${process.env.NEXTAUTH_URL}/api/connect/x/callback`;
+  const redirectUri = `${baseUrl}/api/connect/x/callback`;
 
   try {
     // Exchange authorization code for tokens
@@ -56,7 +60,7 @@ export async function GET(request) {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
         Authorization: `Basic ${Buffer.from(
-          `${process.env.X_OFFICIAL_CLIENT_ID}:${process.env.X_OFFICIAL_CLIENT_SECRET}`
+          `${clientId}:${clientSecret}`
         ).toString('base64')}`,
       },
       body: new URLSearchParams({
@@ -71,7 +75,7 @@ export async function GET(request) {
       const errorBody = await tokenResponse.text();
       console.error('X token exchange failed:', errorBody);
       return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/admin?error=token_exchange_failed`
+        `${baseUrl}/admin?error=token_exchange_failed`
       );
     }
 
@@ -92,7 +96,7 @@ export async function GET(request) {
       const errorBody = await userResponse.text();
       console.error('X user profile fetch failed:', errorBody);
       return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/admin?error=profile_fetch_failed`
+        `${baseUrl}/admin?error=profile_fetch_failed`
       );
     }
 
@@ -143,12 +147,12 @@ export async function GET(request) {
     cookieStore.delete('x_oauth_state');
 
     return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/admin?success=x_connected`
+      `${baseUrl}/admin?success=x_connected`
     );
   } catch (err) {
     console.error('X OAuth callback error:', err);
     return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/admin?error=internal_error`
+      `${baseUrl}/admin?error=internal_error`
     );
   }
 }

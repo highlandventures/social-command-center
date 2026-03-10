@@ -7,14 +7,15 @@
  *   - Posts 2-48h old: poll (within cycle)
  *   - Posts >48h but <7d: only if last fetched >6h ago
  *   - Posts >7d: skip
+ *
+ * COST OPTIMIZATION: Uses TwitterAPI.io for reads (~$0.15/1K requests).
+ * Fetches each user's timeline once per cycle, then matches post IDs
+ * from the response. This is much cheaper than the Official X API.
  */
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { verifyCronAuth } from '@/lib/cron-auth';
-import { getValidToken } from '@/lib/token-refresh';
-import { XPlatformAdapter } from '@/lib/x-adapter';
-import { RedditAdapter } from '@/lib/reddit-adapter';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,18 +24,35 @@ const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
 
+function shouldPollPost(post, now) {
+  const postAgeMs = now.getTime() - new Date(post.publishedAt).getTime();
+  const lastFetch = post.metrics[0]?.fetchedAt;
+  const timeSinceLastFetch = lastFetch
+    ? now.getTime() - new Date(lastFetch).getTime()
+    : Infinity;
+
+  if (postAgeMs < TWO_HOURS_MS) return true;
+  if (postAgeMs < FORTY_EIGHT_HOURS_MS) return true;
+  if (postAgeMs < SEVEN_DAYS_MS) return timeSinceLastFetch > SIX_HOURS_MS;
+  return false;
+}
+
 export async function GET(request) {
   if (!verifyCronAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const results = { metricsFetched: 0, postsProcessed: 0, errors: [] };
+  const apiKey = process.env.TWITTERAPI_IO_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ error: 'TWITTERAPI_IO_API_KEY not configured' }, { status: 500 });
+  }
+
+  const results = { metricsFetched: 0, postsProcessed: 0, apiCalls: 0, errors: [] };
 
   try {
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - SEVEN_DAYS_MS);
 
-    // Get all published posts within the last 7 days
     const publishedPosts = await prisma.post.findMany({
       where: {
         status: 'PUBLISHED',
@@ -50,128 +68,107 @@ export async function GET(request) {
       },
     });
 
-    for (const post of publishedPosts) {
+    const postsToPoll = publishedPosts.filter((p) => shouldPollPost(p, now));
+
+    // Group X posts by account
+    const xPostsByAccount = {};
+
+    for (const post of postsToPoll) {
+      if (post.account.platform === 'X') {
+        const accountId = post.account.id;
+        if (!xPostsByAccount[accountId]) {
+          xPostsByAccount[accountId] = { account: post.account, posts: [] };
+        }
+        xPostsByAccount[accountId].posts.push(post);
+      }
+    }
+
+    // --- FETCH VIA TwitterAPI.io (1 timeline request per account) ---
+    for (const { account, posts } of Object.values(xPostsByAccount)) {
       try {
-        const postAgeMs = now.getTime() - new Date(post.publishedAt).getTime();
-        const lastFetch = post.metrics[0]?.fetchedAt;
-        const timeSinceLastFetch = lastFetch
-          ? now.getTime() - new Date(lastFetch).getTime()
-          : Infinity;
+        // Fetch the user's recent timeline from TwitterAPI.io
+        const url = new URL('https://api.twitterapi.io/twitter/user/last_tweets');
+        url.searchParams.set('userName', account.username);
 
-        // Adaptive polling logic
-        let shouldPoll = false;
+        const start = Date.now();
+        const res = await fetch(url, {
+          headers: { 'X-API-Key': apiKey },
+        });
 
-        if (postAgeMs < TWO_HOURS_MS) {
-          // Posts <2h old: always poll
-          shouldPoll = true;
-        } else if (postAgeMs < FORTY_EIGHT_HOURS_MS) {
-          // Posts 2-48h old: poll within cycle
-          shouldPoll = true;
-        } else if (postAgeMs < SEVEN_DAYS_MS) {
-          // Posts >48h but <7d: only if last fetched >6h ago
-          shouldPoll = timeSinceLastFetch > SIX_HOURS_MS;
-        }
-        // Posts >7d: already excluded by query
-
-        if (!shouldPoll) continue;
-
-        const token = await getValidToken(post.account);
-        let metricsData = {};
-
-        if (post.account.platform === 'X') {
-          const adapter = new XPlatformAdapter(token);
-          const response = await adapter.getOwnTweetMetrics(post.platformPostId);
-          const publicMetrics = response?.data?.public_metrics || {};
-          const nonPublicMetrics = response?.data?.non_public_metrics || {};
-          const organicMetrics = response?.data?.organic_metrics || {};
-
-          metricsData = {
-            impressions:
-              nonPublicMetrics.impression_count ||
-              organicMetrics.impression_count ||
-              0,
-            engagements:
-              (publicMetrics.like_count || 0) +
-              (publicMetrics.retweet_count || 0) +
-              (publicMetrics.reply_count || 0) +
-              (publicMetrics.quote_count || 0) +
-              (publicMetrics.bookmark_count || 0),
-            likes: publicMetrics.like_count || 0,
-            retweets: publicMetrics.retweet_count || 0,
-            replies: publicMetrics.reply_count || 0,
-            bookmarks: publicMetrics.bookmark_count || 0,
-            linkClicks: nonPublicMetrics.url_link_clicks || 0,
-            profileClicks: nonPublicMetrics.user_profile_clicks || 0,
-          };
-        } else if (post.account.platform === 'REDDIT') {
-          const adapter = new RedditAdapter(token);
-          // Fetch post data from Reddit to get metrics
-          const response = await adapter.getUserPosts(post.account.username, 'new', 100);
-          const children = response?.data?.children || [];
-          const redditPost = children.find(
-            (c) =>
-              c.data?.id === post.platformPostId ||
-              c.data?.name === post.platformPostId,
-          );
-
-          if (redditPost) {
-            const d = redditPost.data;
-            metricsData = {
-              upvotes: d.ups || 0,
-              downvotes: d.downs || 0,
-              commentCount: d.num_comments || 0,
-              awards: d.total_awards_received || 0,
-              // Map to generic engagement fields
-              engagements: (d.ups || 0) + (d.num_comments || 0),
-              impressions: d.view_count || 0,
-            };
-          }
-        }
-
-        // Compute engagement rate (handle division by zero)
-        const impressions = metricsData.impressions || 0;
-        const engagements = metricsData.engagements || 0;
-        const engagementRate =
-          impressions > 0 ? (engagements / impressions) * 100 : 0;
-
-        // Create PostMetrics record
-        await prisma.postMetrics.create({
+        await prisma.aPICallLog.create({
           data: {
-            postId: post.id,
-            accountId: post.accountId,
-            impressions,
-            engagements,
-            likes: metricsData.likes || 0,
-            retweets: metricsData.retweets || 0,
-            replies: metricsData.replies || 0,
-            bookmarks: metricsData.bookmarks || 0,
-            linkClicks: metricsData.linkClicks || 0,
-            profileClicks: metricsData.profileClicks || 0,
-            upvotes: metricsData.upvotes || 0,
-            downvotes: metricsData.downvotes || 0,
-            commentCount: metricsData.commentCount || 0,
-            awards: metricsData.awards || 0,
-            engagementRate,
+            provider: 'twitterapi_io',
+            endpoint: '/user/last_tweets',
+            method: 'GET',
+            statusCode: res.status,
+            responseTime: Date.now() - start,
+            estimatedCost: 0.00015,
+            accountId: account.id,
           },
         });
 
-        results.metricsFetched++;
-        results.postsProcessed++;
-      } catch (postError) {
-        console.error(
-          `Error fetching metrics for post ${post.id}:`,
-          postError,
-        );
-        results.errors.push({ postId: post.id, error: postError.message });
+        results.apiCalls++;
+
+        if (!res.ok) {
+          results.errors.push({ accountId: account.id, error: `TwitterAPI.io ${res.status}` });
+          continue;
+        }
+
+        const data = await res.json();
+        // TwitterAPI.io nests tweets inside data.tweets
+        const tweets = data?.data?.tweets || data?.tweets || [];
+
+        // Build a map of tweet ID → engagement data
+        const tweetMap = {};
+        for (const tweet of tweets) {
+          if (tweet.id) tweetMap[String(tweet.id)] = tweet;
+        }
+
+        // Match against posts we need to poll
+        for (const post of posts) {
+          try {
+            const tweet = tweetMap[post.platformPostId];
+            if (!tweet) continue;
+
+            const impressions = tweet.viewCount || 0;
+            const likes = tweet.likeCount || 0;
+            const retweets = tweet.retweetCount || 0;
+            const replies = tweet.replyCount || 0;
+            const bookmarks = tweet.bookmarkCount || 0;
+            const quotes = tweet.quoteCount || 0;
+            const engagements = likes + retweets + replies + bookmarks + quotes;
+            const engagementRate = impressions > 0 ? (engagements / impressions) * 100 : 0;
+
+            await prisma.postMetrics.create({
+              data: {
+                postId: post.id,
+                accountId: post.accountId,
+                impressions,
+                engagements,
+                likes,
+                retweets,
+                replies,
+                bookmarks,
+                engagementRate,
+              },
+            });
+
+            results.metricsFetched++;
+            results.postsProcessed++;
+          } catch (postError) {
+            console.error(`Error storing metrics for post ${post.id}:`, postError);
+            results.errors.push({ postId: post.id, error: postError.message });
+          }
+        }
+      } catch (accountError) {
+        console.error(`Error processing X account ${account.id}:`, accountError);
+        results.errors.push({ accountId: account.id, error: accountError.message });
       }
     }
 
     return NextResponse.json({ ok: true, ...results });
   } catch (error) {
     console.error('poll-metrics cron error:', error);
-    return NextResponse.json(
-      { ok: false, error: error.message },
-      { status: 500 },
-    );
+    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
   }
 }

@@ -51,6 +51,16 @@ export default function DashboardPage() {
   );
 
   const sentimentQ = trpc.analytics.brandSentiment.useQuery(
+    undefined,
+    { staleTime: 30_000 }
+  );
+
+  const heatmapQ = trpc.analytics.heatmap.useQuery(
+    { range: dateRange },
+    { staleTime: 60_000 }
+  );
+
+  const postPerfQ = trpc.analytics.postPerformance.useQuery(
     { range: dateRange },
     { staleTime: 30_000 }
   );
@@ -65,9 +75,9 @@ export default function DashboardPage() {
   const brandSentimentByPlatform = sentimentQ.data?.byPlatform ?? EMPTY_SENTIMENT_BY_PLATFORM;
   const brandSentimentDrivers = sentimentQ.data?.drivers ?? EMPTY_SENTIMENT_DRIVERS;
   const sentimentAlerts = sentimentQ.data?.alerts ?? EMPTY_SENTIMENT_ALERTS;
-  const postScatterData = dashboard.postScatter ?? EMPTY_POST_SCATTER;
-  const postPerformanceTable = dashboard.postPerformance ?? EMPTY_POST_TABLE;
-  const heatmapData = dashboard.heatmap ?? EMPTY_HEATMAP;
+  const postScatterData = postPerfQ.data ?? EMPTY_POST_SCATTER;
+  const postPerformanceTable = postPerfQ.data ?? EMPTY_POST_TABLE;
+  const heatmapData = heatmapQ.data ?? EMPTY_HEATMAP;
 
   const totals = useMemo(() => {
     return {
@@ -84,6 +94,9 @@ export default function DashboardPage() {
   }, [dashboard, accounts]);
 
   const isLoading = dashboardQ.isLoading || accountBreakdownQ.isLoading;
+
+  // Dynamic delta label based on selected date range
+  const deltaLabel = dateRange === '7d' ? 'WoW' : dateRange === '30d' ? 'MoM' : 'PoP';
 
   const lastSentimentScore = brandSentimentOverTime.length
     ? brandSentimentOverTime[brandSentimentOverTime.length - 1].score
@@ -316,10 +329,10 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
-          <MetricCard label="Total Impressions" value={totals.impressions > 1000 ? `${(totals.impressions / 1000).toFixed(1)}K` : totals.impressions} delta={dashboard.impressionsDelta ? +dashboard.impressionsDelta.toFixed(0) : undefined} />
-          <MetricCard label="Avg Eng. Rate" value={`${totals.engRate}%`} delta={dashboard.engagementRateDelta ? +dashboard.engagementRateDelta.toFixed(0) : undefined} />
-          <MetricCard label="Total Followers" value={totals.followers.toLocaleString()} />
-          <MetricCard label="Engagements" value={(dashboard.engagements ?? 0).toLocaleString()} />
+          <MetricCard label="Total Impressions" value={totals.impressions > 1000 ? `${(totals.impressions / 1000).toFixed(1)}K` : totals.impressions} delta={dashboard.impressionsDelta != null ? +dashboard.impressionsDelta.toFixed(0) : undefined} deltaLabel={deltaLabel} />
+          <MetricCard label="Avg Eng. Rate" value={`${totals.engRate}%`} delta={dashboard.engagementRateDelta != null ? +dashboard.engagementRateDelta.toFixed(0) : undefined} deltaLabel={deltaLabel} />
+          <MetricCard label="Total Followers" value={totals.followers.toLocaleString()} delta={dashboard.followersDelta != null ? +dashboard.followersDelta.toFixed(1) : undefined} deltaLabel={deltaLabel} />
+          <MetricCard label="Engagements" value={(dashboard.engagements ?? 0).toLocaleString()} delta={dashboard.engagementsDelta != null ? +dashboard.engagementsDelta.toFixed(0) : undefined} deltaLabel={deltaLabel} />
           <MetricCard label="Posts Tracked" value={totals.posts} />
         </div>
       )}

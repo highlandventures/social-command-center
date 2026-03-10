@@ -9,7 +9,7 @@ export default function CalendarPage() {
 
   // ── tRPC queries ──────────────────────────────────────────
   const postsQ = trpc.posts.list.useQuery(undefined, { staleTime: 15_000 });
-  const posts = postsQ.data ?? [];
+  const posts = postsQ.data?.items ?? [];
 
   // ── Build calendar data from real posts ───────────────────
   const scheduledPosts = posts.filter(

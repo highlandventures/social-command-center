@@ -11,10 +11,13 @@ import { authOptions } from '@/lib/auth';
  * and redirects the user to Twitter's authorization endpoint.
  */
 export async function GET() {
+  const baseUrl = (process.env.NEXTAUTH_URL || '').trim();
+  const clientId = (process.env.X_OFFICIAL_CLIENT_ID || '').trim();
+
   // Require authenticated session
   const session = await getServerSession(authOptions);
   if (!session?.user) {
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/auth/signin`);
+    return NextResponse.redirect(`${baseUrl}/auth/signin`);
   }
   // Generate PKCE code verifier (high-entropy random string)
   const codeVerifier = randomBytes(32).toString('base64url');
@@ -28,12 +31,12 @@ export async function GET() {
   const state = randomBytes(16).toString('hex');
 
   // Build the redirect URI
-  const redirectUri = `${process.env.NEXTAUTH_URL}/api/connect/x/callback`;
+  const redirectUri = `${baseUrl}/api/connect/x/callback`;
 
   // Build Twitter authorization URL
   const authorizeUrl = new URL('https://twitter.com/i/oauth2/authorize');
   authorizeUrl.searchParams.set('response_type', 'code');
-  authorizeUrl.searchParams.set('client_id', process.env.X_OFFICIAL_CLIENT_ID);
+  authorizeUrl.searchParams.set('client_id', clientId);
   authorizeUrl.searchParams.set('redirect_uri', redirectUri);
   authorizeUrl.searchParams.set('scope', 'tweet.read tweet.write users.read offline.access');
   authorizeUrl.searchParams.set('state', state);

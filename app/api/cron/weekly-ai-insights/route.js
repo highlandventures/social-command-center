@@ -2,13 +2,14 @@
  * Cron: Weekly AI Insights
  * Schedule: Monday 6:00 AM UTC (0 6 * * 1)
  *
- * STUB: Gathers last 7 days of data and creates a placeholder AIInsight record.
- * Actual Claude integration will be wired in Phase 3.
+ * Gathers last 7 days of data and generates AI-powered insights via Claude.
+ * Creates both a WEEKLY_SUMMARY and an OPTIMAL_SCHEDULE insight.
  */
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { verifyCronAuth } from '@/lib/cron-auth';
+import { generateInsight } from '@/lib/ai';
 
 export const dynamic = 'force-dynamic';
 
@@ -71,17 +72,82 @@ export async function GET(request) {
       negative: recentListeningHits.filter((h) => h.sentiment === 'NEGATIVE').length,
     };
 
-    // STUB: Create placeholder AIInsight record
-    // Phase 3 will replace this with actual Claude-generated insights
+    // Prepare context for Claude
+    const aiContext = {
+      task: 'Generate a comprehensive weekly social media insights summary',
+      period: { start: sevenDaysAgo.toISOString(), end: now.toISOString() },
+      stats: {
+        totalPosts,
+        totalMentions,
+        totalListeningHits,
+        avgEngagementRate: Math.round(avgEngagementRate * 100) / 100,
+        sentimentBreakdown,
+        accountCount: accounts.length,
+      },
+      topPosts: recentPosts
+        .sort((a, b) => (b.metrics[0]?.engagementRate || 0) - (a.metrics[0]?.engagementRate || 0))
+        .slice(0, 5)
+        .map((p) => ({
+          content: p.content?.substring(0, 200),
+          platform: p.platform,
+          engagementRate: p.metrics[0]?.engagementRate || 0,
+          impressions: p.metrics[0]?.impressions || 0,
+          likes: p.metrics[0]?.likes || 0,
+          retweets: p.metrics[0]?.retweets || 0,
+        })),
+      recentMentions: recentMentions.slice(0, 20).map((m) => ({
+        content: m.content?.substring(0, 150),
+        mentionType: m.mentionType,
+        authorUsername: m.authorUsername,
+      })),
+      listeningHighlights: recentListeningHits
+        .filter((h) => h.heuristicScore > 0.5)
+        .slice(0, 15)
+        .map((h) => ({
+          content: h.content?.substring(0, 150),
+          sentiment: h.sentiment,
+          score: h.heuristicScore,
+          platform: h.platform,
+        })),
+    };
+
+    const systemPrompt = `You are a senior social media strategist generating a weekly insights summary.
+Analyze the provided data and generate actionable insights.
+Always respond with valid JSON matching this schema:
+{
+  "summary": "string - 3-4 sentence executive summary of the week",
+  "performanceHighlights": [
+    { "highlight": "string", "metric": "string", "trend": "UP|DOWN|STABLE" }
+  ],
+  "contentInsights": [
+    { "insight": "string", "evidence": "string", "actionability": "HIGH|MEDIUM|LOW" }
+  ],
+  "audienceTrends": [
+    { "trend": "string", "detail": "string" }
+  ],
+  "recommendations": [
+    { "recommendation": "string", "priority": "HIGH|MEDIUM|LOW", "expectedImpact": "string" }
+  ],
+  "optimalPostingTimes": [
+    { "day": "string", "time": "string", "rationale": "string" }
+  ],
+  "weekAhead": "string - brief outlook for the coming week"
+}`;
+
+    // Generate AI insights via Claude
+    const aiContent = await generateInsight('cron/weekly-summary', aiContext, {
+      systemPrompt,
+      maxTokens: 3000,
+    });
+
+    // Store the AI-generated insight
     const insight = await prisma.aIInsight.create({
       data: {
         insightType: 'WEEKLY_SUMMARY',
         dataRangeStart: sevenDaysAgo,
         dataRangeEnd: now,
         content: {
-          _stub: true,
-          _note: 'Placeholder insight. Claude integration coming in Phase 3.',
-          summary: `Weekly summary: ${totalPosts} posts published, ${totalMentions} mentions received, ${totalListeningHits} listening hits detected.`,
+          ...aiContent,
           stats: {
             totalPosts,
             totalMentions,
@@ -89,18 +155,29 @@ export async function GET(request) {
             avgEngagementRate: Math.round(avgEngagementRate * 100) / 100,
             sentimentBreakdown,
           },
-          recommendations: [
-            'Analyze top-performing posts for content patterns.',
-            'Review actionable listening hits for engagement opportunities.',
-            'Monitor sentiment trends for brand perception shifts.',
-          ],
         },
       },
     });
 
+    // Also create an optimal schedule insight if posting time data exists
+    if (aiContent.optimalPostingTimes?.length > 0) {
+      await prisma.aIInsight.create({
+        data: {
+          insightType: 'OPTIMAL_SCHEDULE',
+          dataRangeStart: sevenDaysAgo,
+          dataRangeEnd: now,
+          content: {
+            schedule: aiContent.optimalPostingTimes,
+            generatedFrom: insight.id,
+          },
+        },
+      });
+    }
+
     return NextResponse.json({
       ok: true,
       insightId: insight.id,
+      aiGenerated: true,
       dataRange: {
         start: sevenDaysAgo.toISOString(),
         end: now.toISOString(),
