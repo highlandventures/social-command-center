@@ -89,7 +89,7 @@ export default function DashboardPage() {
           : 0,
       followers: dashboard.totalFollowers ?? accounts.reduce((s, a) => s + (a.followers ?? 0), 0),
       posts: accounts.reduce((s, a) => s + (a.totalPosts ?? 0), 0),
-      mentions: 0,
+      mentions: dashboard.mentions ?? 0,
     };
   }, [dashboard, accounts]);
 

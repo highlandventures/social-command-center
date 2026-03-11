@@ -57,10 +57,26 @@ export async function GET(request) {
           // TwitterAPI.io nests tweets inside data.tweets
           const tweets = timelineRes?.data?.tweets || timelineRes?.tweets || [];
 
-          // Extract follower/following from first tweet's author field
+          // Extract follower/following from first tweet's author field.
+          // TwitterAPI.io returns author.followers (int) and author.following (int).
+          // Fallback: try user profile endpoint if timeline author data is missing.
           const author = tweets[0]?.author || {};
-          const followers = author.followers || 0;
-          const following = author.following || 0;
+          let followers = author.followers || author.followersCount || author.follower_count || 0;
+          let following = author.following || author.followingCount || author.friends_count || 0;
+
+          // If timeline didn't yield follower data, fetch the profile directly
+          if (followers === 0) {
+            try {
+              const profileRes = await twitterApiIoRequest(apiKey, '/user/profile_by_username', {
+                userName: account.username,
+              });
+              const profile = profileRes?.data || profileRes || {};
+              followers = profile.followers || profile.followersCount || profile.follower_count || 0;
+              following = profile.following || profile.followingCount || profile.friends_count || 0;
+            } catch (profileErr) {
+              console.warn(`[daily-analytics] Profile fallback failed for @${account.username}:`, profileErr.message);
+            }
+          }
 
           if (debugMode) {
             results.debug.push({
@@ -69,6 +85,7 @@ export async function GET(request) {
               authorKeys: Object.keys(author),
               resolvedFollowers: followers,
               resolvedFollowing: following,
+              usedProfileFallback: (author.followers || 0) === 0 && followers > 0,
             });
           }
 
@@ -134,7 +151,8 @@ export async function GET(request) {
             results.metricsCreated++;
           }
 
-          // Upsert AccountMetrics
+          // Upsert AccountMetrics — only write follower data when non-zero
+          // to prevent overwriting valid historical counts with 0
           await prisma.accountMetrics.upsert({
             where: {
               accountId_date: {
@@ -142,7 +160,10 @@ export async function GET(request) {
                 date: today,
               },
             },
-            update: { followers, following, totalPosts: tweets.length },
+            update: {
+              totalPosts: tweets.length,
+              ...(followers > 0 ? { followers, following } : {}),
+            },
             create: {
               accountId: account.id,
               date: today,

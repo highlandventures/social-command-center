@@ -12,9 +12,11 @@ import { TabButton, SectionTitle, Skeleton } from '@/components/ui';
 export default function ReportsPage() {
   const [subTab, setSubTab] = useState('builder');
   const [aiPrompt, setAiPrompt] = useState('');
+  const [reportType, setReportType] = useState('WEEKLY_PERFORMANCE');
   const [reportTypeFilter, setReportTypeFilter] = useState('all');
   const [selectedBenchmark, setSelectedBenchmark] = useState('engRate');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedReport, setGeneratedReport] = useState(null);
 
   // ── tRPC queries ──────────────────────────────────────────
   const reportsQ = trpc.reports.list.useQuery(undefined, { staleTime: 30_000 });
@@ -23,9 +25,10 @@ export default function ReportsPage() {
   const utils = trpc.useUtils();
 
   const generateMutation = trpc.reports.generate.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       utils.reports.list.invalidate();
       setIsGenerating(false);
+      setGeneratedReport(data);
     },
     onError: () => {
       setIsGenerating(false);
@@ -39,12 +42,25 @@ export default function ReportsPage() {
   const filteredReports =
     reportTypeFilter === 'all'
       ? reportRepository
-      : reportRepository.filter((r) => r.type === reportTypeFilter);
+      : reportRepository.filter((r) => (r.reportType || r.type || '').toLowerCase().includes(reportTypeFilter));
+
+  const reportTypeLabels = {
+    WEEKLY_PERFORMANCE: 'Weekly Performance',
+    MONTHLY_SUMMARY: 'Monthly Summary',
+    COMPETITIVE_ANALYSIS: 'Competitive Analysis',
+    KOL_REPORT: 'KOL Report',
+    CUSTOM: 'Custom',
+  };
 
   const handleGenerate = () => {
     if (!aiPrompt.trim()) return;
     setIsGenerating(true);
-    generateMutation.mutate({ prompt: aiPrompt });
+    setGeneratedReport(null);
+    generateMutation.mutate({
+      title: `${reportTypeLabels[reportType] || 'Custom'} Report — ${new Date().toLocaleDateString()}`,
+      reportType,
+      prompt: aiPrompt,
+    });
   };
 
   return (
@@ -77,6 +93,18 @@ export default function ReportsPage() {
                 <p className="text-sm text-gray-700 mb-3">
                   Tell me what report you need and I&apos;ll draft it using your real data. You can refine any section before finalizing.
                 </p>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs text-gray-500">Report type:</span>
+                  <select
+                    value={reportType}
+                    onChange={(e) => setReportType(e.target.value)}
+                    className="text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white"
+                  >
+                    {Object.entries(reportTypeLabels).map(([key, label]) => (
+                      <option key={key} value={key}>{label}</option>
+                    ))}
+                  </select>
+                </div>
                 <textarea
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
@@ -88,22 +116,23 @@ export default function ReportsPage() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs text-gray-400">Quick templates:</span>
                     {[
-                      'Weekly performance',
-                      'Monthly executive summary',
-                      'KOL campaign review',
-                      'Competitor deep dive',
-                      'Content audit',
+                      { label: 'Weekly performance', type: 'WEEKLY_PERFORMANCE' },
+                      { label: 'Monthly executive summary', type: 'MONTHLY_SUMMARY' },
+                      { label: 'KOL campaign review', type: 'KOL_REPORT' },
+                      { label: 'Competitor deep dive', type: 'COMPETITIVE_ANALYSIS' },
+                      { label: 'Content audit', type: 'CUSTOM' },
                     ].map((t) => (
                       <button
-                        key={t}
-                        onClick={() =>
+                        key={t.label}
+                        onClick={() => {
+                          setReportType(t.type);
                           setAiPrompt(
-                            `Generate a ${t.toLowerCase()} report for the most recent period. Include key metrics, trends, highlights, and strategic recommendations.`
-                          )
-                        }
+                            `Generate a ${t.label.toLowerCase()} report for the most recent period. Include key metrics, trends, highlights, and strategic recommendations.`
+                          );
+                        }}
                         className="text-xs px-2.5 py-1 bg-gray-100 text-gray-600 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors"
                       >
-                        {t}
+                        {t.label}
                       </button>
                     ))}
                   </div>
@@ -128,7 +157,9 @@ export default function ReportsPage() {
             <div className="flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-200">
               <div className="flex items-center gap-3">
                 <h4 className="text-sm font-semibold text-gray-900">Report Preview</h4>
-                <span className="text-[10px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">AI Draft</span>
+                {generatedReport && (
+                  <span className="text-[10px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">AI Draft</span>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <button className="text-xs text-gray-500 hover:text-gray-700 px-2 py-1 rounded hover:bg-gray-100">Edit</button>
@@ -139,71 +170,99 @@ export default function ReportsPage() {
             </div>
 
             <div className="p-6 max-h-[500px] overflow-y-auto">
-              <div className="max-w-2xl mx-auto">
-                <div className="text-center mb-6">
-                  <h2 className="text-xl font-bold text-gray-900">Weekly Social Performance Report</h2>
-                  <p className="text-sm text-gray-500 mt-1">February 24 – March 2, 2026 | Highland Ventures</p>
+              {isGenerating ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3" />
+                  <p className="text-sm text-gray-500">Generating your report with AI...</p>
+                  <p className="text-xs text-gray-400 mt-1">This may take 15-30 seconds</p>
                 </div>
-
-                <div className="mb-6">
-                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2 border-b border-gray-200 pb-1">Executive Summary</h3>
-                  <p className="text-sm text-gray-700 leading-relaxed">
-                    Strong week across X accounts with engagement rate up 12% WoW, driven primarily by a 5-tweet educational thread on founder evaluation signals that generated 24.3K impressions and 7.4% engagement. Reddit presence grew steadily. Brand sentiment improved to 72.1 (+2.8), with &quot;Product Innovation&quot; as the strongest sentiment driver.
-                  </p>
-                </div>
-
-                <div className="mb-6">
-                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2 border-b border-gray-200 pb-1">Key Metrics</h3>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-50">
-                        <th className="text-left py-2 px-3 text-xs text-gray-500">Metric</th>
-                        <th className="text-right py-2 px-3 text-xs text-gray-500">This Week</th>
-                        <th className="text-right py-2 px-3 text-xs text-gray-500">Last Week</th>
-                        <th className="text-right py-2 px-3 text-xs text-gray-500">Change</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[
-                        { metric: 'Total Impressions', current: '24.3K', previous: '21.7K', change: '+12%', good: true },
-                        { metric: 'Engagement Rate', current: '4.2%', previous: '3.9%', change: '+0.3pp', good: true },
-                        { metric: 'Net Followers', current: '+187', previous: '+197', change: '-5%', good: false },
-                        { metric: 'Brand Sentiment', current: '72.1', previous: '69.3', change: '+4%', good: true },
-                        { metric: 'Share of Voice', current: '34%', previous: '36%', change: '-2pp', good: false },
-                        { metric: 'Posts Published', current: '14', previous: '14', change: '\u2014', good: null },
-                      ].map((row, i) => (
-                        <tr key={i} className="border-b border-gray-100">
-                          <td className="py-2 px-3 font-medium text-gray-900">{row.metric}</td>
-                          <td className="py-2 px-3 text-right font-medium">{row.current}</td>
-                          <td className="py-2 px-3 text-right text-gray-500">{row.previous}</td>
-                          <td
-                            className={`py-2 px-3 text-right font-medium ${
-                              row.good === true ? 'text-green-600' : row.good === false ? 'text-red-500' : 'text-gray-400'
-                            }`}
-                          >
-                            {row.change}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {['Top Performing Content', 'Sentiment Analysis', 'Competitor Landscape', 'Recommendations'].map((section, i) => (
-                  <div key={i} className="mb-4 p-3 border border-dashed border-gray-200 rounded-lg bg-gray-50/50">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">{section}</h3>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded font-medium">AI Generated</span>
-                        <button className="text-xs text-blue-600 hover:text-blue-800 font-medium">Edit section →</button>
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Click &quot;Edit section&quot; to review and modify the AI-generated content for this section.
+              ) : generatedReport?.content ? (
+                <div className="max-w-2xl mx-auto">
+                  <div className="text-center mb-6">
+                    <h2 className="text-xl font-bold text-gray-900">{generatedReport.title}</h2>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Generated {new Date(generatedReport.createdAt).toLocaleDateString()} | {reportTypeLabels[generatedReport.reportType] || 'Report'}
                     </p>
                   </div>
-                ))}
-              </div>
+
+                  {/* Executive Summary */}
+                  {(generatedReport.content.executiveSummary || generatedReport.content.summary) && (
+                    <div className="mb-6">
+                      <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2 border-b border-gray-200 pb-1">Executive Summary</h3>
+                      <p className="text-sm text-gray-700 leading-relaxed">
+                        {generatedReport.content.executiveSummary || generatedReport.content.summary}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Key Metrics */}
+                  {generatedReport.content.keyMetrics && (
+                    <div className="mb-6">
+                      <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2 border-b border-gray-200 pb-1">Key Metrics</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {Object.entries(generatedReport.content.keyMetrics).map(([key, val]) => (
+                          <div key={key} className="p-3 bg-gray-50 rounded-lg">
+                            <p className="text-xs text-gray-500 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                            <p className="text-lg font-bold text-gray-900">{typeof val === 'number' ? val.toLocaleString() : val}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Top Content */}
+                  {generatedReport.content.topContent?.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2 border-b border-gray-200 pb-1">Top Performing Content</h3>
+                      <div className="space-y-2">
+                        {generatedReport.content.topContent.map((item, i) => (
+                          <div key={i} className="p-3 bg-gray-50 rounded-lg">
+                            <p className="text-sm font-medium text-gray-900">{item.title || item.postId}</p>
+                            {item.whyItWorked && <p className="text-xs text-gray-600 mt-1">{item.whyItWorked}</p>}
+                            <div className="flex gap-3 mt-1 text-xs text-gray-500">
+                              {item.impressions && <span>{item.impressions.toLocaleString()} imp</span>}
+                              {item.engagementRate && <span>{item.engagementRate}% eng</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Recommendations */}
+                  {generatedReport.content.recommendations?.length > 0 && (
+                    <div className="mb-6">
+                      <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-2 border-b border-gray-200 pb-1">Recommendations</h3>
+                      <div className="space-y-2">
+                        {generatedReport.content.recommendations.map((rec, i) => (
+                          <div key={i} className="p-3 bg-gray-50 rounded-lg flex items-start gap-2">
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium mt-0.5 ${
+                              rec.priority === 'HIGH' ? 'bg-red-50 text-red-600' : rec.priority === 'MEDIUM' ? 'bg-amber-50 text-amber-600' : 'bg-gray-100 text-gray-600'
+                            }`}>{rec.priority}</span>
+                            <div>
+                              <p className="text-sm text-gray-900">{rec.recommendation}</p>
+                              {rec.expectedImpact && <p className="text-xs text-gray-500 mt-0.5">Impact: {rec.expectedImpact}</p>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Outlook */}
+                  {generatedReport.content.outlook && (
+                    <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                      <h3 className="text-sm font-bold text-blue-900 mb-1">Week Ahead Outlook</h3>
+                      <p className="text-sm text-blue-800">{generatedReport.content.outlook}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-gray-400">
+                  <p className="text-sm">Select a report type and describe what you need, then click Generate.</p>
+                  <p className="text-xs mt-1">Your report will appear here.</p>
+                </div>
+              )}
             </div>
           </div>
 

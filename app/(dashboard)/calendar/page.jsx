@@ -6,6 +6,31 @@ import { PlatformBadge, Skeleton } from '@/components/ui';
 
 export default function CalendarPage() {
   const [view, setView] = useState('month');
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth() }; // 0-indexed
+  });
+
+  const goToPrevMonth = () => {
+    setCurrentMonth((prev) => {
+      const m = prev.month - 1;
+      return m < 0 ? { year: prev.year - 1, month: 11 } : { year: prev.year, month: m };
+    });
+  };
+  const goToNextMonth = () => {
+    setCurrentMonth((prev) => {
+      const m = prev.month + 1;
+      return m > 11 ? { year: prev.year + 1, month: 0 } : { year: prev.year, month: m };
+    });
+  };
+
+  const monthName = new Date(currentMonth.year, currentMonth.month).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  const daysInMonth = new Date(currentMonth.year, currentMonth.month + 1, 0).getDate();
+  // Day of week the 1st falls on (0=Sun). Convert to Mon-start: (dow + 6) % 7
+  const firstDayDow = new Date(currentMonth.year, currentMonth.month, 1).getDay();
+  const startPadCount = (firstDayDow + 6) % 7;
+  const today = new Date();
+  const todayDay = today.getFullYear() === currentMonth.year && today.getMonth() === currentMonth.month ? today.getDate() : null;
 
   // ── tRPC queries ──────────────────────────────────────────
   const postsQ = trpc.posts.list.useQuery(undefined, { staleTime: 15_000 });
@@ -19,23 +44,22 @@ export default function CalendarPage() {
     (p) => p.status === 'PUBLISHED' || p.status === 'published'
   );
 
-  // Build a map of day => posts for March 2026
+  // Build a map of day => posts for the current month
   const calendarDays = useMemo(() => {
     const days = [];
-    // If we have real post data, map them by day; otherwise provide static fallback
     const postMap = {};
 
-    // Try to map real posts to day numbers
+    // Map real posts to day numbers for the current month
     [...scheduledPosts, ...publishedPosts].forEach((p) => {
       const date = p.scheduledFor || p.publishedAt || p.createdAt;
       if (!date) return;
       const d = new Date(date);
-      if (d.getMonth() === 2 && d.getFullYear() === 2026) {
+      if (d.getMonth() === currentMonth.month && d.getFullYear() === currentMonth.year) {
         const dayNum = d.getDate();
         if (!postMap[dayNum]) postMap[dayNum] = [];
         postMap[dayNum].push({
-          type: p.type || 'post',
-          platform: p.platform || 'x',
+          type: p.contentType?.toLowerCase() || p.type || 'post',
+          platform: (p.platform || 'X').toLowerCase(),
           label: (p.content || '').slice(0, 40),
           time: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
           status: (p.status || '').toLowerCase(),
@@ -43,27 +67,13 @@ export default function CalendarPage() {
       }
     });
 
-    // Fallback static entries when no real data
-    if (Object.keys(postMap).length === 0) {
-      postMap[5] = [{ type: 'thread', platform: 'x', label: '7 signals in founders', time: '9:15am', status: 'scheduled' }];
-      postMap[6] = [{ type: 'post', platform: 'x', label: 'AI regulation take', time: '1:00pm', status: 'scheduled' }];
-      postMap[7] = [{ type: 'post', platform: 'reddit', label: 'AI for deal flow', time: '10:00am', status: 'scheduled' }];
-      postMap[8] = [{ type: 'thread', platform: 'x', label: 'Portfolio spotlight', time: '11:30am', status: 'scheduled' }];
-      postMap[1] = [{ type: 'thread', platform: 'x', label: '10 lessons from pitches', time: '9:00am', status: 'published' }];
-      postMap[2] = [{ type: 'post', platform: 'x', label: 'Hot take: seed stage', time: '2:00pm', status: 'published' }];
-      postMap[10] = [{ type: 'ghost', platform: 'x', label: 'AI suggestion: LP reporting thread', time: '9:15am' }];
-      postMap[12] = [{ type: 'ghost', platform: 'reddit', label: 'AI suggestion: Founder story', time: '10:00am' }];
-    }
-
-    for (let d = 1; d <= 31; d++) {
-      days.push({ day: d, posts: postMap[d] || [], isToday: d === 4 });
+    for (let d = 1; d <= daysInMonth; d++) {
+      days.push({ day: d, posts: postMap[d] || [], isToday: d === todayDay });
     }
     return days;
-  }, [scheduledPosts, publishedPosts]);
+  }, [scheduledPosts, publishedPosts, currentMonth, daysInMonth, todayDay]);
 
   const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  // March 2026 starts on Sunday (index 6), pad accordingly
-  const startPad = 6;
 
   const postColors = {
     scheduled: 'bg-blue-100 border-blue-200 text-blue-800',
@@ -76,10 +86,10 @@ export default function CalendarPage() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-bold text-gray-900">March 2026</h2>
+          <h2 className="text-lg font-bold text-gray-900">{monthName}</h2>
           <div className="flex items-center gap-1">
-            <button className="p-1 text-gray-400 hover:text-gray-600">{'\u2190'}</button>
-            <button className="p-1 text-gray-400 hover:text-gray-600">{'\u2192'}</button>
+            <button onClick={goToPrevMonth} className="p-1 text-gray-400 hover:text-gray-600">{'\u2190'}</button>
+            <button onClick={goToNextMonth} className="p-1 text-gray-400 hover:text-gray-600">{'\u2192'}</button>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -130,7 +140,7 @@ export default function CalendarPage() {
               {/* Calendar grid */}
               <div className="grid grid-cols-7">
                 {/* Padding for days before March 1 */}
-                {Array.from({ length: startPad }, (_, i) => (
+                {Array.from({ length: startPadCount }, (_, i) => (
                   <div key={`pad-${i}`} className="min-h-[100px] border-b border-r border-gray-100 bg-gray-50/50" />
                 ))}
                 {calendarDays.map((day) => (
@@ -175,29 +185,44 @@ export default function CalendarPage() {
                   </div>
                 ))}
                 {/* Padding for remaining cells */}
-                {Array.from({ length: (7 - ((startPad + 31) % 7)) % 7 }, (_, i) => (
+                {Array.from({ length: (7 - ((startPadCount + daysInMonth) % 7)) % 7 }, (_, i) => (
                   <div key={`pad-end-${i}`} className="min-h-[100px] border-b border-r border-gray-100 bg-gray-50/50" />
                 ))}
               </div>
             </div>
           )}
 
-          {view === 'week' && (
+          {view === 'week' && (() => {
+            // Compute the current week (Mon-Sun) containing today or the 1st of the displayed month
+            const refDate = todayDay ? new Date(currentMonth.year, currentMonth.month, todayDay) : new Date(currentMonth.year, currentMonth.month, 1);
+            const refDow = (refDate.getDay() + 6) % 7; // 0=Mon
+            const weekStart = new Date(refDate);
+            weekStart.setDate(refDate.getDate() - refDow);
+            const weekDays = Array.from({ length: 7 }, (_, i) => {
+              const d = new Date(weekStart);
+              d.setDate(weekStart.getDate() + i);
+              return d;
+            });
+            const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            return (
             <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-sm text-gray-500 mb-4">Week of March 2 — March 8, 2026</p>
+              <p className="text-sm text-gray-500 mb-4">Week of {fmt(weekDays[0])} — {fmt(weekDays[6])}, {weekDays[0].getFullYear()}</p>
               <div className="grid grid-cols-7 gap-3">
-                {['Mon 2', 'Tue 3', 'Wed 4', 'Thu 5', 'Fri 6', 'Sat 7', 'Sun 8'].map((day, i) => {
-                  const dayNum = i + 2;
-                  const dayData = calendarDays.find((d) => d.day === dayNum);
+                {weekDays.map((wd, i) => {
+                  const dayNum = wd.getDate();
+                  const isInMonth = wd.getMonth() === currentMonth.month && wd.getFullYear() === currentMonth.year;
+                  const dayData = isInMonth ? calendarDays.find((d) => d.day === dayNum) : null;
+                  const isToday = wd.toDateString() === today.toDateString();
+                  const label = `${daysOfWeek[i]} ${dayNum}`;
                   return (
                     <div
-                      key={day}
+                      key={i}
                       className={`rounded-lg border p-3 min-h-[200px] ${
-                        dayNum === 4 ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200'
+                        isToday ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200'
                       }`}
                     >
-                      <p className={`text-xs font-medium mb-2 ${dayNum === 4 ? 'text-blue-700' : 'text-gray-500'}`}>
-                        {day} {dayNum === 4 && '(Today)'}
+                      <p className={`text-xs font-medium mb-2 ${isToday ? 'text-blue-700' : 'text-gray-500'}`}>
+                        {label} {isToday && '(Today)'}
                       </p>
                       <div className="space-y-2">
                         {dayData?.posts.map((post, j) => (
@@ -218,7 +243,8 @@ export default function CalendarPage() {
                 })}
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {view === 'list' && (
             <div className="bg-white rounded-xl border border-gray-200 p-5">

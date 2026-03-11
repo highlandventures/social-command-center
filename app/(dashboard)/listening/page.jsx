@@ -43,7 +43,7 @@ export default function ListeningPage() {
   const [relevanceFilter, setRelevanceFilter] = useState('all');
   const [brandFilter, setBrandFilter] = useState('all');
 
-  // New topic form state (AI-driven)
+  // New topic form state (AI-driven conversational flow)
   const [showNewTopic, setShowNewTopic] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [generatedResult, setGeneratedResult] = useState(null); // AI-generated queries
@@ -51,6 +51,8 @@ export default function ListeningPage() {
   const [topicDescription, setTopicDescription] = useState('');
   const [topicQueries, setTopicQueries] = useState([]);
   const [refineInput, setRefineInput] = useState('');
+  const [newTopicChat, setNewTopicChat] = useState([]); // conversational chat messages
+  const [clarifyingQuestions, setClarifyingQuestions] = useState([]); // AI questions for user
 
   // Per-topic AI refinement state
   const [expandedTopicId, setExpandedTopicId] = useState(null);
@@ -84,6 +86,20 @@ export default function ListeningPage() {
           rationale: q.rationale || '',
         })));
       }
+      // Handle clarifying questions from AI
+      if (data.clarifyingQuestions?.length > 0) {
+        setClarifyingQuestions(data.clarifyingQuestions);
+        setNewTopicChat((prev) => [
+          ...prev,
+          { role: 'assistant', content: `I've generated initial queries, but I have a few questions to make them more precise:`, questions: data.clarifyingQuestions },
+        ]);
+      } else {
+        setClarifyingQuestions([]);
+        setNewTopicChat((prev) => [
+          ...prev,
+          { role: 'assistant', content: `Generated ${data.queries?.length || 0} queries for "${data.topicName}". You can review and refine them below.` },
+        ]);
+      }
     },
   });
 
@@ -97,6 +113,8 @@ export default function ListeningPage() {
       setTopicDescription('');
       setTopicQueries([]);
       setRefineInput('');
+      setNewTopicChat([]);
+      setClarifyingQuestions([]);
     },
   });
   const toggleTopicMutation = trpc.listening.topics.update.useMutation({
@@ -156,8 +174,23 @@ export default function ListeningPage() {
   // ── Form handlers ─────────────────────────────────────────
   const handleGenerateQueries = useCallback(() => {
     if (!aiPrompt.trim()) return;
-    generateQueriesMutation.mutate({ prompt: aiPrompt.trim() });
-  }, [aiPrompt, generateQueriesMutation]);
+    // Add user message to chat
+    setNewTopicChat((prev) => [...prev, { role: 'user', content: aiPrompt.trim() }]);
+    // Pass conversation history for context
+    const history = newTopicChat.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+    generateQueriesMutation.mutate({
+      prompt: aiPrompt.trim(),
+      conversationHistory: history.length > 0 ? history : undefined,
+      ...(topicQueries.length > 0 ? {
+        existingQueries: topicQueries.map((q) => ({ platform: q.platform, queryString: q.queryString })),
+        refinement: aiPrompt.trim(),
+      } : {}),
+    });
+    setAiPrompt('');
+  }, [aiPrompt, newTopicChat, topicQueries, generateQueriesMutation]);
 
   const handleRefineQueries = useCallback(() => {
     if (!refineInput.trim() || !topicQueries.length) return;
@@ -593,16 +626,17 @@ export default function ListeningPage() {
             </div>
           </div>
 
-          {/* ── New Topic Form (AI-powered) ─── */}
+          {/* ── New Topic Form (AI-powered conversational) ─── */}
           {showNewTopic && (
             <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">AI</div>
                   <h4 className="text-sm font-bold text-blue-900">Create New Listening Topic</h4>
+                  <span className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">Conversational</span>
                 </div>
                 <button
-                  onClick={() => { setShowNewTopic(false); setGeneratedResult(null); setTopicQueries([]); setAiPrompt(''); }}
+                  onClick={() => { setShowNewTopic(false); setGeneratedResult(null); setTopicQueries([]); setAiPrompt(''); setNewTopicChat([]); setClarifyingQuestions([]); }}
                   className="text-blue-400 hover:text-blue-600 text-lg leading-none"
                 >
                   &times;
@@ -610,10 +644,52 @@ export default function ListeningPage() {
               </div>
 
               <div className="space-y-4">
-                {/* Step 1: AI Prompt */}
+                {/* Conversation history */}
+                {newTopicChat.length > 0 && (
+                  <div className="bg-white rounded-lg border border-blue-100 p-3 max-h-[300px] overflow-y-auto space-y-3">
+                    {newTopicChat.map((msg, i) => (
+                      <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        {msg.role === 'assistant' && (
+                          <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0 mt-0.5">AI</div>
+                        )}
+                        <div className={`max-w-[80%] ${msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-800'} rounded-lg px-3 py-2`}>
+                          <p className="text-xs leading-relaxed">{msg.content}</p>
+                          {msg.questions && (
+                            <div className="mt-2 space-y-1.5">
+                              {msg.questions.map((q, qi) => (
+                                <button
+                                  key={qi}
+                                  onClick={() => setAiPrompt(q)}
+                                  className="block w-full text-left text-[11px] bg-white/80 text-blue-800 px-2.5 py-1.5 rounded border border-blue-100 hover:bg-blue-50 transition-colors"
+                                >
+                                  {qi + 1}. {q}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {generateQueriesMutation.isPending && (
+                      <div className="flex gap-2">
+                        <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">AI</div>
+                        <div className="bg-gray-50 rounded-lg px-3 py-2 flex items-center gap-2">
+                          <span className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                          <span className="text-xs text-gray-500">Thinking...</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Chat input */}
                 <div>
                   <label className="block text-xs font-medium text-blue-800 mb-1">
-                    Describe what you want to monitor
+                    {newTopicChat.length === 0
+                      ? 'Describe what you want to monitor in plain English'
+                      : clarifyingQuestions.length > 0
+                      ? 'Answer the questions above, or provide more details'
+                      : 'Refine your queries — tell AI what to change'}
                   </label>
                   <div className="flex gap-2">
                     <input
@@ -621,7 +697,9 @@ export default function ListeningPage() {
                       value={aiPrompt}
                       onChange={(e) => setAiPrompt(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleGenerateQueries()}
-                      placeholder="e.g. Find people talking about AI agents for venture capital deal sourcing, especially founders building in this space"
+                      placeholder={newTopicChat.length === 0
+                        ? "e.g. Track conversations about humanoid robots and Figure AI, from investors, analysts, and tech journalists"
+                        : "e.g. Focus more on institutional investors, exclude retail crypto discussions..."}
                       className="flex-1 px-3 py-2.5 text-sm border border-blue-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
                     />
                     <button

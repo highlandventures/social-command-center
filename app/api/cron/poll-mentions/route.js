@@ -12,6 +12,7 @@ import { verifyCronAuth } from '@/lib/cron-auth';
 import { getValidToken } from '@/lib/token-refresh';
 import { XPlatformAdapter } from '@/lib/x-adapter';
 import { RedditAdapter } from '@/lib/reddit-adapter';
+import { classifyMention } from '@/lib/mention-classifier';
 
 export const dynamic = 'force-dynamic';
 
@@ -78,6 +79,9 @@ export async function GET(request) {
 
             if (existing) continue;
 
+            // Classify mention type from raw API payload
+            const mentionType = classifyMention(account.platform, mention);
+
             // Create Mention record
             const newMention = await prisma.mention.create({
               data: {
@@ -91,17 +95,20 @@ export async function GET(request) {
                   mention.author_fullname ||
                   null,
                 content: String(content),
-                mentionType: 'MENTION',
+                mentionType,
                 sourceUrl: sourceUrl ? String(sourceUrl) : null,
               },
             });
+
+            // Map mention types to inbox item types
+            const inboxItemType = mentionType === 'DM' ? 'DM' : 'MENTION';
 
             // Create corresponding InboxItem
             await prisma.inboxItem.create({
               data: {
                 accountId: account.id,
                 platform: account.platform,
-                itemType: 'MENTION',
+                itemType: inboxItemType,
                 fromUsername: String(authorUsername),
                 content: String(content),
               },

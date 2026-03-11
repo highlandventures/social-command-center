@@ -118,6 +118,36 @@ export async function GET(request) {
         // TwitterAPI.io nests tweets inside data.tweets
         const tweets = data?.data?.tweets || data?.tweets || [];
 
+        // Opportunistically snapshot follower count from the timeline response
+        // we already paid for. This keeps follower data fresh every 15 min
+        // instead of relying solely on the daily-analytics cron at 2 AM.
+        if (tweets[0]?.author) {
+          const a = tweets[0].author;
+          const followers = a.followers || a.followersCount || a.follower_count || 0;
+          const following = a.following || a.followingCount || a.friends_count || 0;
+          if (followers > 0) {
+            const today = new Date();
+            today.setUTCHours(0, 0, 0, 0);
+            try {
+              await prisma.accountMetrics.upsert({
+                where: {
+                  accountId_date: { accountId: account.id, date: today },
+                },
+                update: { followers, following },
+                create: {
+                  accountId: account.id,
+                  date: today,
+                  followers,
+                  following,
+                  totalPosts: 0,
+                },
+              });
+            } catch (e) {
+              // Non-critical — don't fail the whole metrics poll for a follower snapshot
+            }
+          }
+        }
+
         // Build a map of tweet ID → engagement data
         const tweetMap = {};
         for (const tweet of tweets) {

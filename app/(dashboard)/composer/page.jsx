@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { trpc } from '@/lib/trpc-client';
 import { PlatformBadge, Skeleton } from '@/components/ui';
+import { useToast } from '@/components/ui';
 
 export default function ComposerPage() {
   const [selectedPlatform, setSelectedPlatform] = useState('x');
@@ -44,6 +45,41 @@ export default function ComposerPage() {
     },
   });
 
+  // ── AI mutations ────────────────────────────────────────────
+  const [aiSuggestion, setAiSuggestion] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const toast = useToast();
+
+  const optimizeMutation = trpc.ai.optimizeThread.useMutation({
+    onSuccess: (data) => {
+      setAiSuggestion(data);
+      setAiLoading(false);
+    },
+    onError: (err) => {
+      toast.error('AI optimization failed: ' + (err.message || 'Unknown error'));
+      setAiLoading(false);
+    },
+  });
+
+  const handleAiOptimize = useCallback(() => {
+    const content = postMode === 'thread' ? tweets : [tweets[0] || ''];
+    const nonEmpty = content.filter((t) => (t || '').trim());
+    if (nonEmpty.length === 0) {
+      toast.info('Write some content first before optimizing.');
+      return;
+    }
+    setAiLoading(true);
+    setAiSuggestion(null);
+    optimizeMutation.mutate({ tweets: nonEmpty });
+  }, [tweets, postMode, optimizeMutation, toast]);
+
+  const handleApplyAiSuggestions = useCallback(() => {
+    if (!aiSuggestion?.optimizedTweets?.length) return;
+    setTweets(aiSuggestion.optimizedTweets);
+    toast.success('AI suggestions applied!');
+    setAiSuggestion(null);
+  }, [aiSuggestion, toast]);
+
   // ── Derived ───────────────────────────────────────────────
   const accounts = accountsQ.data ?? [];
   const drafts = draftsQ.data?.items ?? [];
@@ -52,34 +88,47 @@ export default function ComposerPage() {
   const activeTweets = tweets.filter((t) => (t || '').trim());
   const isThread = postMode === 'thread';
 
+  // Find the account ID for the selected handle
+  const selectedAccountObj = accounts.find((a) => a.handle === selectedAccount || a.username === selectedAccount);
+  const selectedAccountId = selectedAccountObj?.id;
+
+  const contentTypeMap = { single: 'POST', thread: 'THREAD', article: 'ARTICLE' };
+
   const handleSaveDraft = () => {
+    if (!selectedAccountId) return;
     createMutation.mutate({
       content: isThread ? tweets.join('\n---\n') : tweets[0],
-      platform: selectedPlatform,
-      account: selectedAccount,
-      type: postMode,
-      status: 'DRAFT',
+      platform: selectedPlatform.toUpperCase(),
+      accountId: selectedAccountId,
+      contentType: contentTypeMap[postMode] || 'POST',
     });
   };
 
   const handleSchedule = () => {
+    if (!selectedAccountId) return;
     createMutation.mutate({
       content: isThread ? tweets.join('\n---\n') : tweets[0],
-      platform: selectedPlatform,
-      account: selectedAccount,
-      type: postMode,
-      status: 'SCHEDULED',
-      scheduledFor: `${scheduleDate}T${scheduleTime}`,
+      platform: selectedPlatform.toUpperCase(),
+      accountId: selectedAccountId,
+      contentType: contentTypeMap[postMode] || 'POST',
+      scheduledFor: new Date(`${scheduleDate}T${scheduleTime}`),
+      ...(postMode === 'article' ? { articleTitle } : {}),
     });
   };
 
-  const handlePublishNow = () => {
-    publishMutation.mutate({
+  const handlePublishNow = async () => {
+    if (!selectedAccountId) return;
+    // First create the post, then publish it
+    const post = await createMutation.mutateAsync({
       content: isThread ? tweets.join('\n---\n') : tweets[0],
-      platform: selectedPlatform,
-      account: selectedAccount,
-      type: postMode,
+      platform: selectedPlatform.toUpperCase(),
+      accountId: selectedAccountId,
+      contentType: contentTypeMap[postMode] || 'POST',
+      ...(postMode === 'article' ? { articleTitle } : {}),
     });
+    if (post?.id) {
+      publishMutation.mutate({ id: post.id });
+    }
   };
 
   return (
@@ -258,8 +307,12 @@ export default function ComposerPage() {
                       <button className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded hover:bg-gray-50">
                         {'\uD83D\uDD17'}
                       </button>
-                      <button className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded hover:bg-gray-50">
-                        {'\u2728'} AI
+                      <button
+                        onClick={handleAiOptimize}
+                        disabled={aiLoading}
+                        className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        {aiLoading ? '...' : '\u2728 AI'}
                       </button>
                       <div className="flex-1" />
                       {tweets.length > 1 && (
@@ -362,13 +415,60 @@ export default function ComposerPage() {
                   <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white text-[8px] font-bold flex-shrink-0 mt-0.5">
                     AI
                   </div>
-                  <div>
-                    <p className="text-[10px] font-semibold text-blue-900 mb-0.5">Content Suggestion</p>
-                    <p className="text-[11px] text-blue-800 leading-relaxed">
-                      {postMode === 'article'
-                        ? `Articles with 800-1,500 words get the most engagement. You're at ~${articleBody.split(/\s+/).length} words. Add a compelling hook in the first paragraph — articles that open with a bold claim get 3x more reads. Consider adding subheadings every 200-300 words.`
-                        : `Your educational threads average 7.4% engagement — 2.3x higher than single posts. This thread has ${activeTweets.length} tweets (optimal: 5-7). Threads with CTAs get 40% more replies.`}
-                    </p>
+                  <div className="flex-1 min-w-0">
+                    {aiLoading ? (
+                      <>
+                        <p className="text-[10px] font-semibold text-blue-900 mb-1">Analyzing your content...</p>
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 flex-1 bg-blue-200 rounded-full overflow-hidden">
+                            <div className="h-full bg-blue-600 rounded-full animate-pulse" style={{ width: '60%' }} />
+                          </div>
+                        </div>
+                      </>
+                    ) : aiSuggestion ? (
+                      <>
+                        <p className="text-[10px] font-semibold text-blue-900 mb-0.5">
+                          AI Optimization Ready
+                          {aiSuggestion.estimatedImprovement && (
+                            <span className="ml-1 text-green-700">({aiSuggestion.estimatedImprovement})</span>
+                          )}
+                        </p>
+                        {aiSuggestion.suggestions?.slice(0, 3).map((s, i) => (
+                          <p key={i} className="text-[11px] text-blue-800 leading-relaxed mt-0.5">
+                            <strong>Tweet {s.tweetIndex + 1}:</strong> {s.suggestion}
+                          </p>
+                        ))}
+                        <div className="flex items-center gap-2 mt-2">
+                          <button
+                            onClick={handleApplyAiSuggestions}
+                            className="px-2.5 py-1 bg-blue-600 text-white text-[10px] rounded-md font-medium hover:bg-blue-700"
+                          >
+                            Apply All
+                          </button>
+                          <button
+                            onClick={() => setAiSuggestion(null)}
+                            className="px-2.5 py-1 text-blue-700 text-[10px] rounded-md font-medium hover:bg-blue-100"
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-[10px] font-semibold text-blue-900 mb-0.5">Content Suggestion</p>
+                        <p className="text-[11px] text-blue-800 leading-relaxed">
+                          {postMode === 'article'
+                            ? `Articles with 800-1,500 words get the most engagement. You're at ~${articleBody.split(/\s+/).length} words. Consider adding subheadings every 200-300 words.`
+                            : `This thread has ${activeTweets.length} tweets (optimal: 5-7). Click "✨ Optimize" to get AI-powered suggestions.`}
+                        </p>
+                        <button
+                          onClick={handleAiOptimize}
+                          className="mt-1.5 px-2.5 py-1 bg-blue-600 text-white text-[10px] rounded-md font-medium hover:bg-blue-700 inline-flex items-center gap-1"
+                        >
+                          {'\u2728'} Optimize with AI
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

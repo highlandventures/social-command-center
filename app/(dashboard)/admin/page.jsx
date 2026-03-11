@@ -11,23 +11,43 @@ import { trpc } from '@/lib/trpc-client';
 import { MetricCard, SectionTitle, TabButton, PlatformBadge, Skeleton } from '@/components/ui';
 
 // ── Static roadmap data (internal planning, not from API) ───
+// Last updated: Mar 9, 2026 — Sprint 3 complete, Sprint 4 in progress
 const roadmapItems = [
-  { id: 1, phase: 'Phase 1', title: 'Project scaffolding', status: 'deployed', deployed: 'Jan 15' },
-  { id: 2, phase: 'Phase 1', title: 'OAuth account connection', status: 'deployed', deployed: 'Jan 22' },
-  { id: 3, phase: 'Phase 1', title: 'Post composer + preview', status: 'deployed', deployed: 'Feb 5' },
-  { id: 4, phase: 'Phase 1', title: 'Basic scheduling', status: 'deployed', deployed: 'Feb 10' },
-  { id: 5, phase: 'Phase 1', title: 'Calendar view', status: 'deployed', deployed: 'Feb 14' },
-  { id: 6, phase: 'Phase 1', title: 'RBAC + team invitations', status: 'deployed', deployed: 'Feb 20' },
-  { id: 7, phase: 'Phase 1', title: 'API adapter layer (hybrid)', status: 'deployed', deployed: 'Feb 24' },
-  { id: 8, phase: 'Phase 1', title: 'Admin panel + cost tracker', status: 'deployed', deployed: 'Feb 28' },
-  { id: 9, phase: 'Phase 2', title: 'Thread composer + preview', status: 'in_progress', deployed: null },
-  { id: 10, phase: 'Phase 2', title: 'Metrics poller worker', status: 'in_progress', deployed: null },
-  { id: 11, phase: 'Phase 2', title: 'Front dashboard + WoW', status: 'not_started', deployed: null },
-  { id: 12, phase: 'Phase 3', title: 'Mentions tracking', status: 'not_started', deployed: null },
-  { id: 13, phase: 'Phase 3', title: 'Unified inbox', status: 'not_started', deployed: null },
-  { id: 14, phase: 'Phase 4a', title: 'Social listening feed', status: 'not_started', deployed: null },
-  { id: 15, phase: 'Phase 4b', title: 'Competitor monitoring', status: 'not_started', deployed: null },
-  { id: 16, phase: 'Phase 4c', title: 'KOL tracking + AI scoring', status: 'not_started', deployed: null },
+  // Phase 1: Foundation — COMPLETE
+  { id: 1, phase: 'Phase 1', title: 'Project scaffolding + Prisma schema (30+ models)', status: 'deployed', deployed: 'Jan 15' },
+  { id: 2, phase: 'Phase 1', title: 'OAuth account connection (X via OAuth 2.0)', status: 'deployed', deployed: 'Jan 22' },
+  { id: 3, phase: 'Phase 1', title: 'Post composer + preview (single, thread, article)', status: 'deployed', deployed: 'Feb 5' },
+  { id: 4, phase: 'Phase 1', title: 'Scheduling + publish cron (every minute)', status: 'deployed', deployed: 'Feb 10' },
+  { id: 5, phase: 'Phase 1', title: 'Calendar view (month + week)', status: 'deployed', deployed: 'Feb 14' },
+  { id: 6, phase: 'Phase 1', title: 'RBAC + team invitations (Admin/Internal/Agency)', status: 'deployed', deployed: 'Feb 20' },
+  { id: 7, phase: 'Phase 1', title: 'Hybrid X adapter (Official writes, TwitterAPI.io reads)', status: 'deployed', deployed: 'Feb 24' },
+  { id: 8, phase: 'Phase 1', title: 'Admin panel + cost tracker + polling config', status: 'deployed', deployed: 'Feb 28' },
+
+  // Phase 2: Intelligence Layer — COMPLETE
+  { id: 9, phase: 'Phase 2', title: 'Thread composer mutations + field wiring', status: 'deployed', deployed: 'Mar 5' },
+  { id: 10, phase: 'Phase 2', title: 'Metrics poller + batch tweet fetching (100/req)', status: 'deployed', deployed: 'Mar 5' },
+  { id: 11, phase: 'Phase 2', title: 'Dashboard with real mentions + period comparison', status: 'deployed', deployed: 'Mar 7' },
+  { id: 12, phase: 'Phase 2', title: 'Social listening + AI query generation', status: 'deployed', deployed: 'Mar 7' },
+  { id: 13, phase: 'Phase 2', title: 'KOL tracking + AI scoring (A–F, 4 factors)', status: 'deployed', deployed: 'Mar 7' },
+  { id: 14, phase: 'Phase 2', title: 'Competitor monitoring + share-of-voice', status: 'deployed', deployed: 'Mar 7' },
+  { id: 15, phase: 'Phase 2', title: 'AI reports (5 types) + dynamic renderer', status: 'deployed', deployed: 'Mar 9' },
+  { id: 16, phase: 'Phase 2', title: 'Conversational listening (clarifying questions)', status: 'deployed', deployed: 'Mar 9' },
+
+  // Phase 3: Hardening & DX — COMPLETE
+  { id: 17, phase: 'Phase 3', title: 'Error boundary + toast notification system', status: 'deployed', deployed: 'Mar 9' },
+  { id: 18, phase: 'Phase 3', title: 'README + .env.example documentation', status: 'deployed', deployed: 'Mar 9' },
+  { id: 19, phase: 'Phase 3', title: 'Cron job failure alerting + observability', status: 'deployed', deployed: 'Mar 9' },
+  { id: 20, phase: 'Phase 3', title: 'Lib directory restructure (adapters/, etc.)', status: 'deployed', deployed: 'Mar 9' },
+  { id: 21, phase: 'Phase 3', title: 'PRD v1.0 documentation', status: 'deployed', deployed: 'Mar 9' },
+
+  // Phase 4: Quality & Scale — IN PROGRESS
+  { id: 22, phase: 'Phase 4', title: 'Vitest unit tests for critical business logic', status: 'in_progress', deployed: null },
+  { id: 23, phase: 'Phase 4', title: 'Composer AI suggestions wiring (live)', status: 'in_progress', deployed: null },
+  { id: 24, phase: 'Phase 4', title: 'Encryption key startup validation', status: 'in_progress', deployed: null },
+  { id: 25, phase: 'Phase 4', title: 'Mention type classification (reply/quote/retweet)', status: 'in_progress', deployed: null },
+  { id: 26, phase: 'Phase 4', title: 'Individual auth (SSO/email login, audit trail)', status: 'not_started', deployed: null },
+  { id: 27, phase: 'Phase 4', title: 'Image/media upload in posts', status: 'not_started', deployed: null },
+  { id: 28, phase: 'Phase 4', title: 'Mobile-responsive layout', status: 'not_started', deployed: null },
 ];
 
 export default function AdminPage() {
@@ -535,7 +555,7 @@ function AdminContent() {
               label="In Progress"
               value={roadmapItems.filter((r) => r.status === 'in_progress').length}
             />
-            <MetricCard label="Current Phase" value="Phase 2" />
+            <MetricCard label="Current Phase" value="Phase 3" />
             <MetricCard label="Accounts Connected" value={accounts.length} />
           </div>
 
@@ -554,7 +574,7 @@ function AdminContent() {
             </div>
           </div>
 
-          {['Phase 1', 'Phase 2', 'Phase 3', 'Phase 4a', 'Phase 4b', 'Phase 4c'].map((phase) => {
+          {['Phase 1', 'Phase 2', 'Phase 3', 'Phase 4'].map((phase) => {
             const items = roadmapItems.filter((r) => r.phase === phase);
             if (items.length === 0) return null;
             const deployed = items.filter((r) => r.status === 'deployed').length;

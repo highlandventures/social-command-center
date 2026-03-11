@@ -6,6 +6,7 @@
     { "path": "/api/cron/poll-listening", "schedule": "*/10 * * * *" },
     { "path": "/api/cron/daily-analytics", "schedule": "0 2 * * *" },
     { "path": "/api/cron/weekly-ai-insights", "schedule": "0 6 * * 1" },
-    { "path": "/api/cron/kol-activations", "schedule": "*/30 * * * *" }
+    { "path": "/api/cron/kol-activations", "schedule": "*/30 * * * *" },
+    { "path": "/api/cron/poll-competitors", "schedule": "0 3 * * *" }
   ]
 }
