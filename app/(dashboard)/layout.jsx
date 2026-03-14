@@ -21,6 +21,8 @@ export default function DashboardLayout({ children }) {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState(null); // null = "All Accounts"
 
   // Fetch accounts for the account switcher in the top nav
   const { data: accounts } = trpc.accounts.list.useQuery(undefined, {
@@ -53,27 +55,91 @@ export default function DashboardLayout({ children }) {
 
           <div className="flex items-center gap-4">
             {/* Account switcher */}
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
-              <div className="flex -space-x-1.5">
-                {accountsList.length > 0
-                  ? accountsList.map((a) => (
-                      <Avatar
+            <div className="relative">
+              <button
+                onClick={() => setAccountMenuOpen(!accountMenuOpen)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                <div className="flex -space-x-1.5">
+                  {accountsList.length > 0
+                    ? (selectedAccount
+                        ? [accountsList.find((a) => a.id === selectedAccount)].filter(Boolean)
+                        : accountsList
+                      ).map((a) => (
+                        <Avatar
+                          key={a.id}
+                          initials={(a.username || '??').slice(0, 2).toUpperCase()}
+                          src={a.avatarUrl}
+                          platform={a.platform}
+                          size="sm"
+                        />
+                      ))
+                    : [1, 2].map((i) => (
+                        <div
+                          key={i}
+                          className="w-7 h-7 rounded-full bg-gray-200 animate-pulse"
+                        />
+                      ))}
+                </div>
+                <span className="text-sm text-gray-600 ml-1">
+                  {selectedAccount
+                    ? `@${accountsList.find((a) => a.id === selectedAccount)?.username || '...'}`
+                    : 'All Accounts'}
+                </span>
+                <span className="text-gray-400">{'\u25BE'}</span>
+              </button>
+              {accountMenuOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setAccountMenuOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1">
+                    <button
+                      onClick={() => { setSelectedAccount(null); setAccountMenuOpen(false); }}
+                      className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 hover:bg-gray-50 transition-colors ${
+                        !selectedAccount ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                      }`}
+                    >
+                      <div className="flex -space-x-1">
+                        {accountsList.slice(0, 3).map((a) => (
+                          <Avatar
+                            key={a.id}
+                            initials={(a.username || '??').slice(0, 2).toUpperCase()}
+                            src={a.avatarUrl}
+                            platform={a.platform}
+                            size="sm"
+                          />
+                        ))}
+                      </div>
+                      <span>All Accounts</span>
+                      {!selectedAccount && <span className="ml-auto text-blue-500">{'\u2713'}</span>}
+                    </button>
+                    <div className="border-t border-gray-100 my-1" />
+                    {accountsList.map((a) => (
+                      <button
                         key={a.id}
-                        initials={(a.username || '??').slice(0, 2).toUpperCase()}
-                        platform={a.platform}
-                        size="sm"
-                      />
-                    ))
-                  : /* Fallback while loading */
-                    [1, 2].map((i) => (
-                      <div
-                        key={i}
-                        className="w-7 h-7 rounded-full bg-gray-200 animate-pulse"
-                      />
+                        onClick={() => { setSelectedAccount(a.id); setAccountMenuOpen(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 hover:bg-gray-50 transition-colors ${
+                          selectedAccount === a.id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                        }`}
+                      >
+                        <Avatar
+                          initials={(a.username || '??').slice(0, 2).toUpperCase()}
+                          src={a.avatarUrl}
+                          platform={a.platform}
+                          size="sm"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">@{a.username}</p>
+                          <p className="text-xs text-gray-400 capitalize">{(a.platform || '').toLowerCase()}</p>
+                        </div>
+                        {selectedAccount === a.id && <span className="text-blue-500">{'\u2713'}</span>}
+                      </button>
                     ))}
-              </div>
-              <span className="text-sm text-gray-600 ml-1">All Accounts</span>
-              <span className="text-gray-400">{'\u25BE'}</span>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* User menu */}
