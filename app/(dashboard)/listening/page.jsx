@@ -40,7 +40,7 @@ function formatFollowers(n) {
 
 export default function ListeningPage() {
   const [subTab, setSubTab] = useState('feed');
-  const [relevanceFilter, setRelevanceFilter] = useState('all');
+  const [relevanceFilter, setRelevanceFilter] = useState('HIGH');
   const [selectedBrands, setSelectedBrands] = useState([]); // multi-select topic IDs
   const [platformFilter, setPlatformFilter] = useState('all'); // 'all' | 'X' | 'REDDIT'
 
@@ -68,6 +68,7 @@ export default function ListeningPage() {
   const hitsInput = {
     ...(selectedBrands.length > 0 ? { topicIds: selectedBrands } : {}),
     ...(platformFilter !== 'all' ? { platform: platformFilter } : {}),
+    ...(relevanceFilter !== 'all' ? { relevance: relevanceFilter } : {}),
   };
   const hitsQ = trpc.listening.hits.list.useQuery(
     Object.keys(hitsInput).length > 0 ? hitsInput : undefined,

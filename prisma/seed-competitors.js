@@ -430,12 +430,14 @@ const figureTopics = [
         rationale: 'Figure Connect marketplace. Broadened qualifiers: secondary trading, whole loan marketplace.',
       },
 
-      // Q6: OPEN (On-chain Public Equity Network) + Blockchain Stock — broadened qualifiers
+      // Q6: OPEN (On-chain Public Equity Network) + Blockchain Stock
+      // NOTE: "OPEN" alone is a common English word — NEVER use it bare.
+      // Only match the full phrase or qualified with Figure/FIGR context.
       {
         platform: 'X',
-        queryString: '("OPEN" OR "On-chain Public Equity" OR "Blockchain Stock") ("Figure" OR "FIGR" OR "Provenance" OR "blockchain-native equity" OR "tokenized equity" OR "onchain equity" OR "equity token" OR "blockchain IPO") lang:en',
-        negativeKeywords: [],
-        rationale: 'OPEN network for blockchain-native equities. Broadened with "onchain equity", "equity token", "blockchain IPO".',
+        queryString: '("On-chain Public Equity" OR "OPEN network" OR "Blockchain Stock" OR ("OPEN" "FIGR") OR ("OPEN" "Provenance Blockchain")) lang:en',
+        negativeKeywords: ['open source', 'open letter', 'open door', 'open mic'],
+        rationale: 'OPEN network for blockchain-native equities. "OPEN" only paired with FIGR/Provenance to avoid matching common English "open".',
       },
 
       // Q7: Provenance Blockchain — full brand name + official account only
@@ -486,12 +488,13 @@ const figureTopics = [
         rationale: 'Agora Data partnership (auto loan tokenization on Provenance). Qualified to ensure Figure context.',
       },
 
-      // Q13: Figure Pay — NEW (missing entirely in v1)
+      // Q13: Figure Pay — crypto-backed payments product
+      // NOTE: "figure pay" matches casual English ("figure pay for"). Require additional context.
       {
         platform: 'X',
-        queryString: '("Figure Pay") lang:en',
-        negativeKeywords: ['figure out', 'figure skating'],
-        rationale: 'Figure Pay product — crypto-backed payments. Unambiguous product name.',
+        queryString: '("Figure Pay") ("crypto" OR "blockchain" OR "payment" OR "app" OR "wallet" OR "send" OR "transfer" OR "HELOC" OR "Figure") -"figure pay for" -"figure pay the" -"figure pay off" lang:en',
+        negativeKeywords: ['figure out', 'figure skating', 'figure pay for', 'figure pay the', 'figure pay off', 'figure pay more', 'figure pay less'],
+        rationale: 'Figure Pay product. Qualified with fintech context and excludes "figure pay for/the/off" (casual English).',
       },
 
       // Q14: $FIGR investor sentiment — NEW
@@ -502,12 +505,13 @@ const figureTopics = [
         rationale: 'Retail investor sentiment around $FIGR — catches investment discussion, analyst commentary, price targets.',
       },
 
-      // Q15: Regulatory/compliance mentions — NEW
+      // Q15: Regulatory/compliance mentions
+      // NOTE: Bare "Figure" + "approved" matches casual English. Use qualified terms.
       {
         platform: 'X',
-        queryString: '("Figure" OR "FIGR" OR "Provenance") ("SEC" OR "regulation" OR "compliance" OR "license" OR "approved" OR "enforcement" OR "FINRA" OR "registered") min_faves:2 lang:en',
+        queryString: '("Figure Markets" OR "Figure Technology" OR "$FIGR" OR "FIGR" OR "Provenance Blockchain") ("SEC" OR "regulation" OR "compliance" OR "license" OR "enforcement" OR "FINRA" OR "registered") min_faves:2 lang:en',
         negativeKeywords: ['figure out', 'figure skating'],
-        rationale: 'Regulatory news — RWA is heavily regulated. Catches SEC filings, FINRA updates, compliance discussion.',
+        rationale: 'Regulatory news. Uses qualified brand names (not bare "Figure") to avoid casual English matches.',
       },
 
       // Q16: RWA industry context mentioning Figure — NEW
@@ -526,12 +530,13 @@ const figureTopics = [
         rationale: 'Inbound replies/mentions TO official accounts — catches community engagement, questions, feedback.',
       },
 
-      // Q18: Figure review/experience — NEW (consumer voice)
+      // Q18: Figure review/experience — consumer voice
+      // NOTE: Bare "Figure" + "experience" matches casual English. Require product-specific terms.
       {
         platform: 'X',
-        queryString: '("Figure" OR "Figure HELOC") ("review" OR "experience" OR "recommend" OR "customer service" OR "applied" OR "approved" OR "denied") lang:en',
+        queryString: '("Figure HELOC" OR "Figure Lending" OR "Figure loan" OR "Figure Markets") ("review" OR "experience" OR "recommend" OR "customer service" OR "applied" OR "approved" OR "denied") lang:en',
         negativeKeywords: ['figure out', 'figure skating', 'action figure', 'figurine'],
-        rationale: 'Consumer experience posts — people sharing their HELOC/lending experience with Figure.',
+        rationale: 'Consumer experience posts. Uses product-specific terms (not bare "Figure") to avoid matching casual English.',
       },
 
       // ═══ REDDIT QUERIES — via SociaVault ═══

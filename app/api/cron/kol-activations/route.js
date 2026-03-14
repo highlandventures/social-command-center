@@ -37,7 +37,7 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const results = { activationsCreated: 0, kolsProcessed: 0, errors: [] };
+  const results = { activationsCreated: 0, kolsProcessed: 0, profilesEnriched: 0, errors: [] };
 
   try {
     // Get all active brand accounts to build search queries
@@ -162,6 +162,40 @@ export async function GET(request) {
               `Error processing KOL activation for KOL ${kol.id}:`,
               hitError,
             );
+          }
+        }
+
+        // ── Enrich KOL profile metadata from search results ──
+        // TwitterAPI.io returns author data on each tweet — use it to backfill
+        // avatarUrl and baselineFollowers that the seed script doesn't provide.
+        if (kol.platform === 'X' && (!kol.avatarUrl || !kol.baselineFollowers)) {
+          try {
+            let authorAvatar = null;
+            let authorFollowers = 0;
+
+            if (rawHits.length > 0) {
+              // Extract from search results
+              const firstHit = rawHits[0];
+              authorAvatar = firstHit.author?.profilePicture || firstHit.author?.profile_image_url || firstHit.author?.avatar || null;
+              authorFollowers = firstHit.author?.followers || firstHit.author?.followersCount || firstHit.author?.public_metrics?.followers_count || 0;
+            } else {
+              // No activation hits — fetch profile directly as fallback
+              const profile = await xAdapter.getUserProfile(kol.username);
+              const userData = profile?.data || profile;
+              authorAvatar = userData?.profilePicture || userData?.profile_image_url || userData?.avatar || null;
+              authorFollowers = userData?.followers || userData?.followersCount || userData?.public_metrics?.followers_count || userData?.follower_count || 0;
+            }
+
+            const updates = {};
+            if (authorAvatar && !kol.avatarUrl) updates.avatarUrl = authorAvatar;
+            if (authorFollowers > 0 && (!kol.baselineFollowers || kol.baselineFollowers === 0)) updates.baselineFollowers = authorFollowers;
+
+            if (Object.keys(updates).length > 0) {
+              await prisma.kOL.update({ where: { id: kol.id }, data: updates });
+              results.profilesEnriched++;
+            }
+          } catch (enrichErr) {
+            console.warn(`Profile enrichment failed for @${kol.username}:`, enrichErr.message);
           }
         }
 

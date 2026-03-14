@@ -461,20 +461,57 @@ export default function KOLPage() {
           )}
 
           {/* Monthly AI Portfolio Review */}
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5 mt-6">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">AI</div>
-              <div>
-                <p className="text-sm font-semibold text-blue-900 mb-2">Monthly KOL Portfolio Review — March 2026</p>
-                <div className="text-sm text-gray-800 leading-relaxed space-y-2">
-                  <p><strong>Portfolio health: Good.</strong> 2 of {kols.length} KOLs rated A (High Value), 1 rated B, 1 rated C (declining), and 1 rated D (recommended for wind-down).</p>
-                  <p><strong>Top performer:</strong> @techVC_sarah delivers 53% of your total KOL-driven impressions at the lowest cost per engagement ($0.42). Her follower correlation (0.72) is the strongest in your portfolio.</p>
-                  <p><strong>Action required:</strong> @ai_influencer (D-rated) has generated only 1 activation in 30 days despite $5,000/mo compensation. Recommend immediate wind-down.</p>
-                  <p><strong>Opportunity:</strong> Your Reddit KOL coverage is thin (1 of {kols.length}). Consider adding 2 Reddit-native KOLs from the discovery suggestions.</p>
+          {allKols.length > 0 && (() => {
+            // Compute dynamic portfolio stats
+            const scoreCounts = {};
+            for (const k of allKols) {
+              const s = k.score || 'Unscored';
+              scoreCounts[s] = (scoreCounts[s] || 0) + 1;
+            }
+            const scoreBreakdown = ['A', 'B', 'C', 'D', 'F']
+              .filter(s => scoreCounts[s])
+              .map(s => `${scoreCounts[s]} rated ${s}`)
+              .join(', ');
+
+            // Top performer by activations
+            const topByActivations = [...allKols].sort((a, b) => (b.activations ?? 0) - (a.activations ?? 0))[0];
+
+            // Underperforming paid partners (D or F rated, or 0 activations with compensation)
+            const underperformers = allKols.filter(k =>
+              (k.score === 'D' || k.score === 'F') && k.comp !== '—'
+            );
+
+            // Platform diversity
+            const redditKols = allKols.filter(k => k.platform === 'REDDIT');
+            const unscoredCount = allKols.filter(k => !k.score || k.score === '—').length;
+
+            const healthLabel = (scoreCounts['A'] || 0) + (scoreCounts['B'] || 0) > allKols.length / 2 ? 'Good' :
+              (scoreCounts['D'] || 0) + (scoreCounts['F'] || 0) > allKols.length / 3 ? 'Needs Attention' : 'Fair';
+
+            return (
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5 mt-6">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">AI</div>
+                  <div>
+                    <p className="text-sm font-semibold text-blue-900 mb-2">Monthly KOL Portfolio Review &mdash; {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
+                    <div className="text-sm text-gray-800 leading-relaxed space-y-2">
+                      <p><strong>Portfolio health: {healthLabel}.</strong> {allKols.length} active KOLs across {Object.keys(typeCounts).length} segments. {scoreBreakdown || `${unscoredCount} KOLs not yet scored.`}</p>
+                      {topByActivations && topByActivations.activations > 0 && (
+                        <p><strong>Top performer:</strong> @{topByActivations.username} leads with {topByActivations.activations} activations and {topByActivations.avgEng}% avg engagement{topByActivations.score !== '—' ? ` (${topByActivations.score}-rated)` : ''}.</p>
+                      )}
+                      {underperformers.length > 0 && (
+                        <p><strong>Action required:</strong> {underperformers.map(k => `@${k.username} (${k.score}-rated, ${k.comp})`).join(', ')} {underperformers.length === 1 ? 'has' : 'have'} low performance relative to compensation. Review for wind-down or renegotiation.</p>
+                      )}
+                      {unscoredCount > 0 && (
+                        <p><strong>Note:</strong> {unscoredCount} KOL{unscoredCount > 1 ? 's have' : ' has'} not been scored yet. AI scoring runs weekly on Mondays, or trigger manually from a KOL&apos;s detail view.</p>
+                      )}
+                      <p><strong>Coverage:</strong> {allKols.length - redditKols.length} X / {redditKols.length} Reddit KOLs.{redditKols.length === 0 ? ' Consider adding Reddit-native KOLs from the discovery suggestions.' : ''}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            );
+          })()}
         </div>
       )}
 
