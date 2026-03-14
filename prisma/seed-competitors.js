@@ -376,8 +376,8 @@ const figureTopics = [
       {
         platform: 'REDDIT',
         queryString: '"Figure Technology" OR "Figure Markets" OR "$FIGR" OR "FIGR stock"',
-        subreddits: ['defi', 'cryptocurrency', 'SecurityToken', 'ethfinance', 'wallstreetbets', 'stocks', 'investing'],
-        rationale: 'Core brand on Reddit. All terms are unambiguous.',
+        subreddits: ['FigureTech', 'FigureMarkets', 'FIGR', 'defi', 'cryptocurrency', 'SecurityToken', 'ethfinance', 'wallstreetbets', 'stocks', 'investing'],
+        rationale: 'Core brand on Reddit. Includes Figure-owned subreddits + major finance/crypto subs.',
       },
 
       // R2: HELOC + lending products
@@ -394,6 +394,16 @@ const figureTopics = [
         queryString: '"Provenance Blockchain" OR "$YLDS" OR "Democratized Prime" OR "HastraFi" OR "$HASH Provenance"',
         subreddits: ['defi', 'cryptocurrency', 'cosmosnetwork', 'solana', 'ethfinance'],
         rationale: 'Blockchain infrastructure + DeFi products across crypto subreddits.',
+      },
+
+      // R4: Figure-owned subreddits — monitor ALL posts (no keyword filter)
+      // These are Figure's own community subreddits; we want every post tracked over time.
+      {
+        platform: 'REDDIT',
+        queryString: '',
+        subreddits: ['FigureTech', 'FigureMarkets', 'FIGR'],
+        monitorAll: true,
+        rationale: 'Figure-owned subreddits. Full monitoring — every post is relevant by definition.',
       },
     ],
   },
