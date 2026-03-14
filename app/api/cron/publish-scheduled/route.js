@@ -11,7 +11,7 @@ import { prisma } from '@/lib/db';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { getValidToken } from '@/lib/token-refresh';
 import { XPlatformAdapter } from '@/lib/x-adapter';
-import { RedditAdapter } from '@/lib/reddit-adapter';
+import { publishRedditPost, listLateAccounts } from '@/lib/late-reddit';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,46 +77,25 @@ export async function GET(request) {
             platformPostId = result?.data?.id || null;
           }
         } else if (post.account.platform === 'REDDIT') {
-          const adapter = new RedditAdapter(token);
+          // Publish via Late API (no direct Reddit OAuth needed)
+          const lateAccounts = await listLateAccounts();
+          const redditAccount = (lateAccounts?.data || lateAccounts || [])
+            .find((a) => a.platform === 'reddit');
 
-          if (post.contentType === 'THREAD') {
-            // Reddit thread: submit initial post, then comment sequentially
-            const mainResult = await adapter.submitPost(
-              post.subreddit,
-              post.articleTitle || post.content.substring(0, 100),
-              post.content,
-            );
-            const mainFullname = mainResult?.json?.data?.name || null;
-            platformPostId = mainResult?.json?.data?.id || null;
-
-            // Post thread children as sequential comments
-            let parentFullname = mainFullname;
-            for (const child of post.threadPosts) {
-              if (parentFullname) {
-                const commentResult = await adapter.comment(parentFullname, child.content);
-                const childFullname = commentResult?.json?.data?.things?.[0]?.data?.name || null;
-
-                await prisma.post.update({
-                  where: { id: child.id },
-                  data: {
-                    status: 'PUBLISHED',
-                    publishedAt: new Date(),
-                    platformPostId: childFullname,
-                  },
-                });
-
-                parentFullname = childFullname || parentFullname;
-              }
-            }
-          } else {
-            // Standard Reddit post
-            const result = await adapter.submitPost(
-              post.subreddit,
-              post.articleTitle || post.content.substring(0, 100),
-              post.content,
-            );
-            platformPostId = result?.json?.data?.id || null;
+          if (!redditAccount) {
+            throw new Error('No Reddit account connected in Late.');
           }
+
+          const title = post.articleTitle || post.content.substring(0, 100);
+          const result = await publishRedditPost({
+            accountId: redditAccount._id || redditAccount.id,
+            subreddit: post.subreddit || 'FigureTech',
+            title,
+            content: post.content,
+            flairId: post.flairId || undefined,
+          });
+
+          platformPostId = result?._id || result?.id || null;
         }
 
         // Update the main post status to PUBLISHED

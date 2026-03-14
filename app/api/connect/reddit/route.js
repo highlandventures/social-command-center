@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { randomBytes } from 'crypto';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { getRedditConnectUrl } from '@/lib/late-reddit';
 
 /**
  * GET /api/connect/reddit
- * Initiates Reddit OAuth 2.0 flow.
- * Generates CSRF state, stores it in a cookie,
- * and redirects the user to Reddit's authorization endpoint.
+ * Initiates Reddit OAuth via Late API.
+ * Late handles all Reddit OAuth complexity — no Reddit app registration needed.
  */
 export async function GET() {
   // Require authenticated session
@@ -16,31 +14,26 @@ export async function GET() {
   if (!session?.user) {
     return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/auth/signin`);
   }
-  // Generate random state for CSRF protection
-  const state = randomBytes(16).toString('hex');
 
-  // Build the redirect URI
-  const redirectUri = `${process.env.NEXTAUTH_URL}/api/connect/reddit/callback`;
+  if (!process.env.LATE_API_KEY) {
+    return NextResponse.redirect(
+      `${process.env.NEXTAUTH_URL}/admin?error=${encodeURIComponent('LATE_API_KEY not configured')}`
+    );
+  }
 
-  // Build Reddit authorization URL
-  const authorizeUrl = new URL('https://www.reddit.com/api/v1/authorize');
-  authorizeUrl.searchParams.set('client_id', process.env.REDDIT_CLIENT_ID);
-  authorizeUrl.searchParams.set('response_type', 'code');
-  authorizeUrl.searchParams.set('state', state);
-  authorizeUrl.searchParams.set('redirect_uri', redirectUri);
-  authorizeUrl.searchParams.set('duration', 'permanent');
-  authorizeUrl.searchParams.set('scope', 'identity read submit privatemessages mysubreddits');
+  try {
+    const redirectUrl = `${process.env.NEXTAUTH_URL}/api/connect/reddit/callback`;
+    const result = await getRedditConnectUrl(redirectUrl);
 
-  // Store state in secure HTTP-only cookie
-  const cookieStore = await cookies();
+    if (!result?.authUrl) {
+      throw new Error('Late API did not return an authUrl');
+    }
 
-  cookieStore.set('reddit_oauth_state', state, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 600, // 10 minutes
-  });
-
-  return NextResponse.redirect(authorizeUrl.toString());
+    return NextResponse.redirect(result.authUrl);
+  } catch (err) {
+    console.error('[connect/reddit] Late OAuth error:', err.message);
+    return NextResponse.redirect(
+      `${process.env.NEXTAUTH_URL}/admin?error=${encodeURIComponent(err.message)}`
+    );
+  }
 }
