@@ -41,7 +41,8 @@ function formatFollowers(n) {
 export default function ListeningPage() {
   const [subTab, setSubTab] = useState('feed');
   const [relevanceFilter, setRelevanceFilter] = useState('all');
-  const [brandFilter, setBrandFilter] = useState('all');
+  const [selectedBrands, setSelectedBrands] = useState([]); // multi-select topic IDs
+  const [platformFilter, setPlatformFilter] = useState('all'); // 'all' | 'X' | 'REDDIT'
 
   // New topic form state (AI-driven conversational flow)
   const [showNewTopic, setShowNewTopic] = useState(false);
@@ -64,7 +65,14 @@ export default function ListeningPage() {
   const [scanningTopicId, setScanningTopicId] = useState(null);
 
   // ── tRPC queries ──────────────────────────────────────────
-  const hitsQ = trpc.listening.hits.list.useQuery(undefined, { staleTime: 15_000 });
+  const hitsInput = {
+    ...(selectedBrands.length > 0 ? { topicIds: selectedBrands } : {}),
+    ...(platformFilter !== 'all' ? { platform: platformFilter } : {}),
+  };
+  const hitsQ = trpc.listening.hits.list.useQuery(
+    Object.keys(hitsInput).length > 0 ? hitsInput : undefined,
+    { staleTime: 15_000 },
+  );
   const topicsQ = trpc.listening.topics.list.useQuery(undefined, { staleTime: 30_000 });
   const accountsQ = trpc.accounts.list.useQuery(undefined, { staleTime: 60_000 });
   const sovQ = trpc.competitors.getSOV.useQuery(undefined, { staleTime: 60_000 });
@@ -161,19 +169,16 @@ export default function ListeningPage() {
   const sovTimeData = sovQ.data?.overTime ?? [];
   const sentimentTrendData = sentimentQ.data?.overTime ?? [];
 
-  // Build brand filter from listening topics
-  const brandFilters = [
-    { key: 'all', label: 'All Topics' },
-    ...listeningTopics.map((t) => ({
-      key: t.id,
-      label: t.name,
-    })),
-  ];
+  // Toggle a brand in the multi-select filter
+  const toggleBrand = useCallback((topicId) => {
+    setSelectedBrands((prev) =>
+      prev.includes(topicId) ? prev.filter((id) => id !== topicId) : [...prev, topicId]
+    );
+  }, []);
 
   const filteredFeed = listeningFeed.filter((h) => {
     const matchRelevance = relevanceFilter === 'all' || h.relevance === relevanceFilter;
-    const matchBrand = brandFilter === 'all' || h.topicName === (listeningTopics.find(t => t.id === brandFilter)?.name || brandFilter);
-    return matchRelevance && matchBrand;
+    return matchRelevance;
   });
 
   // ── Form handlers ─────────────────────────────────────────
@@ -284,29 +289,72 @@ export default function ListeningPage() {
 
   return (
     <div>
-      {/* Topic filter bar */}
-      <div className="flex items-center gap-2 mb-4 bg-white rounded-xl border border-gray-200 px-4 py-2.5">
-        <span className="text-xs font-medium text-gray-500 mr-1">Topic:</span>
-        <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
-          {brandFilters.map((b) => (
-            <button
-              key={b.key}
-              onClick={() => setBrandFilter(b.key)}
-              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
-                brandFilter === b.key ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {b.label}
-            </button>
-          ))}
+      {/* Filter bar: Platform + Brand multi-select */}
+      <div className="flex flex-wrap items-center gap-3 mb-4 bg-white rounded-xl border border-gray-200 px-4 py-2.5">
+        {/* Platform filter */}
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-medium text-gray-500">Platform:</span>
+          <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5">
+            {[
+              { key: 'all', label: 'All' },
+              { key: 'X', label: 'X' },
+              { key: 'REDDIT', label: 'Reddit' },
+            ].map((p) => (
+              <button
+                key={p.key}
+                onClick={() => setPlatformFilter(p.key)}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                  platformFilter === p.key ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
         </div>
-        {brandFilter !== 'all' && (
-          <div className="ml-auto flex items-center gap-2 text-xs">
-            <span className="text-gray-400">Showing hits from</span>
-            <span className="font-semibold text-gray-700">{listeningTopics.find(t => t.id === brandFilter)?.name || 'Unknown'}</span>
-            <button onClick={() => setBrandFilter('all')} className="text-blue-600 hover:text-blue-700 font-medium">
-              Clear
-            </button>
+
+        <div className="w-px h-5 bg-gray-200" />
+
+        {/* Brand multi-select */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs font-medium text-gray-500">Brands:</span>
+          {listeningTopics.length === 0 ? (
+            <span className="text-xs text-gray-400 italic">No topics yet</span>
+          ) : (
+            <>
+              {listeningTopics.map((t) => {
+                const isSelected = selectedBrands.includes(t.id);
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => toggleBrand(t.id)}
+                    className={`px-2.5 py-1 text-xs font-medium rounded-full transition-colors border ${
+                      isSelected
+                        ? 'bg-blue-600 text-white border-blue-600'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                    }`}
+                  >
+                    {t.name}
+                  </button>
+                );
+              })}
+              {selectedBrands.length > 0 && (
+                <button
+                  onClick={() => setSelectedBrands([])}
+                  className="px-2 py-1 text-xs text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Clear
+                </button>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Active filter summary */}
+        {(selectedBrands.length > 0 || platformFilter !== 'all') && (
+          <div className="ml-auto text-xs text-gray-400">
+            Filtering: {platformFilter !== 'all' ? platformFilter : 'All platforms'}
+            {selectedBrands.length > 0 && ` · ${selectedBrands.length} brand${selectedBrands.length > 1 ? 's' : ''}`}
           </div>
         )}
       </div>

@@ -313,6 +313,12 @@ model ListeningQuery {
   active           Boolean  @default(true)
   estDailyVolume   Int?
   estMonthlyCost   Float?
+  totalHits        Int      @default(0)
+  actionableHits   Int      @default(0)
+  spamHits         Int      @default(0)
+  dismissedHits    Int      @default(0)
+  avgHeuristic     Float?
+  lastEvaluatedAt  DateTime?
 
   topic            ListeningTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
   hits             ListeningHit[]
@@ -344,6 +350,7 @@ model ListeningHit {
   isActionable             Boolean   @default(false)
   dismissed                Boolean   @default(false)
   dismissedBy              String?
+  dismissReason            String?
   routedToInboxItemId      String?
 
   query                    ListeningQuery  @relation(fields: [queryId], references: [id], onDelete: Cascade)
