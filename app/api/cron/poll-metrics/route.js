@@ -47,11 +47,17 @@ export async function GET(request) {
     return NextResponse.json({ error: 'TWITTERAPI_IO_API_KEY not configured' }, { status: 500 });
   }
 
-  const results = { metricsFetched: 0, postsProcessed: 0, apiCalls: 0, errors: [] };
+  const results = { metricsFetched: 0, postsProcessed: 0, apiCalls: 0, followerSnapshots: 0, errors: [] };
 
   try {
     const now = new Date();
     const sevenDaysAgo = new Date(now.getTime() - SEVEN_DAYS_MS);
+
+    // Get ALL active X accounts so we can snapshot followers for all of them,
+    // not just accounts that happen to have recent posts.
+    const allXAccounts = await prisma.account.findMany({
+      where: { isActive: true, platform: 'X' },
+    });
 
     const publishedPosts = await prisma.post.findMany({
       where: {
@@ -80,6 +86,14 @@ export async function GET(request) {
           xPostsByAccount[accountId] = { account: post.account, posts: [] };
         }
         xPostsByAccount[accountId].posts.push(post);
+      }
+    }
+
+    // Ensure ALL active X accounts are included (even those with no recent posts)
+    // so their followers get snapshotted every 15 minutes.
+    for (const account of allXAccounts) {
+      if (!xPostsByAccount[account.id]) {
+        xPostsByAccount[account.id] = { account, posts: [] };
       }
     }
 
@@ -142,6 +156,7 @@ export async function GET(request) {
                   totalPosts: 0,
                 },
               });
+              results.followerSnapshots++;
             } catch (e) {
               // Non-critical — don't fail the whole metrics poll for a follower snapshot
               console.warn(`[poll-metrics] Follower snapshot failed for account ${account.id} (@${account.username}):`, e.message);
