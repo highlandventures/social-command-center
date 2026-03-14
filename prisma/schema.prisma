@@ -498,6 +498,8 @@ enum RelationshipType {
   ORGANIC_ADVOCATE
   ADVISOR
   PORTFOLIO_FOUNDER
+  RETAIL_ANALYST
+  COMPANY_EXEC
 }
 
 model KOLCohort {

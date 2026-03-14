@@ -80,6 +80,31 @@ export default function ComposerPage() {
     setAiSuggestion(null);
   }, [aiSuggestion, toast]);
 
+  // ── Predict Performance ──────────────────────────────────
+  const [prediction, setPrediction] = useState(null);
+  const predictMutation = trpc.ai.predictPerformance.useMutation({
+    onSuccess: (data) => setPrediction(data),
+    onError: (err) => toast.error('Prediction failed: ' + (err.message || 'Unknown error')),
+  });
+
+  const handlePredict = useCallback(() => {
+    const content = postMode === 'thread'
+      ? tweets.filter((t) => t?.trim()).join('\n\n')
+      : tweets[0] || '';
+    if (!content.trim()) return;
+    predictMutation.mutate({
+      content,
+      platform: selectedPlatform === 'x' ? 'X' : 'REDDIT',
+    });
+  }, [tweets, postMode, selectedPlatform, predictMutation]);
+
+  // ── Content Ideas ────────────────────────────────────────
+  const [showIdeas, setShowIdeas] = useState(false);
+  const ideasQuery = trpc.ai.suggestContent.useQuery(
+    { limit: 5 },
+    { enabled: showIdeas, staleTime: 5 * 60_000 },
+  );
+
   // ── Derived ───────────────────────────────────────────────
   const accounts = accountsQ.data ?? [];
   const drafts = draftsQ.data?.items ?? [];
@@ -644,23 +669,56 @@ export default function ComposerPage() {
                     <svg viewBox="0 0 24 24" className="w-3 h-3 fill-blue-400">
                       <path d="M8.75 21V3h2v18h-2zM18 21V8.5h2V21h-2zM4 21v-5.5h2V21H4z" />
                     </svg>
-                    <span className="text-[10px] text-gray-400 font-medium">Predicted</span>
+                    <span className="text-[10px] text-gray-400 font-medium">
+                      {prediction ? 'AI Predicted' : 'Predicted'}
+                    </span>
+                    <div className="flex-1" />
+                    <button
+                      onClick={handlePredict}
+                      disabled={predictMutation.isLoading}
+                      className="text-[10px] text-blue-400 hover:text-blue-300 font-medium disabled:opacity-50"
+                    >
+                      {predictMutation.isLoading ? 'Analyzing...' : prediction ? 'Re-predict' : 'Predict with AI'}
+                    </button>
                   </div>
-                  <div className="grid grid-cols-4 gap-1">
-                    {[
-                      { label: 'Impressions', value: isThread ? '~18-24K' : '~5-8K', good: true },
-                      { label: 'Engagements', value: isThread ? '~850-1.2K' : '~200-400', good: true },
-                      { label: 'Eng. Rate', value: isThread ? '~6.2-7.8%' : '~3.5-4.5%', good: true },
-                      { label: 'Clicks', value: isThread ? '~120-200' : '~40-80', good: false },
-                    ].map((p, k) => (
-                      <div key={k} className="text-center">
-                        <div className={`text-[11px] font-semibold ${p.good ? 'text-green-400' : 'text-gray-400'}`}>
-                          {p.value}
-                        </div>
-                        <div className="text-[9px] text-gray-600">{p.label}</div>
+                  {prediction ? (
+                    <>
+                      <div className="grid grid-cols-4 gap-1">
+                        {[
+                          { label: 'Impressions', value: prediction.impressions || '—', good: true },
+                          { label: 'Engagements', value: prediction.engagements || '—', good: true },
+                          { label: 'Eng. Rate', value: prediction.engagementRate || '—', good: true },
+                          { label: 'Confidence', value: prediction.confidence || '—', good: false },
+                        ].map((p, k) => (
+                          <div key={k} className="text-center">
+                            <div className={`text-[11px] font-semibold ${p.good ? 'text-green-400' : 'text-gray-400'}`}>
+                              {typeof p.value === 'number' ? p.value.toLocaleString() : p.value}
+                            </div>
+                            <div className="text-[9px] text-gray-600">{p.label}</div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                      {prediction.suggestions && (
+                        <p className="text-[10px] text-gray-400 mt-1.5 leading-relaxed">{prediction.suggestions}</p>
+                      )}
+                    </>
+                  ) : (
+                    <div className="grid grid-cols-4 gap-1">
+                      {[
+                        { label: 'Impressions', value: isThread ? '~18-24K' : '~5-8K', good: true },
+                        { label: 'Engagements', value: isThread ? '~850-1.2K' : '~200-400', good: true },
+                        { label: 'Eng. Rate', value: isThread ? '~6.2-7.8%' : '~3.5-4.5%', good: true },
+                        { label: 'Clicks', value: isThread ? '~120-200' : '~40-80', good: false },
+                      ].map((p, k) => (
+                        <div key={k} className="text-center">
+                          <div className={`text-[11px] font-semibold ${p.good ? 'text-green-400' : 'text-gray-400'}`}>
+                            {p.value}
+                          </div>
+                          <div className="text-[9px] text-gray-600">{p.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
@@ -718,23 +776,56 @@ export default function ComposerPage() {
                 {/* Predicted performance - Reddit */}
                 <div className="px-3 py-2.5 border-t border-[#343536]" style={{ background: '#161617' }}>
                   <div className="flex items-center gap-1.5 mb-1.5">
-                    <span className="text-[10px] text-[#818384] font-medium">{'\uD83D\uDCCA'} Predicted Performance</span>
+                    <span className="text-[10px] text-[#818384] font-medium">
+                      {prediction ? 'AI Predicted Performance' : 'Predicted Performance'}
+                    </span>
+                    <div className="flex-1" />
+                    <button
+                      onClick={handlePredict}
+                      disabled={predictMutation.isLoading}
+                      className="text-[10px] text-[#FF4500] hover:text-[#ff6634] font-medium disabled:opacity-50"
+                    >
+                      {predictMutation.isLoading ? 'Analyzing...' : prediction ? 'Re-predict' : 'Predict with AI'}
+                    </button>
                   </div>
-                  <div className="grid grid-cols-4 gap-1">
-                    {[
-                      { label: 'Upvotes', value: '~15-40', good: true },
-                      { label: 'Comments', value: '~5-12', good: true },
-                      { label: 'Upvote Ratio', value: '~85-92%', good: true },
-                      { label: 'Cross-posts', value: '~1-3', good: false },
-                    ].map((p, k) => (
-                      <div key={k} className="text-center">
-                        <div className={`text-[11px] font-semibold ${p.good ? 'text-[#FF4500]' : 'text-[#818384]'}`}>
-                          {p.value}
-                        </div>
-                        <div className="text-[9px] text-[#818384]">{p.label}</div>
+                  {prediction ? (
+                    <>
+                      <div className="grid grid-cols-4 gap-1">
+                        {[
+                          { label: 'Upvotes', value: prediction.upvotes || prediction.engagements || '—', good: true },
+                          { label: 'Comments', value: prediction.comments || '—', good: true },
+                          { label: 'Eng. Rate', value: prediction.engagementRate || '—', good: true },
+                          { label: 'Confidence', value: prediction.confidence || '—', good: false },
+                        ].map((p, k) => (
+                          <div key={k} className="text-center">
+                            <div className={`text-[11px] font-semibold ${p.good ? 'text-[#FF4500]' : 'text-[#818384]'}`}>
+                              {typeof p.value === 'number' ? p.value.toLocaleString() : p.value}
+                            </div>
+                            <div className="text-[9px] text-[#818384]">{p.label}</div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                      {prediction.suggestions && (
+                        <p className="text-[10px] text-[#818384] mt-1.5 leading-relaxed">{prediction.suggestions}</p>
+                      )}
+                    </>
+                  ) : (
+                    <div className="grid grid-cols-4 gap-1">
+                      {[
+                        { label: 'Upvotes', value: '~15-40', good: true },
+                        { label: 'Comments', value: '~5-12', good: true },
+                        { label: 'Upvote Ratio', value: '~85-92%', good: true },
+                        { label: 'Cross-posts', value: '~1-3', good: false },
+                      ].map((p, k) => (
+                        <div key={k} className="text-center">
+                          <div className={`text-[11px] font-semibold ${p.good ? 'text-[#FF4500]' : 'text-[#818384]'}`}>
+                            {p.value}
+                          </div>
+                          <div className="text-[9px] text-[#818384]">{p.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -747,15 +838,19 @@ export default function ComposerPage() {
             {[
               { key: 'drafts', label: 'Drafts', count: drafts.length },
               { key: 'queue', label: 'Queue', count: scheduledPosts.length },
+              { key: 'ideas', label: 'AI Ideas' },
             ].map((t) => (
               <button
                 key={t.key}
-                onClick={() => setSidebarTab(t.key)}
+                onClick={() => {
+                  setSidebarTab(t.key);
+                  if (t.key === 'ideas') setShowIdeas(true);
+                }}
                 className={`flex-1 px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
                   sidebarTab === t.key ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'
                 }`}
               >
-                {t.label} ({t.count})
+                {t.label}{t.count != null ? ` (${t.count})` : ''}
               </button>
             ))}
           </div>
@@ -800,7 +895,7 @@ export default function ComposerPage() {
                   </div>
                 ))}
               </div>
-            ) : (
+            ) : sidebarTab === 'queue' ? (
               <div className="space-y-1.5">
                 {scheduledPosts.map((p) => (
                   <div
@@ -835,6 +930,69 @@ export default function ComposerPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            ) : (
+              /* AI Ideas tab */
+              <div className="space-y-2">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white text-[8px] font-bold flex-shrink-0">
+                    AI
+                  </div>
+                  <span className="text-[10px] font-semibold text-gray-600">Content ideas from trends</span>
+                </div>
+                {ideasQuery.isLoading ? (
+                  <div className="space-y-2">
+                    {[1, 2, 3].map((i) => (
+                      <Skeleton key={i} className="h-20 w-full rounded-lg" />
+                    ))}
+                  </div>
+                ) : ideasQuery.error ? (
+                  <p className="text-[11px] text-red-500">Failed to load ideas. Try again later.</p>
+                ) : ideasQuery.data?.ideas?.length > 0 ? (
+                  ideasQuery.data.ideas.map((idea, i) => (
+                    <div
+                      key={i}
+                      className="p-2.5 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg cursor-pointer hover:shadow-sm transition-shadow"
+                      onClick={() => {
+                        if (idea.content) {
+                          setTweets([idea.content]);
+                          setPostMode('single');
+                          toast.success('Idea loaded into composer');
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-1.5 mb-1">
+                        {idea.platform && <PlatformBadge platform={idea.platform} />}
+                        {idea.type && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-medium">
+                            {idea.type}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-gray-800 leading-snug font-medium mb-0.5">
+                        {idea.title || idea.topic || 'Content Idea'}
+                      </p>
+                      <p
+                        className="text-[10px] text-gray-600 leading-relaxed"
+                        style={{
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {idea.content || idea.description || idea.reasoning || ''}
+                      </p>
+                      {idea.expectedEngagement && (
+                        <span className="text-[9px] text-blue-600 font-medium mt-1 inline-block">
+                          Est. engagement: {idea.expectedEngagement}
+                        </span>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-[11px] text-gray-500">No ideas yet. AI will analyze your listening data and post history to suggest content.</p>
+                )}
               </div>
             )}
           </div>

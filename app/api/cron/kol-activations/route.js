@@ -53,6 +53,10 @@ export async function GET(request) {
       .filter((a) => a.platform === 'REDDIT')
       .map((a) => a.username);
 
+    // Include brand terms so we catch KOLs discussing Figure without @-mentioning
+    const BRAND_TERMS = ['$FIGR', '$figr', 'Figure Markets', 'Figure Lending', 'provenance', '$HASH'];
+    const allXTerms = [...xBrandHandles, ...BRAND_TERMS];
+
     // Shared adapters using bearer/service tokens for reads
     const xAdapter = new XPlatformAdapter(process.env.X_BEARER_TOKEN || '');
     const redditAdapter = new RedditAdapter(process.env.REDDIT_SERVICE_TOKEN || '');
@@ -67,18 +71,18 @@ export async function GET(request) {
         const searchStart = Date.now();
 
         if (kol.platform === 'X') {
-          // Search for tweets from the KOL mentioning any brand handle
-          // Query: "from:kol_username (@brand1 OR @brand2)"
-          if (xBrandHandles.length === 0) continue;
+          // Search for tweets from the KOL mentioning brand handles or brand terms
+          // Query: "from:kol_username (@brand1 OR $FIGR OR "Figure Markets" ...)"
+          if (allXTerms.length === 0) continue;
 
           const brandQuery =
-            xBrandHandles.length === 1
-              ? xBrandHandles[0]
-              : `(${xBrandHandles.join(' OR ')})`;
+            allXTerms.length === 1
+              ? allXTerms[0]
+              : `(${allXTerms.join(' OR ')})`;
           const searchQuery = `from:${kol.username} ${brandQuery}`;
 
           const response = await xAdapter.searchTweets(searchQuery);
-          rawHits = response?.tweets || response?.data || [];
+          rawHits = response?.data?.tweets || response?.tweets || [];
         } else if (kol.platform === 'REDDIT') {
           // Search for Reddit posts/comments by the KOL mentioning brand
           if (redditBrandUsernames.length === 0) continue;
@@ -119,15 +123,16 @@ export async function GET(request) {
                 : null);
 
             // Collect metrics at detection time
+            // TwitterAPI.io uses flat fields (likeCount) and nested (public_metrics.like_count)
             const metricsAtDetection = {};
             if (kol.platform === 'X') {
               const pm = hit.public_metrics || {};
-              metricsAtDetection.likes = pm.like_count || 0;
-              metricsAtDetection.retweets = pm.retweet_count || 0;
-              metricsAtDetection.replies = pm.reply_count || 0;
-              metricsAtDetection.quotes = pm.quote_count || 0;
-              metricsAtDetection.impressions = pm.impression_count || 0;
-              metricsAtDetection.bookmarks = pm.bookmark_count || 0;
+              metricsAtDetection.likes = hit.likeCount || pm.like_count || 0;
+              metricsAtDetection.retweets = hit.retweetCount || pm.retweet_count || 0;
+              metricsAtDetection.replies = hit.replyCount || pm.reply_count || 0;
+              metricsAtDetection.quotes = hit.quoteCount || pm.quote_count || 0;
+              metricsAtDetection.impressions = hit.viewCount || pm.impression_count || 0;
+              metricsAtDetection.bookmarks = hit.bookmarkCount || pm.bookmark_count || 0;
             } else if (kol.platform === 'REDDIT') {
               metricsAtDetection.upvotes = hit.ups || 0;
               metricsAtDetection.downvotes = hit.downs || 0;

@@ -113,6 +113,10 @@ export default function DashboardPage() {
     { staleTime: 60_000 }
   );
 
+  // ── AI Analysis ───
+  const aiAnalysisMutation = trpc.ai.analyzePerformance.useMutation();
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+
   // ── Derived data (with fallbacks so charts never crash) ───
   const dashboard = dashboardQ.data ?? {};
   const accounts = accountBreakdownQ.data ?? EMPTY_ACCOUNTS;
@@ -262,11 +266,59 @@ export default function DashboardPage() {
                 </Scatter>
               </ScatterChart>
             </ResponsiveContainer>
-            <div className="flex gap-4 mt-2 text-xs text-gray-500">
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-blue-500" />Thread</span>
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />Post</span>
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-amber-500" />Reddit</span>
+            <div className="flex items-center justify-between mt-2">
+              <div className="flex gap-4 text-xs text-gray-500">
+                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-blue-500" />Thread</span>
+                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />Post</span>
+                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-amber-500" />Reddit</span>
+              </div>
+              <button
+                onClick={() => {
+                  aiAnalysisMutation.mutate({ range: range === '365d' ? '90d' : range === 'custom' ? '30d' : range }, {
+                    onSuccess: (data) => setAiAnalysis(data),
+                  });
+                }}
+                disabled={aiAnalysisMutation.isPending}
+                className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1.5"
+              >
+                <span className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center text-[8px] font-bold">AI</span>
+                {aiAnalysisMutation.isPending ? 'Analyzing...' : 'Analyze Performance'}
+              </button>
             </div>
+
+            {aiAnalysis && (
+              <div className="mt-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">AI</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-blue-900 mb-3">Performance Analysis</p>
+                    {aiAnalysis.patterns?.length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-xs font-medium text-blue-800 mb-1">Patterns Found</p>
+                        {aiAnalysis.patterns.map((p, i) => (
+                          <div key={i} className="text-xs text-blue-700 mb-1 flex items-start gap-1.5">
+                            <span className={`mt-0.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${p.impact === 'HIGH' ? 'bg-green-500' : p.impact === 'MEDIUM' ? 'bg-yellow-500' : 'bg-gray-400'}`} />
+                            <span>{p.pattern}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {aiAnalysis.recommendations?.length > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-blue-800 mb-1">Recommendations</p>
+                        {aiAnalysis.recommendations.map((r, i) => (
+                          <div key={i} className="text-xs text-blue-700 mb-1 flex items-start gap-1.5">
+                            <span className={`mt-0.5 px-1 rounded text-[9px] font-bold ${r.priority === 'HIGH' ? 'bg-red-100 text-red-700' : r.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}>{r.priority}</span>
+                            <span>{r.recommendation}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <button onClick={() => setAiAnalysis(null)} className="mt-2 text-[10px] text-blue-500 hover:text-blue-700">Dismiss</button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="bg-white rounded-xl border border-gray-200 p-5">

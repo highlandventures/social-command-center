@@ -135,6 +135,11 @@ export default function ListeningPage() {
   const dismissHitMutation = trpc.listening.hits.dismiss.useMutation({
     onSuccess: () => utils.listening.hits.list.invalidate(),
   });
+  const reanalyzeSentimentMutation = trpc.listening.reanalyzeSentiment.useMutation({
+    onSuccess: (data) => {
+      utils.listening.hits.list.invalidate();
+    },
+  });
   const refineTopicMutation = trpc.listening.refineTopicQueries.useMutation({
     onSuccess: (data) => {
       setTopicRefineResult(data);
@@ -518,6 +523,17 @@ export default function ListeningPage() {
             </SectionTitle>
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-400">Powered by listening data</span>
+              <button
+                onClick={() => reanalyzeSentimentMutation.mutate({ limit: 50 })}
+                disabled={reanalyzeSentimentMutation.isLoading}
+                className="px-2.5 py-1 bg-indigo-600 text-white text-[10px] rounded-md font-medium hover:bg-indigo-700 disabled:opacity-50"
+              >
+                {reanalyzeSentimentMutation.isLoading
+                  ? 'Re-analyzing...'
+                  : reanalyzeSentimentMutation.data
+                    ? `Updated ${reanalyzeSentimentMutation.data.updated}/${reanalyzeSentimentMutation.data.total}`
+                    : 'Re-analyze Sentiment with AI'}
+              </button>
             </div>
           </div>
 

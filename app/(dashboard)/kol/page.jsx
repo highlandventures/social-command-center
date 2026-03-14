@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip,
@@ -26,7 +26,8 @@ function transformKOL(k) {
     avatarUrl: k.avatarUrl || null,
     followers: followers >= 1000 ? `${(followers / 1000).toFixed(1)}K` : followers,
     followersRaw: followers,
-    type: (k.relationshipType || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).toLowerCase().replace(/^\w/, c => c.toUpperCase()),
+    rawType: k.relationshipType || 'ORGANIC_ADVOCATE',
+    type: TYPE_LABELS[k.relationshipType] ? TYPE_LABELS[k.relationshipType].replace(/s$/, '') : 'Organic Advocate',
     activations: m?.activationsCount ?? 0,
     avgEng: (m?.engagementRateBrand ?? k.baselineEngRate ?? 0).toFixed(1),
     impressions: (m?.totalImpressionsEst ?? 0) >= 1000 ? `${((m?.totalImpressionsEst ?? 0) / 1000).toFixed(1)}K` : (m?.totalImpressionsEst ?? 0),
@@ -40,9 +41,50 @@ function transformKOL(k) {
   };
 }
 
+const TYPE_LABELS = {
+  ALL: 'All Types',
+  COMPANY_EXEC: 'Figure Executives',
+  RETAIL_ANALYST: 'Retail Analysts',
+  PAID_PARTNER: 'Paid Partners',
+  ORGANIC_ADVOCATE: 'Organic Advocates',
+  ADVISOR: 'Advisors',
+  PORTFOLIO_FOUNDER: 'Portfolio Founders',
+};
+
+const TYPE_COLORS = {
+  COMPANY_EXEC: 'bg-rose-100 text-rose-700',
+  RETAIL_ANALYST: 'bg-cyan-100 text-cyan-700',
+  PAID_PARTNER: 'bg-purple-100 text-purple-700',
+  ORGANIC_ADVOCATE: 'bg-green-100 text-green-700',
+  ADVISOR: 'bg-amber-100 text-amber-700',
+  PORTFOLIO_FOUNDER: 'bg-blue-100 text-blue-700',
+};
+
+const TYPE_ICONS = {
+  COMPANY_EXEC: '\uD83C\uDFE2',
+  RETAIL_ANALYST: '\uD83D\uDCC8',
+  PAID_PARTNER: '\uD83E\uDD1D',
+  ORGANIC_ADVOCATE: '\uD83C\uDF31',
+  ADVISOR: '\uD83C\uDFAF',
+  PORTFOLIO_FOUNDER: '\uD83D\uDCBC',
+};
+
+const TYPE_DESCRIPTIONS = {
+  COMPANY_EXEC: 'Figure Technology Solutions leadership and company representatives',
+  RETAIL_ANALYST: 'Independent analysts and researchers who cover FIGR',
+  PAID_PARTNER: 'Contracted KOLs with paid partnerships',
+  ORGANIC_ADVOCATE: 'Community members who organically promote the brand',
+  ADVISOR: 'Strategic advisors with industry influence',
+  PORTFOLIO_FOUNDER: 'Founders of portfolio companies',
+};
+
+// Display order for sections — execs first
+const SECTION_ORDER = ['COMPANY_EXEC', 'RETAIL_ANALYST', 'PAID_PARTNER', 'ORGANIC_ADVOCATE', 'ADVISOR', 'PORTFOLIO_FOUNDER'];
+
 export default function KOLPage() {
   const [subTab, setSubTab] = useState('roster');
   const [selectedKOL, setSelectedKOL] = useState(null);
+  const [typeFilter, setTypeFilter] = useState('ALL');
 
   // ── tRPC queries ──────────────────────────────────────────
   const kolsQ = trpc.kol.list.useQuery(undefined, { staleTime: 30_000 });
@@ -56,15 +98,33 @@ export default function KOLPage() {
   );
   const discoverQ = trpc.kol.discoverCandidates.useQuery(undefined, { staleTime: 60_000 });
 
+  // ── AI Scorecard ────────────────────────────────────────
+  const [scorecard, setScorecard] = useState(null);
+  const scorecardMutation = trpc.kol.generateScorecard.useMutation({
+    onSuccess: (data) => setScorecard(data),
+  });
+  const handleGenerateScorecard = useCallback(() => {
+    if (!selectedKOL) return;
+    setScorecard(null);
+    scorecardMutation.mutate({ kolId: selectedKOL });
+  }, [selectedKOL, scorecardMutation]);
+
   // ── Derived ───────────────────────────────────────────────
-  const kols = (kolsQ.data ?? []).map(transformKOL);
+  const allKols = (kolsQ.data ?? []).map(transformKOL);
+  const kols = typeFilter === 'ALL' ? allKols : allKols.filter(k => k.rawType === typeFilter);
+
+  // Type breakdown for summary
+  const typeCounts = {};
+  for (const k of allKols) {
+    typeCounts[k.rawType] = (typeCounts[k.rawType] || 0) + 1;
+  }
   const kolActivations = activationsQ.data ?? [];
   const kolPerformanceData = metricsHistoryQ.data ?? [];
   const discoveries = discoverQ.data ?? [];
 
   // ── KOL detail drill-down ─────────────────────────────────
   if (selectedKOL) {
-    const kol = kols.find((k) => k.id === selectedKOL);
+    const kol = allKols.find((k) => k.id === selectedKOL);
     if (!kol) {
       setSelectedKOL(null);
       return null;
@@ -90,7 +150,7 @@ export default function KOLPage() {
                   <span className="text-sm text-gray-500">{kol.followers} followers</span>
                 </div>
                 <div className="flex items-center gap-3 mt-2">
-                  <span className="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-600">{kol.type}</span>
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${TYPE_COLORS[kol.rawType] || 'bg-gray-100 text-gray-600'}`}>{kol.type}</span>
                   <span className="px-2 py-0.5 bg-blue-50 rounded text-xs text-blue-600">{kol.cohort}</span>
                   {kol.comp !== '—' && <span className="text-xs text-gray-500">Comp: {kol.comp}</span>}
                 </div>
@@ -118,25 +178,73 @@ export default function KOLPage() {
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5 mb-6">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">AI</div>
-            <div>
-              <p className="text-sm font-semibold text-blue-900 mb-2">AI Analysis — Updated 2 days ago</p>
-              {kol.score === 'A' && (
-                <div className="text-sm text-gray-800 leading-relaxed space-y-2">
-                  <p><strong>Score: A (High Value).</strong> {kol.name.split(' ')[0]} is one of your strongest KOLs. Their activations outperform both their own baseline ({kol.avgEng}% vs 5.8% non-brand) and your organic content ({kol.avgEng}% vs 4.8%), suggesting their audience has genuine interest in your brand.</p>
-                  <p>The {kol.correlation} follower growth correlation is strong — their posts are directly driving new followers to your account. At {kol.comp} for ~{kol.impressions} quality impressions, the CPM is premium but justified given engagement quality and follower attribution.</p>
-                  <p><strong>Recommendation:</strong> Maintain and explore co-created content (threads together, AMAs) to deepen the partnership. Consider a performance bonus tied to follower milestones.</p>
+            <div className="flex-1">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-semibold text-blue-900">
+                  {scorecard ? 'AI Scorecard' : 'AI Analysis'}
+                </p>
+                <button
+                  onClick={handleGenerateScorecard}
+                  disabled={scorecardMutation.isLoading}
+                  className="px-2.5 py-1 bg-blue-600 text-white text-[10px] rounded-md font-medium hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {scorecardMutation.isLoading ? 'Generating...' : scorecard ? 'Regenerate Report' : 'Generate Full Report'}
+                </button>
+              </div>
+              {scorecardMutation.isLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-5/6" />
                 </div>
-              )}
-              {kol.score === 'D' && (
-                <div className="text-sm text-gray-800 leading-relaxed space-y-2">
-                  <p><strong>Score: D (Not Worth It).</strong> Despite {kol.followers} followers, {kol.name.split(' ')[0]}&apos;s single activation generated only {kol.impressions} impressions with {kol.avgEng}% engagement — well below both their baseline and your organic content.</p>
-                  <p>The 0.05 follower correlation suggests near-zero impact on your growth. At {kol.comp}, the cost per quality engagement is $52.08 — roughly 100x your organic cost.</p>
-                  <p><strong>Recommendation:</strong> Wind down this partnership. Their audience doesn&apos;t overlap with your target market. Reallocate budget to micro-KOLs with higher engagement quality.</p>
+              ) : scorecard ? (
+                <div className="space-y-3">
+                  {scorecard.summary && (
+                    <p className="text-sm text-gray-800 leading-relaxed">{scorecard.summary}</p>
+                  )}
+                  {scorecard.highlights?.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-green-800 mb-1">Highlights</p>
+                      <ul className="space-y-0.5">
+                        {scorecard.highlights.map((h, i) => (
+                          <li key={i} className="text-sm text-gray-700 flex items-start gap-1.5">
+                            <span className="text-green-500 mt-0.5">+</span> {h}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {scorecard.concerns?.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-red-800 mb-1">Concerns</p>
+                      <ul className="space-y-0.5">
+                        {scorecard.concerns.map((c, i) => (
+                          <li key={i} className="text-sm text-gray-700 flex items-start gap-1.5">
+                            <span className="text-red-500 mt-0.5">-</span> {c}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {scorecard.recommendations?.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-blue-800 mb-1">Recommendations</p>
+                      <ul className="space-y-0.5">
+                        {scorecard.recommendations.map((r, i) => (
+                          <li key={i} className="text-sm text-gray-700 flex items-start gap-1.5">
+                            <span className="text-blue-500 mt-0.5">&rarr;</span> {typeof r === 'string' ? r : r.recommendation || r.action}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {scorecard.costEfficiency && (
+                    <p className="text-xs text-gray-500">Cost efficiency: {typeof scorecard.costEfficiency === 'string' ? scorecard.costEfficiency : scorecard.costEfficiency.rating || JSON.stringify(scorecard.costEfficiency)}</p>
+                  )}
                 </div>
-              )}
-              {kol.score !== 'A' && kol.score !== 'D' && (
+              ) : (
                 <div className="text-sm text-gray-800 leading-relaxed">
-                  <p><strong>Score: {kol.score} ({kol.scoreLabel}).</strong> {kol.name.split(' ')[0]} shows moderate engagement with {kol.activations} activations this period averaging {kol.avgEng}% engagement. Follower correlation at {kol.correlation} indicates some positive impact but room for improvement.</p>
+                  <p><strong>Score: {kol.score} ({kol.scoreLabel}).</strong> {kol.name.split(' ')[0]} has {kol.activations} activations this period averaging {kol.avgEng}% engagement. Click &quot;Generate Full Report&quot; for a detailed AI-powered analysis.</p>
                 </div>
               )}
             </div>
@@ -220,70 +328,120 @@ export default function KOLPage() {
         <div>
           {/* Summary cards */}
           {kolsQ.isLoading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-              {[1, 2, 3, 4].map((i) => <MetricCardSkeleton key={i} />)}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+              {[1, 2, 3, 4, 5].map((i) => <MetricCardSkeleton key={i} />)}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-              <MetricCard label="Active KOLs" value={kols.length} />
-              <MetricCard label="Total Activations (30d)" value={kols.reduce((s, k) => s + (k.activations ?? 0), 0)} delta={18} />
-              <MetricCard label="Avg Engagement" value={`${kols.length ? (kols.reduce((s, k) => s + (k.avgEng ?? 0), 0) / kols.length).toFixed(1) : 0}%`} delta={5} />
-              <MetricCard label="Est. Total Impressions" value="42.3K" delta={14} />
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
+              <MetricCard label="Active KOLs" value={allKols.length} />
+              <MetricCard label="Retail Analysts" value={typeCounts.RETAIL_ANALYST || 0} />
+              <MetricCard label="Paid Partners" value={typeCounts.PAID_PARTNER || 0} />
+              <MetricCard label="Organic Advocates" value={typeCounts.ORGANIC_ADVOCATE || 0} />
+              <MetricCard label="Total Activations (30d)" value={allKols.reduce((s, k) => s + (k.activations ?? 0), 0)} />
             </div>
           )}
 
-          {/* KOL roster table */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            {kolsQ.isLoading ? (
-              <div className="space-y-3">{[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-14 w-full" />)}</div>
-            ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    {['KOL', 'Platform', 'Followers', 'Type', 'Activations', 'Avg Eng.', 'Impressions', 'Sentiment', 'AI Score', 'Trend'].map((h) => (
-                      <th key={h} className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {kols.map((kol) => (
-                    <tr
-                      key={kol.id}
-                      onClick={() => setSelectedKOL(kol.id)}
-                      className="border-b border-gray-100 hover:bg-blue-50 cursor-pointer transition-colors"
-                    >
-                      <td className="py-3 px-3">
-                        <div className="flex items-center gap-2.5">
-                          <Avatar initials={kol.avatar} src={kol.avatarUrl} platform={kol.platform} size="sm" />
+          {/* Type filter pills */}
+          <div className="flex items-center gap-2 mb-6 flex-wrap">
+            {Object.entries(TYPE_LABELS).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setTypeFilter(key)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  typeFilter === key
+                    ? 'bg-gray-900 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {label} {key !== 'ALL' && typeCounts[key] ? `(${typeCounts[key]})` : key === 'ALL' ? `(${allKols.length})` : ''}
+              </button>
+            ))}
+          </div>
+
+          {/* Grouped KOL sections */}
+          {kolsQ.isLoading ? (
+            <div className="space-y-3">{[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-14 w-full" />)}</div>
+          ) : (
+            <div className="space-y-6">
+              {SECTION_ORDER
+                .filter((sectionType) => typeFilter === 'ALL' || typeFilter === sectionType)
+                .filter((sectionType) => {
+                  const sectionKols = allKols.filter(k => k.rawType === sectionType);
+                  return sectionKols.length > 0;
+                })
+                .map((sectionType) => {
+                  const sectionKols = allKols.filter(k => k.rawType === sectionType);
+                  const sectionActivations = sectionKols.reduce((s, k) => s + (k.activations ?? 0), 0);
+                  const sectionAvgEng = sectionKols.length
+                    ? (sectionKols.reduce((s, k) => s + parseFloat(k.avgEng || 0), 0) / sectionKols.length).toFixed(1)
+                    : '0.0';
+
+                  return (
+                    <div key={sectionType} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                      {/* Section header */}
+                      <div className={`px-5 py-3 border-b border-gray-100 flex items-center justify-between`}>
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg">{TYPE_ICONS[sectionType]}</span>
                           <div>
-                            <p className="font-medium text-gray-900">{kol.name}</p>
-                            <p className="text-xs text-gray-400">{kol.handle}</p>
+                            <h3 className="text-sm font-semibold text-gray-900">{TYPE_LABELS[sectionType]}</h3>
+                            <p className="text-xs text-gray-500">{TYPE_DESCRIPTIONS[sectionType]}</p>
                           </div>
                         </div>
-                      </td>
-                      <td className="py-3 px-3"><PlatformBadge platform={kol.platform} /></td>
-                      <td className="py-3 px-3">{kol.followers}</td>
-                      <td className="py-3 px-3"><span className="px-2 py-0.5 bg-gray-100 rounded text-xs text-gray-600">{kol.type}</span></td>
-                      <td className="py-3 px-3 font-medium">{kol.activations}</td>
-                      <td className="py-3 px-3">
-                        <span className={`font-medium ${(kol.avgEng ?? 0) > 4 ? 'text-green-600' : (kol.avgEng ?? 0) > 2 ? 'text-gray-900' : 'text-red-500'}`}>
-                          {kol.avgEng}%
-                        </span>
-                      </td>
-                      <td className="py-3 px-3">{kol.impressions}</td>
-                      <td className="py-3 px-3">
-                        <span className={(kol.sentiment ?? 0) > 75 ? 'text-green-600' : 'text-amber-600'}>{kol.sentiment}% pos</span>
-                      </td>
-                      <td className="py-3 px-3"><ScoreBadge score={kol.score} /></td>
-                      <td className="py-3 px-3">
-                        <TrendArrow trend={kol.trend} /> <span className="text-xs text-gray-400">{kol.scoreLabel}</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                          <span><strong className="text-gray-900">{sectionKols.length}</strong> KOLs</span>
+                          <span><strong className="text-gray-900">{sectionActivations}</strong> activations</span>
+                          <span><strong className="text-gray-900">{sectionAvgEng}%</strong> avg eng.</span>
+                        </div>
+                      </div>
+                      {/* Section table */}
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-gray-100 bg-gray-50/50">
+                            {['KOL', 'Platform', 'Followers', 'Activations', 'Avg Eng.', 'Impressions', 'Sentiment', 'AI Score'].map((h) => (
+                              <th key={h} className="text-left py-2 px-3 text-[10px] font-medium text-gray-400 uppercase tracking-wider">{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {sectionKols.map((kol) => (
+                            <tr
+                              key={kol.id}
+                              onClick={() => setSelectedKOL(kol.id)}
+                              className="border-b border-gray-50 hover:bg-blue-50 cursor-pointer transition-colors"
+                            >
+                              <td className="py-2.5 px-3">
+                                <div className="flex items-center gap-2.5">
+                                  <Avatar initials={kol.avatar} src={kol.avatarUrl} platform={kol.platform} size="sm" />
+                                  <div>
+                                    <p className="font-medium text-gray-900 text-sm">{kol.name}</p>
+                                    <p className="text-xs text-gray-400">{kol.handle}</p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="py-2.5 px-3"><PlatformBadge platform={kol.platform} /></td>
+                              <td className="py-2.5 px-3 text-gray-700">{kol.followers}</td>
+                              <td className="py-2.5 px-3 font-medium">{kol.activations}</td>
+                              <td className="py-2.5 px-3">
+                                <span className={`font-medium ${parseFloat(kol.avgEng) > 4 ? 'text-green-600' : parseFloat(kol.avgEng) > 2 ? 'text-gray-900' : 'text-red-500'}`}>
+                                  {kol.avgEng}%
+                                </span>
+                              </td>
+                              <td className="py-2.5 px-3 text-gray-700">{kol.impressions}</td>
+                              <td className="py-2.5 px-3">
+                                <span className={parseInt(kol.sentiment) > 75 ? 'text-green-600' : 'text-amber-600'}>{kol.sentiment}% pos</span>
+                              </td>
+                              <td className="py-2.5 px-3">
+                                <ScoreBadge score={kol.score} />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
 
           {/* Monthly AI Portfolio Review */}
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5 mt-6">

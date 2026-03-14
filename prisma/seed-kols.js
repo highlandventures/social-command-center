@@ -16,6 +16,7 @@ const prisma = new PrismaClient();
 // ── Cohort definitions ──────────────────────────────────────
 
 const cohorts = [
+  { name: 'Figure Executives', description: 'Figure Technology Solutions leadership and company reps' },
   { name: 'FIGR Analysts', description: 'Organic advocates and analysts who regularly cover FIGR' },
   { name: 'KOLs', description: 'Key opinion leaders in the RWA and crypto space' },
   { name: 'Adhoc KOLs', description: 'Additional influencers for opportunistic tracking' },
@@ -24,28 +25,32 @@ const cohorts = [
 // ── KOL definitions by cohort ───────────────────────────────
 
 const kolsByCohort = {
+  'Figure Executives': [
+    { name: 'Mike Cagney',         username: 'mcagney',          relationshipType: 'COMPANY_EXEC' },
+    { name: 'Michael Tannenbaum',  username: 'mbtannenbaum',     relationshipType: 'COMPANY_EXEC' },
+  ],
   'FIGR Analysts': [
-    { name: 'Covered Call',      username: 'covered_call',     relationshipType: 'ORGANIC_ADVOCATE' },
-    { name: 'Kross Roads',       username: 'Kross_Roads',      relationshipType: 'ORGANIC_ADVOCATE' },
-    { name: 'Nick Researcher',   username: 'Nick_Researcher',  relationshipType: 'ORGANIC_ADVOCATE' },
-    { name: 'TridentX Hodler',   username: 'tridentxhodler',   relationshipType: 'ORGANIC_ADVOCATE' },
-    { name: 'Dr Creeptic',       username: 'drcreeptic',       relationshipType: 'ORGANIC_ADVOCATE' },
-    { name: 'Aayush Trades',     username: 'aayushtrades',     relationshipType: 'ORGANIC_ADVOCATE' },
-    { name: 'MBarry',            username: 'Mbarry581',        relationshipType: 'ORGANIC_ADVOCATE' },
-    { name: 'Matthew Sigel',     username: 'matthew_sigel',    relationshipType: 'ORGANIC_ADVOCATE' },
-    { name: 'Manish Dutta',      username: 'dutta_manish',     relationshipType: 'ORGANIC_ADVOCATE' },
-    { name: 'Rex Salisbury',     username: 'rexsalisbury',     relationshipType: 'ORGANIC_ADVOCATE' },
-    { name: 'Mega Fund',         username: 'Mega_Fund',        relationshipType: 'ORGANIC_ADVOCATE' },
-    { name: 'Crenmy',            username: 'Crenmy1',          relationshipType: 'ORGANIC_ADVOCATE' },
-    { name: 'Manisha',           username: 'Manisha_kh',       relationshipType: 'ORGANIC_ADVOCATE' },
-    { name: 'Cosmonaut Stakes',  username: 'CosmonautStakes',  relationshipType: 'ORGANIC_ADVOCATE' },
-    { name: 'Bielzinn',          username: 'bielzinn',         relationshipType: 'ORGANIC_ADVOCATE' },
+    { name: 'Covered Call',      username: 'covered_call',     relationshipType: 'RETAIL_ANALYST' },
+    { name: 'Kross Roads',       username: 'Kross_Roads',      relationshipType: 'RETAIL_ANALYST' },
+    { name: 'Nick Researcher',   username: 'Nick_Researcher',  relationshipType: 'RETAIL_ANALYST' },
+    { name: 'TridentX Hodler',   username: 'tridentxhodler',   relationshipType: 'RETAIL_ANALYST' },
+    { name: 'Dr Creeptic',       username: 'drcreeptic',       relationshipType: 'RETAIL_ANALYST' },
+    { name: 'Aayush Trades',     username: 'aayushtrades',     relationshipType: 'RETAIL_ANALYST' },
+    { name: 'MBarry',            username: 'Mbarry581',        relationshipType: 'RETAIL_ANALYST' },
+    { name: 'Matthew Sigel',     username: 'matthew_sigel',    relationshipType: 'RETAIL_ANALYST' },
+    { name: 'Manish Dutta',      username: 'dutta_manish',     relationshipType: 'RETAIL_ANALYST' },
+    { name: 'Rex Salisbury',     username: 'rexsalisbury',     relationshipType: 'RETAIL_ANALYST' },
+    { name: 'Mega Fund',         username: 'Mega_Fund',        relationshipType: 'RETAIL_ANALYST' },
+    { name: 'Crenmy',            username: 'Crenmy1',          relationshipType: 'RETAIL_ANALYST' },
+    { name: 'Manisha',           username: 'Manisha_kh',       relationshipType: 'RETAIL_ANALYST' },
+    { name: 'Cosmonaut Stakes',  username: 'CosmonautStakes',  relationshipType: 'RETAIL_ANALYST' },
+    { name: 'Bielzinn',          username: 'bielzinn',         relationshipType: 'RETAIL_ANALYST' },
   ],
   'KOLs': [
-    { name: 'Rektonomist',       username: 'rektonomist_',     relationshipType: 'ORGANIC_ADVOCATE' },
-    { name: 'Tanaka L2',         username: 'Tanaka_L2',        relationshipType: 'ORGANIC_ADVOCATE' },
-    { name: 'Zeus RWA',          username: 'ZeusRWA',          relationshipType: 'ORGANIC_ADVOCATE' },
-    { name: 'Sol Nxxn',          username: 'sol_nxxn',         relationshipType: 'ORGANIC_ADVOCATE' },
+    { name: 'Rektonomist',       username: 'rektonomist_',     relationshipType: 'PAID_PARTNER' },
+    { name: 'Tanaka L2',         username: 'Tanaka_L2',        relationshipType: 'PAID_PARTNER' },
+    { name: 'Zeus RWA',          username: 'ZeusRWA',          relationshipType: 'PAID_PARTNER' },
+    { name: 'Sol Nxxn',          username: 'sol_nxxn',         relationshipType: 'PAID_PARTNER' },
   ],
   'Adhoc KOLs': [
     { name: 'Altcoin Daily',     username: 'AltcoinDaily',     relationshipType: 'ORGANIC_ADVOCATE' },
@@ -106,13 +111,16 @@ async function main() {
       });
 
       if (existing) {
-        // Assign to cohort if not already assigned
-        if (existing.cohortId !== cohortId) {
+        // Update cohort and relationship type if changed
+        const needsUpdate =
+          existing.cohortId !== cohortId ||
+          existing.relationshipType !== kol.relationshipType;
+        if (needsUpdate) {
           await prisma.kOL.update({
             where: { id: existing.id },
-            data: { cohortId },
+            data: { cohortId, relationshipType: kol.relationshipType },
           });
-          console.log(`  Updated cohort: @${kol.username} → ${cohortName}`);
+          console.log(`  Updated: @${kol.username} → ${cohortName} (${kol.relationshipType})`);
           updated++;
         } else {
           console.log(`  Skip (exists): @${kol.username}`);
