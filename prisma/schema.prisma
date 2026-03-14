@@ -378,8 +378,29 @@ model MonitoredSubreddit {
   avgEngagement   Float?
 
   topic           ListeningTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  metrics         SubredditMetrics[]
 
+  @@unique([topicId, subredditName])
   @@map("monitored_subreddits")
+}
+
+model SubredditMetrics {
+  id                    String   @id @default(cuid())
+  subredditId           String
+  date                  DateTime @db.Date
+
+  subscribers           Int      @default(0)
+  postsCount            Int      @default(0)
+  commentsCount         Int      @default(0)
+  avgUpvotes            Float    @default(0)
+  avgComments           Float    @default(0)
+  topPostScore          Int      @default(0)
+  topPostTitle          String?
+
+  subreddit             MonitoredSubreddit @relation(fields: [subredditId], references: [id], onDelete: Cascade)
+
+  @@unique([subredditId, date])
+  @@map("subreddit_metrics")
 }
 
 // ============================================================

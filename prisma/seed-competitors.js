@@ -604,13 +604,18 @@ async function main() {
   for (const topic of figureTopics) {
     const existing = await prisma.listeningTopic.findFirst({ where: { name: topic.name } });
     if (existing) {
+      // Clean up related records before deleting topic
+      await prisma.subredditMetrics.deleteMany({
+        where: { subreddit: { topicId: existing.id } },
+      });
+      await prisma.monitoredSubreddit.deleteMany({ where: { topicId: existing.id } });
       await prisma.listeningHit.deleteMany({ where: { topicId: existing.id } });
       await prisma.listeningQuery.deleteMany({ where: { topicId: existing.id } });
       await prisma.listeningTopic.delete({ where: { id: existing.id } });
       console.log(`  Deleted old topic: ${topic.name}`);
     }
 
-    await prisma.listeningTopic.create({
+    const createdTopic = await prisma.listeningTopic.create({
       data: {
         name: topic.name,
         description: topic.description,
@@ -629,6 +634,27 @@ async function main() {
     });
 
     console.log(`  Created: ${topic.name} (${topic.queries.length} queries)`);
+
+    // Create MonitoredSubreddit records for Figure-owned subreddits
+    // These drive the poll-subreddit-metrics cron for subscriber/engagement tracking
+    if (topic.name === 'Figure Brand & Products') {
+      const figureSubreddits = ['FigureTech', 'FigureMarkets', 'FIGR'];
+      for (const subName of figureSubreddits) {
+        await prisma.monitoredSubreddit.upsert({
+          where: {
+            topicId_subredditName: { topicId: createdTopic.id, subredditName: subName },
+          },
+          update: { active: true },
+          create: {
+            topicId: createdTopic.id,
+            subredditName: subName,
+            suggestedBy: 'seed',
+            active: true,
+          },
+        });
+      }
+      console.log(`  Created ${figureSubreddits.length} MonitoredSubreddit records (${figureSubreddits.join(', ')})`);
+    }
   }
 
   // ── 4. Rebuild KOL ecosystem monitoring topics ─────────────
