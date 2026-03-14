@@ -43,7 +43,7 @@ export default function DashboardLayout({ children }) {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* ── Top navigation bar ── */}
-      <header className="bg-white border-b border-gray-200 px-6 py-3">
+      <header className="relative z-30 bg-white border-b border-gray-200 px-6 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-bold text-gray-900">
@@ -58,7 +58,7 @@ export default function DashboardLayout({ children }) {
             {/* Account switcher */}
             <div className="relative">
               <button
-                onClick={() => setAccountMenuOpen(!accountMenuOpen)}
+                onClick={() => { setAccountMenuOpen(!accountMenuOpen); setUserMenuOpen(false); }}
                 className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer"
               >
                 <div className="flex -space-x-1.5">
@@ -95,7 +95,10 @@ export default function DashboardLayout({ children }) {
                     className="fixed inset-0 z-40"
                     onClick={() => setAccountMenuOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1">
+                  <div
+                    className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button
                       onClick={() => { setSelectedAccount(null); setAccountMenuOpen(false); }}
                       className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 hover:bg-gray-50 transition-colors ${
@@ -146,7 +149,7 @@ export default function DashboardLayout({ children }) {
             {/* User menu */}
             <div className="relative">
               <button
-                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                onClick={() => { setUserMenuOpen(!userMenuOpen); setAccountMenuOpen(false); }}
                 className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm font-bold hover:bg-indigo-700 transition-colors"
               >
                 {userInitial}
@@ -157,7 +160,10 @@ export default function DashboardLayout({ children }) {
                     className="fixed inset-0 z-40"
                     onClick={() => setUserMenuOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1">
+                  <div
+                    className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="px-4 py-2 border-b border-gray-100">
                       <p className="text-sm font-medium text-gray-900 truncate">{userEmail}</p>
                       <p className="text-xs text-gray-500">{session?.user?.role || 'User'}</p>
@@ -177,7 +183,7 @@ export default function DashboardLayout({ children }) {
       </header>
 
       {/* ── Tab navigation bar ── */}
-      <div className="bg-white border-b border-gray-200 px-6">
+      <div className="relative z-20 bg-white border-b border-gray-200 px-6">
         <div className="flex items-center gap-1 -mb-px">
           {tabs.map((tab) => {
             const active = isActive(tab.key);
