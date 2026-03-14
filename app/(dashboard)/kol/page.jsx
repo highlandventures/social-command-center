@@ -81,10 +81,17 @@ const TYPE_DESCRIPTIONS = {
 // Display order for sections — execs first
 const SECTION_ORDER = ['COMPANY_EXEC', 'RETAIL_ANALYST', 'PAID_PARTNER', 'ORGANIC_ADVOCATE', 'ADVISOR', 'PORTFOLIO_FOUNDER'];
 
+const EMPTY_KOL_FORM = {
+  name: '', username: '', platform: 'X', relationshipType: 'ORGANIC_ADVOCATE',
+  cohortId: '', compensationMonthly: '', baselineFollowers: '',
+};
+
 export default function KOLPage() {
   const [subTab, setSubTab] = useState('roster');
   const [selectedKOL, setSelectedKOL] = useState(null);
   const [typeFilter, setTypeFilter] = useState('ALL');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addForm, setAddForm] = useState(EMPTY_KOL_FORM);
 
   // ── tRPC queries ──────────────────────────────────────────
   const kolsQ = trpc.kol.list.useQuery(undefined, { staleTime: 30_000 });
@@ -98,6 +105,10 @@ export default function KOLPage() {
   );
   const discoverQ = trpc.kol.discoverCandidates.useQuery(undefined, { staleTime: 60_000 });
   const recentActivationsQ = trpc.kol.recentActivations.useQuery(undefined, { staleTime: 30_000 });
+  const cohortsQ = trpc.kol.getCohorts.useQuery(undefined, { staleTime: 60_000 });
+  const createMutation = trpc.kol.create.useMutation({
+    onSuccess: () => { kolsQ.refetch(); setShowAddModal(false); setAddForm(EMPTY_KOL_FORM); },
+  });
 
   // ── AI Scorecard ────────────────────────────────────────
   const [scorecard, setScorecard] = useState(null);
@@ -152,7 +163,7 @@ export default function KOLPage() {
                 </div>
                 <div className="flex items-center gap-3 mt-2">
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${TYPE_COLORS[kol.rawType] || 'bg-gray-100 text-gray-600'}`}>{kol.type}</span>
-                  <span className="px-2 py-0.5 bg-blue-50 rounded text-xs text-blue-600">{kol.cohort}</span>
+                  <span className="px-2 py-0.5 bg-blue-50 rounded text-xs text-blue-600">{kol.cohortName}</span>
                   {kol.comp !== '—' && <span className="text-xs text-gray-500">Comp: {kol.comp}</span>}
                 </div>
               </div>
@@ -338,7 +349,7 @@ export default function KOLPage() {
           </TabButton>
         ))}
         <div className="flex-1" />
-        <button className="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-800">+ Add KOL</button>
+        <button onClick={() => setShowAddModal(true)} className="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-800">+ Add KOL</button>
       </div>
 
       {subTab === 'roster' && (
@@ -603,7 +614,13 @@ export default function KOLPage() {
                         </div>
                       </div>
                       <div className="flex flex-col gap-2 ml-4">
-                        <button className="px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-800 whitespace-nowrap">Add as KOL</button>
+                        <button
+                          onClick={() => {
+                            setAddForm({ ...EMPTY_KOL_FORM, name: sug.username, username: sug.username.replace(/^@/, ''), platform: sug.platform, baselineFollowers: String(sug.followers || '') });
+                            setShowAddModal(true);
+                          }}
+                          className="px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-800 whitespace-nowrap"
+                        >Add as KOL</button>
                         <button className="px-3 py-1.5 bg-gray-100 text-gray-600 text-xs rounded-lg hover:bg-gray-200 whitespace-nowrap">Dismiss</button>
                       </div>
                     </div>
@@ -612,6 +629,92 @@ export default function KOLPage() {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Add KOL Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowAddModal(false)}>
+          <div className="bg-white rounded-xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Add New KOL</h2>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              createMutation.mutate({
+                name: addForm.name,
+                username: addForm.username.replace(/^@/, ''),
+                platform: addForm.platform,
+                relationshipType: addForm.relationshipType,
+                ...(addForm.cohortId ? { cohortId: addForm.cohortId } : {}),
+                ...(addForm.compensationMonthly ? { compensationMonthly: Number(addForm.compensationMonthly) } : {}),
+                ...(addForm.baselineFollowers ? { baselineFollowers: parseInt(addForm.baselineFollowers) } : {}),
+              });
+            }} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Name</label>
+                  <input type="text" required value={addForm.name} onChange={(e) => setAddForm(f => ({ ...f, name: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Display name" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Username</label>
+                  <input type="text" required value={addForm.username} onChange={(e) => setAddForm(f => ({ ...f, username: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="@handle" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Platform</label>
+                  <select value={addForm.platform} onChange={(e) => setAddForm(f => ({ ...f, platform: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
+                    <option value="X">X (Twitter)</option>
+                    <option value="REDDIT">Reddit</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
+                  <select value={addForm.relationshipType} onChange={(e) => setAddForm(f => ({ ...f, relationshipType: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
+                    {Object.entries(TYPE_LABELS).filter(([k]) => k !== 'ALL').map(([k, v]) => (
+                      <option key={k} value={k}>{v.replace(/s$/, '')}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Cohort</label>
+                <select value={addForm.cohortId} onChange={(e) => setAddForm(f => ({ ...f, cohortId: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
+                  <option value="">No cohort</option>
+                  {(cohortsQ.data || []).map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Compensation ($/mo)</label>
+                  <input type="number" value={addForm.compensationMonthly} onChange={(e) => setAddForm(f => ({ ...f, compensationMonthly: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="0" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Followers</label>
+                  <input type="number" value={addForm.baselineFollowers} onChange={(e) => setAddForm(f => ({ ...f, baselineFollowers: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="0" />
+                </div>
+              </div>
+              {createMutation.error && (
+                <p className="text-sm text-red-600">{createMutation.error.message}</p>
+              )}
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => { setShowAddModal(false); setAddForm(EMPTY_KOL_FORM); }}
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
+                <button type="submit" disabled={createMutation.isLoading}
+                  className="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-800 disabled:opacity-50">
+                  {createMutation.isLoading ? 'Adding...' : 'Add KOL'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
