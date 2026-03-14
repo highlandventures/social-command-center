@@ -26,15 +26,51 @@ const EMPTY_POST_SCATTER = [];
 const EMPTY_POST_TABLE = [];
 const EMPTY_HEATMAP = [];
 
+// Helper: format date as YYYY-MM-DD
+function toDateStr(d) { return d.toISOString().slice(0, 10); }
+
+// Dynamic XAxis interval based on range
+function chartInterval(range, startDate, endDate) {
+  if (range === 'custom' && startDate && endDate) {
+    const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (24*60*60*1000));
+    if (days <= 14) return 1;
+    if (days <= 60) return 4;
+    if (days <= 180) return 10;
+    return 20;
+  }
+  const map = { '7d': 1, '30d': 4, '90d': 10, '365d': 30 };
+  return map[range] || 6;
+}
+
+// Dynamic range label for display
+function rangeLabel(range, startDate, endDate) {
+  if (range === 'custom' && startDate && endDate) {
+    return `${startDate} – ${endDate}`;
+  }
+  const map = { '7d': '7 days', '30d': '30 days', '90d': '90 days', '365d': '1 year' };
+  return map[range] || '30 days';
+}
+
 export default function DashboardPage() {
   const [dateRange, setDateRange] = useState('30d');
   const [detailAccount, setDetailAccount] = useState(null);
+  const [showCustomPicker, setShowCustomPicker] = useState(false);
+  const [customStart, setCustomStart] = useState(() => toDateStr(new Date(Date.now() - 30*24*60*60*1000)));
+  const [customEnd, setCustomEnd] = useState(() => toDateStr(new Date()));
   const { selectedAccount } = useSelectedAccount();
 
   // Build query input with optional account filter
-  const queryInput = selectedAccount
-    ? { range: dateRange, accountId: selectedAccount }
-    : { range: dateRange };
+  const queryInput = useMemo(() => {
+    const q = { range: dateRange };
+    if (selectedAccount) q.accountId = selectedAccount;
+    if (dateRange === 'custom') {
+      q.startDate = customStart;
+      q.endDate = customEnd;
+    }
+    return q;
+  }, [dateRange, selectedAccount, customStart, customEnd]);
+
+  const xInterval = chartInterval(dateRange, customStart, customEnd);
 
   // ── tRPC queries ──────────────────────────────────────────
   const dashboardQ = trpc.analytics.dashboard.useQuery(
@@ -72,6 +108,11 @@ export default function DashboardPage() {
     { staleTime: 30_000 }
   );
 
+  const subredditMetricsQ = trpc.listening.subredditMetrics.useQuery(
+    undefined,
+    { staleTime: 60_000 }
+  );
+
   // ── Derived data (with fallbacks so charts never crash) ───
   const dashboard = dashboardQ.data ?? {};
   const accounts = accountBreakdownQ.data ?? EMPTY_ACCOUNTS;
@@ -103,7 +144,7 @@ export default function DashboardPage() {
   const isLoading = dashboardQ.isLoading || accountBreakdownQ.isLoading;
 
   // Dynamic delta label based on selected date range
-  const deltaLabel = dateRange === '7d' ? 'WoW' : dateRange === '30d' ? 'MoM' : 'PoP';
+  const deltaLabel = dateRange === '7d' ? 'WoW' : dateRange === '30d' ? 'MoM' : dateRange === '90d' ? 'QoQ' : 'PoP';
 
   const lastSentimentScore = brandSentimentOverTime.length
     ? brandSentimentOverTime[brandSentimentOverTime.length - 1].score
@@ -147,7 +188,7 @@ export default function DashboardPage() {
             <ResponsiveContainer width="100%" height={240}>
               <LineChart data={engagementData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={4} />
+                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Line type="monotone" dataKey="engagementRate" stroke={COLORS.blue} strokeWidth={2} dot={false} name="Eng. Rate %" />
@@ -168,7 +209,7 @@ export default function DashboardPage() {
               <ResponsiveContainer width="100%" height={240}>
                 <AreaChart data={followerData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={4} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip />
                   <Area type="monotone" dataKey="followers" stroke={COLORS.green} fill="#dcfce7" strokeWidth={2} name="Followers" />
@@ -307,20 +348,55 @@ export default function DashboardPage() {
   return (
     <div>
       {/* Date range selector */}
-      <div className="flex items-center gap-2 mb-6">
-        {['7d', '30d', '90d', 'Custom'].map((r) => (
+      <div className="flex items-center gap-2 mb-6 flex-wrap">
+        {['7d', '30d', '90d', '365d'].map((r) => (
           <button
             key={r}
-            onClick={() => setDateRange(r)}
+            onClick={() => { setDateRange(r); setShowCustomPicker(false); }}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg ${
               dateRange === r
                 ? 'bg-gray-900 text-white'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
-            {r === '7d' ? 'Last 7 days' : r === '30d' ? 'Last 30 days' : r === '90d' ? 'Last 90 days' : 'Custom'}
+            {r === '7d' ? 'Last 7 days' : r === '30d' ? 'Last 30 days' : r === '90d' ? 'Last 90 days' : 'Last year'}
           </button>
         ))}
+        <button
+          onClick={() => setShowCustomPicker(!showCustomPicker)}
+          className={`px-3 py-1.5 text-xs font-medium rounded-lg ${
+            dateRange === 'custom'
+              ? 'bg-gray-900 text-white'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+          }`}
+        >
+          {dateRange === 'custom' ? rangeLabel('custom', customStart, customEnd) : 'Custom'}
+        </button>
+        {showCustomPicker && (
+          <div className="flex items-center gap-2 ml-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm">
+            <input
+              type="date"
+              value={customStart}
+              onChange={(e) => setCustomStart(e.target.value)}
+              className="text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-400"
+            />
+            <span className="text-xs text-gray-400">to</span>
+            <input
+              type="date"
+              value={customEnd}
+              max={toDateStr(new Date())}
+              onChange={(e) => setCustomEnd(e.target.value)}
+              className="text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-400"
+            />
+            <button
+              onClick={() => { setDateRange('custom'); setShowCustomPicker(false); }}
+              disabled={!customStart || !customEnd || customStart > customEnd}
+              className="px-2.5 py-1 text-xs font-medium bg-gray-900 text-white rounded-md hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Apply
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Aggregate summary cards */}
@@ -396,6 +472,79 @@ export default function DashboardPage() {
           </table>
         )}
       </div>
+
+      {/* Reddit Communities */}
+      {(subredditMetricsQ.data?.length > 0) && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
+          <SectionTitle subtitle="Subscriber counts, posts, and engagement for tracked subreddits">Reddit Communities</SectionTitle>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            {subredditMetricsQ.data.map((sub) => {
+              const latest = sub.history?.length > 0 ? sub.history[sub.history.length - 1] : null;
+              const prev = sub.history?.length > 1 ? sub.history[sub.history.length - 2] : null;
+              const subGrowth = latest && prev && prev.subscribers > 0
+                ? latest.subscribers - prev.subscribers
+                : null;
+              return (
+                <div key={sub.id} className="border border-gray-100 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center">
+                      <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm6.066 9.645c.183.996.07 2.003-.104 2.95a5.32 5.32 0 01-.48 1.502c.036.206.055.42.055.636 0 3.096-3.578 5.607-7.987 5.607-4.41 0-7.987-2.511-7.987-5.607 0-.187.015-.373.043-.556a5.32 5.32 0 01-.602-1.813c-.218-.948-.333-1.958-.15-2.955a2.27 2.27 0 011.9-1.882c.573-.088 1.168.09 1.63.472 1.497-.978 3.41-1.576 5.455-1.665l1.077-4.77a.37.37 0 01.444-.276l3.39.717a1.573 1.573 0 013.117.287c0 .867-.705 1.572-1.572 1.572-.866 0-1.571-.705-1.571-1.572 0-.156.023-.308.065-.452l-3.013-.636-.964 4.262c1.964.117 3.795.72 5.235 1.673.46-.38 1.053-.556 1.623-.47a2.27 2.27 0 011.898 1.882z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900 text-sm">r/{sub.name}</h4>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-gray-500 text-xs">Subscribers</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-bold text-lg text-gray-900">
+                          {sub.latestSubscribers != null ? sub.latestSubscribers.toLocaleString() : '—'}
+                        </p>
+                        {subGrowth != null && subGrowth !== 0 && (
+                          <span className={`text-xs font-medium ${subGrowth > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                            {subGrowth > 0 ? '+' : ''}{subGrowth.toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 text-xs">Posts (today)</p>
+                      <p className="font-bold text-lg text-gray-900">{latest?.posts ?? '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 text-xs">Avg Upvotes</p>
+                      <p className="font-medium text-gray-900">{latest?.avgUpvotes != null ? latest.avgUpvotes.toFixed(1) : '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 text-xs">Avg Comments</p>
+                      <p className="font-medium text-gray-900">{latest?.avgComments != null ? latest.avgComments.toFixed(1) : '—'}</p>
+                    </div>
+                  </div>
+                  {latest?.topPostTitle && (
+                    <div className="mt-3 pt-3 border-t border-gray-100">
+                      <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Top Post</p>
+                      <p className="text-xs text-gray-700 line-clamp-2">{latest.topPostTitle}</p>
+                      <span className="text-[10px] text-gray-400">{latest.topPostScore} upvotes</span>
+                    </div>
+                  )}
+                  {sub.history?.length > 1 && (
+                    <div className="mt-3">
+                      <Sparkline
+                        data={sub.history.map((h) => h.subscribers)}
+                        color="#f97316"
+                        height={32}
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Brand Sentiment */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
@@ -478,11 +627,11 @@ export default function DashboardPage() {
 
             {/* Sentiment over time chart */}
             <div className="lg:col-span-2">
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Sentiment Trend (30 days)</div>
+              <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Sentiment Trend ({rangeLabel(dateRange, customStart, customEnd)})</div>
               <ResponsiveContainer width="100%" height={200}>
                 <AreaChart data={brandSentimentOverTime}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} interval={4} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} interval={xInterval} />
                   <YAxis tick={{ fontSize: 10 }} />
                   <Tooltip />
                   <Area type="monotone" dataKey="positive" stackId="1" stroke="#22c55e" fill="#dcfce7" name="Positive %" />
@@ -539,7 +688,7 @@ export default function DashboardPage() {
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={engagementData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={6} />
+                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Line type="monotone" dataKey="engagementRate" stroke={COLORS.blue} strokeWidth={2} dot={false} name="Eng. Rate %" />
@@ -561,7 +710,7 @@ export default function DashboardPage() {
             <ResponsiveContainer width="100%" height={200}>
               <AreaChart data={followerData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={6} />
+                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
                 <Area type="monotone" dataKey="followers" stroke={COLORS.green} fill="#dcfce7" strokeWidth={2} name="Total Followers" />
