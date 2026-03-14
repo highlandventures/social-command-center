@@ -329,6 +329,7 @@ model ListeningHit {
   platformPostId           String?
   authorUsername            String
   authorDisplayName        String?
+  authorProfileImageUrl    String?
   authorFollowersOrKarma   Int?
   content                  String
   sourceUrl                String?
@@ -450,6 +451,7 @@ model KOL {
   platform              Platform
   username              String
   platformUserId        String?
+  avatarUrl             String?
   relationshipType      RelationshipType
   cohortId              String?
   compensationMonthly   Float?

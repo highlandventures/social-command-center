@@ -152,25 +152,30 @@ export const Avatar = ({ initials, src, platform, size = "md" }) => {
     md: "w-9 h-9 text-sm",
     lg: "w-12 h-12 text-base",
   };
-  if (src) {
-    return (
-      <img
-        src={src}
-        alt={initials || ''}
-        className={`${sizes[size]} rounded-full object-cover`}
-        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-      />
-    );
-  }
-  return (
+  const fallback = (
     <div
       className={`${sizes[size]} rounded-full flex items-center justify-center font-bold text-white ${
         p === "reddit" ? "bg-orange-500" : "bg-gray-800"
       }`}
+      style={src ? { display: 'none' } : undefined}
     >
       {initials}
     </div>
   );
+  if (src) {
+    return (
+      <>
+        <img
+          src={src}
+          alt={initials || ''}
+          className={`${sizes[size]} rounded-full object-cover`}
+          onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+        />
+        {fallback}
+      </>
+    );
+  }
+  return fallback;
 };
 
 export const Sparkline = ({ data, color = "#3b82f6", height = 24 }) => {

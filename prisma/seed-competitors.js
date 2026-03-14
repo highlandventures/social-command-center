@@ -39,17 +39,17 @@ const competitors = [
     // Dedicated X queries — multiple focused queries beat one giant one
     xQueries: [
       {
-        queryString: '("Securitize" OR from:Securitize) -giveaway -airdrop -scam lang:en',
+        queryString: '("Securitize" OR from:Securitize) -giveaway -airdrop -scam min_faves:2 lang:en',
         negativeKeywords: ['giveaway', 'airdrop', 'scam', 'fake'],
-        rationale: 'Core brand mentions and own-account posts',
+        rationale: 'Core brand mentions and own-account posts. min_faves:2 filters bot noise.',
       },
       {
-        queryString: '("BUIDL" OR "ACRED") ("tokenized" OR "BlackRock" OR "Securitize" OR "RWA") -giveaway',
+        queryString: '("BUIDL" OR "ACRED") ("tokenized" OR "BlackRock" OR "Securitize" OR "RWA") -giveaway min_faves:2 lang:en',
         negativeKeywords: ['giveaway', 'airdrop'],
         rationale: 'Product-specific: BlackRock BUIDL fund and ACRED token mentions in RWA context',
       },
       {
-        queryString: '("DS Protocol" OR "DS Token") ("Securitize" OR "tokenized" OR "security token")',
+        queryString: '("DS Protocol" OR "DS Token") ("Securitize" OR "tokenized" OR "security token") min_faves:2 lang:en',
         negativeKeywords: [],
         rationale: 'Infrastructure layer: DS Protocol smart contract mentions',
       },
@@ -57,7 +57,7 @@ const competitors = [
     redditQueries: [
       {
         queryString: '"Securitize" OR "BUIDL" OR "ACRED"',
-        subreddits: ['SecurityToken', 'defi', 'cryptocurrency', 'ethfinance'],
+        subreddits: ['SecurityToken', 'defi', 'cryptocurrency', 'ethfinance', 'CryptoMarkets', 'RWA'],
       },
     ],
   },
@@ -70,17 +70,17 @@ const competitors = [
     ],
     xQueries: [
       {
-        queryString: '("Ondo Finance" OR "OndoFinance" OR from:OndoFinance) -giveaway -airdrop -scam lang:en',
+        queryString: '("Ondo Finance" OR "OndoFinance" OR from:OndoFinance) -giveaway -airdrop -scam min_faves:2 lang:en',
         negativeKeywords: ['giveaway', 'airdrop', 'scam'],
-        rationale: 'Core brand mentions',
+        rationale: 'Core brand mentions. min_faves:2 filters bot noise.',
       },
       {
-        queryString: '($ONDO OR "OUSG" OR "USDY") ("tokenized" OR "treasury" OR "yield" OR "RWA" OR "Ondo") -giveaway -airdrop',
+        queryString: '($ONDO OR "OUSG" OR "USDY") ("tokenized" OR "treasury" OR "yield" OR "RWA" OR "Ondo") -giveaway -airdrop min_faves:2 lang:en',
         negativeKeywords: ['giveaway', 'airdrop', 'scam'],
         rationale: 'Token and product mentions — OUSG (treasuries), USDY (yield token), $ONDO governance',
       },
       {
-        queryString: '("Ondo Global Markets" OR "OGM" OR "SWEEP") ("tokenized" OR "stocks" OR "ETF" OR "fund")',
+        queryString: '("Ondo Global Markets" OR "OGM" OR "SWEEP") ("tokenized" OR "stocks" OR "ETF" OR "fund") min_faves:2 lang:en',
         negativeKeywords: [],
         rationale: 'New products: Global Markets (tokenized equities) and SWEEP fund',
       },
@@ -88,7 +88,7 @@ const competitors = [
     redditQueries: [
       {
         queryString: '"Ondo Finance" OR "OUSG" OR "USDY" OR "$ONDO"',
-        subreddits: ['defi', 'cryptocurrency', 'ethfinance', 'SecurityToken'],
+        subreddits: ['defi', 'cryptocurrency', 'ethfinance', 'SecurityToken', 'CryptoMarkets', 'RWA'],
       },
     ],
   },
@@ -101,12 +101,12 @@ const competitors = [
     ],
     xQueries: [
       {
-        queryString: '("Centrifuge" OR from:centrifuge) ("RWA" OR "tokenized" OR "DeFi" OR "lending" OR "protocol") -giveaway -airdrop lang:en',
+        queryString: '("Centrifuge" OR from:centrifuge) ("RWA" OR "tokenized" OR "DeFi" OR "lending" OR "protocol") -giveaway -airdrop min_faves:2 lang:en',
         negativeKeywords: ['giveaway', 'airdrop', 'scam', 'centrifuge pump', 'centrifuge machine'],
         rationale: 'Brand mentions — qualified with finance context to avoid industrial centrifuge noise',
       },
       {
-        queryString: '($CFG OR "Tinlake" OR "Centrifuge Prime" OR "JTRSY" OR "SPXA" OR "JAAA") ("tokenized" OR "RWA" OR "Centrifuge")',
+        queryString: '($CFG OR "Tinlake" OR "Centrifuge Prime" OR "JTRSY" OR "SPXA" OR "JAAA") ("tokenized" OR "RWA" OR "Centrifuge") min_faves:2 lang:en',
         negativeKeywords: ['giveaway', 'airdrop'],
         rationale: 'Token ($CFG) and product mentions — Tinlake, Prime, JTRSY (treasuries), SPXA (S&P 500)',
       },
@@ -114,7 +114,7 @@ const competitors = [
     redditQueries: [
       {
         queryString: '"Centrifuge" AND ("RWA" OR "tokenized" OR "DeFi")',
-        subreddits: ['defi', 'cryptocurrency', 'ethfinance', 'Polkadot'],
+        subreddits: ['defi', 'cryptocurrency', 'ethfinance', 'Polkadot', 'CryptoMarkets', 'RWA'],
       },
     ],
   },
@@ -127,17 +127,17 @@ const competitors = [
     ],
     xQueries: [
       {
-        queryString: '("Superstate" OR from:SuperstateInc) ("tokenized" OR "treasury" OR "fund" OR "crypto" OR "onchain") -giveaway -airdrop lang:en',
+        queryString: '("Superstate" OR from:SuperstateInc) ("tokenized" OR "treasury" OR "fund" OR "crypto" OR "onchain") -giveaway -airdrop min_faves:2 lang:en',
         negativeKeywords: ['giveaway', 'airdrop', 'scam', 'super state'],
         rationale: 'Brand mentions — qualified with finance terms to avoid "super state" false positives',
       },
       {
-        queryString: '("USTB" OR "USCC") ("Superstate" OR "tokenized" OR "treasury" OR "crypto basis")',
+        queryString: '("USTB" OR "USCC") ("Superstate" OR "tokenized" OR "treasury" OR "crypto basis") min_faves:2 lang:en',
         negativeKeywords: [],
         rationale: 'Product-specific: USTB (tokenized treasuries) and USCC (crypto basis fund)',
       },
       {
-        queryString: '("Opening Bell" OR "Superstate") ("onchain equities" OR "tokenized shares" OR "tokenized equity" OR "tokenized stock")',
+        queryString: '("Opening Bell" OR "Superstate") ("onchain equities" OR "tokenized shares" OR "tokenized equity" OR "tokenized stock") min_faves:2 lang:en',
         negativeKeywords: [],
         rationale: 'Opening Bell platform — regulated onchain equities',
       },
@@ -145,7 +145,7 @@ const competitors = [
     redditQueries: [
       {
         queryString: '"Superstate" OR "USTB" OR "USCC"',
-        subreddits: ['defi', 'cryptocurrency', 'ethfinance', 'SecurityToken'],
+        subreddits: ['defi', 'cryptocurrency', 'ethfinance', 'SecurityToken', 'CryptoMarkets', 'RWA'],
       },
     ],
   },
@@ -158,12 +158,12 @@ const competitors = [
     ],
     xQueries: [
       {
-        queryString: '("Tokeny" OR "TokenySolutions" OR from:TokenySolutions) -giveaway -airdrop lang:en',
+        queryString: '("Tokeny" OR "TokenySolutions" OR from:TokenySolutions) -giveaway -airdrop min_faves:2 lang:en',
         negativeKeywords: ['giveaway', 'airdrop', 'scam'],
-        rationale: 'Core brand mentions',
+        rationale: 'Core brand mentions. min_faves:2 filters bot noise.',
       },
       {
-        queryString: '("T-REX" OR "ERC-3643" OR "ERC3643") ("tokenized" OR "security token" OR "compliance" OR "Tokeny")',
+        queryString: '("T-REX" OR "ERC-3643" OR "ERC3643") ("tokenized" OR "security token" OR "compliance" OR "Tokeny") min_faves:2 lang:en',
         negativeKeywords: [],
         rationale: 'Protocol mentions — T-REX and the ERC-3643 standard they authored, qualified to avoid dinosaur noise',
       },
@@ -171,7 +171,7 @@ const competitors = [
     redditQueries: [
       {
         queryString: '"Tokeny" OR ("T-REX" AND "token") OR "ERC-3643"',
-        subreddits: ['SecurityToken', 'defi', 'ethereum', 'cryptocurrency'],
+        subreddits: ['SecurityToken', 'defi', 'ethereum', 'cryptocurrency', 'RWA'],
       },
     ],
   },
@@ -184,12 +184,12 @@ const competitors = [
     ],
     xQueries: [
       {
-        queryString: '("Goldfinch" OR from:goldfinch_fi) ("DeFi" OR "RWA" OR "lending" OR "credit" OR "protocol" OR "crypto") -giveaway -airdrop lang:en',
+        queryString: '("Goldfinch" OR from:goldfinch_fi) ("DeFi" OR "RWA" OR "lending" OR "credit" OR "protocol" OR "crypto") -giveaway -airdrop min_faves:2 lang:en',
         negativeKeywords: ['giveaway', 'airdrop', 'scam', 'bird', 'birding', 'ornithology'],
         rationale: 'Brand mentions — qualified with finance context to filter out the actual bird',
       },
       {
-        queryString: '($GFI OR "Goldfinch Prime") ("private credit" OR "Apollo" OR "Ares" OR "lending" OR "RWA" OR "DeFi")',
+        queryString: '($GFI OR "Goldfinch Prime") ("private credit" OR "Apollo" OR "Ares" OR "lending" OR "RWA" OR "DeFi") min_faves:2 lang:en',
         negativeKeywords: ['bird', 'birding'],
         rationale: 'Token ($GFI) and Goldfinch Prime product (private credit access with Apollo/Ares)',
       },
@@ -197,7 +197,7 @@ const competitors = [
     redditQueries: [
       {
         queryString: '"Goldfinch" AND ("DeFi" OR "crypto" OR "RWA" OR "lending")',
-        subreddits: ['defi', 'cryptocurrency', 'ethfinance'],
+        subreddits: ['defi', 'cryptocurrency', 'ethfinance', 'CryptoMarkets', 'RWA'],
       },
     ],
   },
@@ -209,12 +209,12 @@ const competitors = [
     ],
     xQueries: [
       {
-        queryString: '("tradable.xyz" OR from:tradable_xyz OR "Tradable" "tokenized") -giveaway -airdrop lang:en',
+        queryString: '("tradable.xyz" OR from:tradable_xyz OR "Tradable" "tokenized") -giveaway -airdrop min_faves:2 lang:en',
         negativeKeywords: ['giveaway', 'airdrop', 'scam', 'forex', 'CFD', 'broker'],
         rationale: 'Brand mentions — tradable.xyz (RWA platform on ZKsync). Excludes forex/CFD @tradable noise.',
       },
       {
-        queryString: '("Tradable" OR "tradable_xyz") ("ZKsync" OR "ParaFi" OR "tokenized" OR "alternative assets" OR "RWA")',
+        queryString: '("Tradable" OR "tradable_xyz") ("ZKsync" OR "ParaFi" OR "tokenized" OR "alternative assets" OR "RWA") min_faves:2 lang:en',
         negativeKeywords: ['forex', 'CFD', 'broker', 'metatrader'],
         rationale: 'Product context: ZKsync-based tokenization, ParaFi Capital backing',
       },
@@ -222,7 +222,7 @@ const competitors = [
     redditQueries: [
       {
         queryString: '"tradable.xyz" OR ("Tradable" AND "tokenized" AND "ZKsync")',
-        subreddits: ['defi', 'cryptocurrency', 'zksync'],
+        subreddits: ['defi', 'cryptocurrency', 'zksync', 'RWA'],
       },
     ],
   },

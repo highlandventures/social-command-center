@@ -23,7 +23,7 @@ function transformKOL(k) {
     ...k,
     handle: `@${k.username}`,
     avatar: initials,
-    avatarUrl: null,
+    avatarUrl: k.avatarUrl || null,
     followers: followers >= 1000 ? `${(followers / 1000).toFixed(1)}K` : followers,
     followersRaw: followers,
     type: (k.relationshipType || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).toLowerCase().replace(/^\w/, c => c.toUpperCase()),
@@ -80,7 +80,7 @@ export default function KOLPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
-              <Avatar initials={kol.avatar} platform={kol.platform} size="lg" />
+              <Avatar initials={kol.avatar} src={kol.avatarUrl} platform={kol.platform} size="lg" />
               <div>
                 <h2 className="text-xl font-bold text-gray-900">{kol.name}</h2>
                 <div className="flex items-center gap-2 mt-1">
@@ -254,7 +254,7 @@ export default function KOLPage() {
                     >
                       <td className="py-3 px-3">
                         <div className="flex items-center gap-2.5">
-                          <Avatar initials={kol.avatar} platform={kol.platform} size="sm" />
+                          <Avatar initials={kol.avatar} src={kol.avatarUrl} platform={kol.platform} size="sm" />
                           <div>
                             <p className="font-medium text-gray-900">{kol.name}</p>
                             <p className="text-xs text-gray-400">{kol.handle}</p>
