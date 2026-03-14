@@ -232,58 +232,235 @@ const competitors = [
 // FIGURE BRAND LISTENING QUERIES
 // ═══════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════
+// FIGURE ECOSYSTEM — COMPREHENSIVE BRAND & PRODUCT TERMS
+// ═══════════════════════════════════════════════════════════════
+// Research: Mar 2026 — Figure Technology Solutions (Nasdaq: FIGR)
+//
+// CORPORATE:
+//   Figure Technology Solutions, Figure Technologies, Nasdaq: FIGR, $FIGR
+//   CEO: Mike Cagney (@mcagney), CEO: Michael Tannenbaum
+//   Official X: @Figure, @FigureMarkets, @provenancefdn, @HastraFi
+//
+// LENDING & MARKETPLACE:
+//   Figure HELOC ($FIGR_HELOC), Figure Lending, Figure Connect (marketplace),
+//   DSCR loans, crypto-backed loans, cash-out refinance
+//
+// CAPITAL MARKETS:
+//   Figure ATS (Alternative Trading System), Figure Securities,
+//   OPEN (On-chain Public Equity Network), Blockchain Stock,
+//   FGRD (blockchain-native common stock ticker)
+//
+// STABLECOIN & DEFI:
+//   $YLDS (SEC-registered yield-bearing stablecoin), Figure Certificate Company,
+//   Democratized Prime (RWA lend-borrow marketplace), Intellidebt,
+//   Hastra / HastraFi (liquidity protocol on Solana), PRIME token
+//
+// BLOCKCHAIN:
+//   Provenance Blockchain (L1, Cosmos SDK), $HASH token,
+//   DART (Digital Asset Registry Technology), ProvWasm
+//
+// PARTNERSHIPS:
+//   Agora Data (auto loans), Ondo ($25M YLDS investment),
+//   Chainlink (oracle for Hastra), Kamino (PRIME vaults on Solana)
+// ═══════════════════════════════════════════════════════════════
+
 const figureTopics = [
   {
     name: 'Figure Brand & Products',
     description:
-      'Track mentions of Figure Technology Solutions (Nasdaq: FIGR), Figure Markets, Figure Lending, Figure Pay, Figure Connect, Provenance Blockchain, and key products ($YLDS, Democratized Prime, Intellidebt).',
+      'Track all mentions of the Figure ecosystem: Figure Technology Solutions (FIGR), Figure Markets, Figure Lending/HELOC, Provenance Blockchain, $YLDS, Hastra/PRIME, OPEN, and Democratized Prime. Research-backed queries with zero common-word noise.',
     pollingTier: 'HOT',
     queries: [
-      // ── X queries ──
+      // ═══ X QUERIES — every term is unambiguous or context-qualified ═══
+
+      // Q1: Ticker + corporate identity — zero ambiguity
       {
         platform: 'X',
-        queryString: '("Figure Technology" OR "Figure Tech" OR $FIGR OR from:Figure__Tech) -"figure skating" -"figure out" -"action figure" -figurine lang:en',
-        negativeKeywords: ['skating', 'action figure', 'figure out', 'figure it out', 'figurehead', 'figurine', 'figuratively'],
-        rationale: 'Core corporate brand + ticker mentions on X',
+        queryString: '($FIGR OR "Figure Technology Solutions" OR "Nasdaq: FIGR" OR "FIGR stock" OR "$FIGR_HELOC" OR "FigureHeloc") lang:en',
+        negativeKeywords: [],
+        rationale: 'Tickers $FIGR and $FIGR_HELOC, plus full corporate name. These terms ONLY refer to Figure.',
       },
+
+      // Q2: Official accounts — all posts from Figure ecosystem accounts
       {
         platform: 'X',
-        queryString: '("Figure Markets" OR from:FigureMarkets OR $YLDS) -"figure skating" -"figure out" lang:en',
-        negativeKeywords: ['skating', 'figure out', 'figurine'],
-        rationale: 'Figure Markets platform and $YLDS yield-bearing stablecoin',
+        queryString: '(from:Figure OR from:FigureMarkets OR from:HastraFi) lang:en',
+        negativeKeywords: [],
+        rationale: 'All posts from official @Figure, @FigureMarkets, and @HastraFi accounts. Pure signal.',
       },
+
+      // Q3: Figure Markets + $YLDS + Figure ATS
       {
         platform: 'X',
-        queryString: '("Figure Lending" OR "Figure HELOC" OR "Figure home equity" OR "Figure Connect" OR "Intellidebt") -"figure out" lang:en',
-        negativeKeywords: ['figure out', 'figurine'],
-        rationale: 'Lending products: HELOC, Figure Connect marketplace, Intellidebt debt consolidation',
+        queryString: '("Figure Markets" OR "$YLDS" OR "YLDS stablecoin" OR "Figure ATS" OR "Figure Securities" OR "FGRD") lang:en',
+        negativeKeywords: [],
+        rationale: 'Figure Markets ATS, $YLDS stablecoin, Figure Securities subsidiary, and FGRD blockchain stock ticker. All unique.',
       },
+
+      // Q4: Figure HELOC + Figure Lending (largest revenue product)
       {
         platform: 'X',
-        queryString: '("Provenance Blockchain" OR "Provenance chain" OR "HASH token" OR "provenan.ce") -giveaway -airdrop lang:en',
+        queryString: '("Figure HELOC" OR "Figure home equity" OR "Figure Lending") lang:en',
+        negativeKeywords: ['figure out', 'figure skating', 'action figure'],
+        rationale: 'HELOC product ($2.7B quarterly volume). "Figure HELOC" and "Figure Lending" are unambiguous.',
+      },
+
+      // Q5: Figure Connect marketplace — needs qualifier
+      {
+        platform: 'X',
+        queryString: '("Figure Connect") ("loan" OR "marketplace" OR "HELOC" OR "lending" OR "origination" OR "blockchain" OR "RWA" OR "auto" OR "DSCR") lang:en',
+        negativeKeywords: ['figure out', 'figure skating', 'action figure', 'figurine'],
+        rationale: 'Figure Connect marketplace. Requires lending/RWA qualifier to avoid "figure" + "connect" noise.',
+      },
+
+      // Q6: OPEN (On-chain Public Equity Network) + Blockchain Stock
+      {
+        platform: 'X',
+        queryString: '("OPEN" OR "On-chain Public Equity" OR "Blockchain Stock") ("Figure" OR "FIGR" OR "Provenance" OR "blockchain-native equity" OR "tokenized equity") lang:en',
+        negativeKeywords: [],
+        rationale: 'OPEN network for blockchain-native equities. "OPEN" alone is too generic, so requires Figure/Provenance context.',
+      },
+
+      // Q7: Provenance Blockchain — full brand name + official account only
+      {
+        platform: 'X',
+        queryString: '("Provenance Blockchain" OR from:provenancefdn OR "provenance.io") -giveaway -airdrop lang:en',
         negativeKeywords: ['giveaway', 'airdrop', 'scam'],
-        rationale: 'Provenance Blockchain — the L1 powering Figure. Includes $HASH native token.',
+        rationale: 'Provenance L1 — full brand name and @provenancefdn only. NOT "provenance chain" (generic supply-chain/art term).',
       },
+
+      // Q8: $HASH token — MUST pair with Provenance/Figure context
       {
         platform: 'X',
-        queryString: '("Democratized Prime" OR "Figure Pay" OR "Figure Equity Solutions") -"figure out" lang:en',
-        negativeKeywords: ['figure out'],
-        rationale: 'Newer products: Democratized Prime (RWA lending pool), Figure Pay, Figure Equity Solutions',
+        queryString: '$HASH ("Provenance" OR "Figure" OR "RWA" OR "validator" OR "staking" OR "delegator" OR "ProvWasm") -giveaway -airdrop lang:en',
+        negativeKeywords: ['giveaway', 'airdrop', 'scam', 'hashtag', 'hash rate', 'hashrate', 'hash function', 'hash brown'],
+        rationale: '$HASH token qualified with Provenance/Figure context. Without qualifier, $HASH matches computing/crypto-mining chatter.',
       },
-      // ── Reddit queries ──
+
+      // Q9: Hastra + PRIME token (Solana DeFi layer)
+      {
+        platform: 'X',
+        queryString: '("HastraFi" OR "Hastra" OR "$PRIME") ("Figure" OR "Provenance" OR "Democratized Prime" OR "Solana" OR "RWA" OR "Kamino" OR "Chainlink") lang:en',
+        negativeKeywords: ['amazon prime', 'prime video', 'prime minister', 'optimus prime'],
+        rationale: 'Hastra liquidity protocol and PRIME token on Solana. Qualified to avoid Amazon Prime and other noise.',
+      },
+
+      // Q10: Democratized Prime + Intellidebt — unique product names
+      {
+        platform: 'X',
+        queryString: '("Democratized Prime" OR "Intellidebt" OR "DART" "Digital Asset Registry") lang:en',
+        negativeKeywords: [],
+        rationale: 'Unique product names: Democratized Prime (RWA pool), Intellidebt (debt consolidation), DART (registry tech).',
+      },
+
+      // Q11: Mike Cagney — CEO posts about Figure ecosystem
+      {
+        platform: 'X',
+        queryString: 'from:mcagney ("Figure" OR "FIGR" OR "Provenance" OR "HELOC" OR "YLDS" OR "Hastra" OR "PRIME" OR "OPEN" OR "blockchain") lang:en',
+        negativeKeywords: [],
+        rationale: 'CEO Mike Cagney posts frequently about Figure. Qualified with ecosystem terms.',
+      },
+
+      // Q12: Partnership mentions — Agora Data, Ondo x Figure
+      {
+        platform: 'X',
+        queryString: '("Agora Data" OR "AgoraCapital") ("Figure" OR "Provenance" OR "tokenized" OR "auto loan") lang:en',
+        negativeKeywords: [],
+        rationale: 'Agora Data partnership (auto loan tokenization on Provenance). Qualified to ensure Figure context.',
+      },
+
+      // ═══ REDDIT QUERIES — via SociaVault ═══
+
+      // R1: Core brand + ticker
       {
         platform: 'REDDIT',
-        queryString: '"Figure Markets" OR "Figure Technology" OR "FIGR" OR "Figure Lending"',
-        subreddits: ['defi', 'cryptocurrency', 'RealEstate', 'personalfinance', 'SecurityToken'],
-        rationale: 'Core brand on Reddit — covers both crypto and lending communities',
+        queryString: '"Figure Technology" OR "Figure Markets" OR "$FIGR" OR "FIGR stock"',
+        subreddits: ['defi', 'cryptocurrency', 'SecurityToken', 'ethfinance', 'wallstreetbets', 'stocks', 'investing'],
+        rationale: 'Core brand on Reddit. All terms are unambiguous.',
       },
+
+      // R2: HELOC + lending products
       {
         platform: 'REDDIT',
-        queryString: '"Provenance Blockchain" OR "Figure HELOC" OR "$YLDS" OR "Figure Connect"',
-        subreddits: ['cryptocurrency', 'blockchain', 'fintech', 'HomeOwners'],
-        rationale: 'Infrastructure + consumer products on Reddit',
+        queryString: '"Figure HELOC" OR "Figure Lending" OR "Figure home equity"',
+        subreddits: ['RealEstate', 'personalfinance', 'HomeOwners', 'FirstTimeHomeBuyer', 'loanoriginators'],
+        rationale: 'Lending products on consumer finance subreddits.',
+      },
+
+      // R3: Provenance + HASH + DeFi products
+      {
+        platform: 'REDDIT',
+        queryString: '"Provenance Blockchain" OR "$YLDS" OR "Democratized Prime" OR "HastraFi" OR "$HASH Provenance"',
+        subreddits: ['defi', 'cryptocurrency', 'cosmosnetwork', 'solana', 'ethfinance'],
+        rationale: 'Blockchain infrastructure + DeFi products across crypto subreddits.',
       },
     ],
+  },
+];
+
+// ═══════════════════════════════════════════════════════════════
+// KOL ECOSYSTEM MONITORING
+// ═══════════════════════════════════════════════════════════════
+// Lightweight queries to detect when our KOLs mention ANYTHING
+// in the Figure/Provenance ecosystem. Uses from: operator for
+// each KOL + ecosystem keyword filter.
+//
+// All 24 KOLs across 3 cohorts, split into batches to stay
+// within X API query length limits.
+// ═══════════════════════════════════════════════════════════════
+
+const FIGURE_ECOSYSTEM_TERMS = [
+  'Figure', 'FIGR', 'Provenance', 'HASH', 'YLDS', 'Hastra', 'PRIME',
+  'HELOC', 'Figure Markets', 'Figure Lending', 'Figure Connect',
+  'Democratized Prime', 'Intellidebt', 'OPEN', 'FGRD', 'DART',
+  'Figure ATS', 'Figure Securities', 'mcagney', 'Agora Data',
+  'blockchain stock', 'RWA Consortium',
+].map((t) => `"${t}"`).join(' OR ');
+
+// KOL usernames grouped into query batches (max ~12 per batch for query length)
+const kolBatches = [
+  // Batch 1: FIGR Analysts (first 8)
+  {
+    label: 'FIGR Analysts A',
+    usernames: [
+      'covered_call', 'Kross_Roads', 'Nick_Researcher', 'tridentxhodler',
+      'drcreeptic', 'aayushtrades', 'Mbarry581', 'matthew_sigel',
+    ],
+  },
+  // Batch 2: FIGR Analysts (remaining 7)
+  {
+    label: 'FIGR Analysts B',
+    usernames: [
+      'dutta_manish', 'rexsalisbury', 'Mega_Fund', 'Crenmy1',
+      'Manisha_kh', 'CosmonautStakes', 'bielzinn',
+    ],
+  },
+  // Batch 3: KOLs + Adhoc KOLs
+  {
+    label: 'KOLs & Adhoc',
+    usernames: [
+      'rektonomist_', 'Tanaka_L2', 'ZeusRWA', 'sol_nxxn',
+      'AltcoinDaily', '3orovik', 'RWAwatchlist_', 'cryptorover', 'phtevenstrong',
+    ],
+  },
+];
+
+const kolTopics = [
+  {
+    name: 'KOL: Figure Ecosystem Mentions',
+    description:
+      'Detect when any tracked KOL (FIGR Analysts, KOLs, Adhoc KOLs) mentions Figure, Provenance, or any affiliated product/ticker. Lightweight monitoring across all 24 KOLs.',
+    pollingTier: 'HOT',
+    queries: kolBatches.map((batch) => {
+      const fromClauses = batch.usernames.map((u) => `from:${u}`).join(' OR ');
+      return {
+        platform: 'X',
+        queryString: `(${fromClauses}) (${FIGURE_ECOSYSTEM_TERMS}) lang:en`,
+        negativeKeywords: ['figure out', 'figure skating', 'action figure'],
+        rationale: `KOL batch "${batch.label}" — ecosystem mentions from ${batch.usernames.length} accounts`,
+      };
+    }),
   },
 ];
 
@@ -437,15 +614,49 @@ async function main() {
     console.log(`  Created: ${topic.name} (${topic.queries.length} queries)`);
   }
 
+  // ── 4. Rebuild KOL ecosystem monitoring topics ─────────────
+  console.log('\n═══ KOL ECOSYSTEM MONITORING ═══');
+
+  for (const topic of kolTopics) {
+    const existing = await prisma.listeningTopic.findFirst({ where: { name: topic.name } });
+    if (existing) {
+      await prisma.listeningHit.deleteMany({ where: { topicId: existing.id } });
+      await prisma.listeningQuery.deleteMany({ where: { topicId: existing.id } });
+      await prisma.listeningTopic.delete({ where: { id: existing.id } });
+      console.log(`  Deleted old topic: ${topic.name}`);
+    }
+
+    await prisma.listeningTopic.create({
+      data: {
+        name: topic.name,
+        description: topic.description,
+        createdById: admin.id,
+        active: true,
+        pollingTier: topic.pollingTier,
+        queries: {
+          create: topic.queries.map((q) => ({
+            platform: q.platform,
+            queryString: q.queryString,
+            negativeKeywords: q.negativeKeywords || [],
+            subreddits: q.subreddits || [],
+          })),
+        },
+      },
+    });
+
+    console.log(`  Created: ${topic.name} (${topic.queries.length} queries)`);
+  }
+
   // ── Summary ──────────────────────────────────────────────────
+  const allTopicSets = [...figureTopics, ...kolTopics];
   const totalQueries = competitors.reduce(
     (sum, c) => sum + c.xQueries.length + c.redditQueries.length,
     0,
-  ) + figureTopics.reduce((sum, t) => sum + t.queries.length, 0);
+  ) + allTopicSets.reduce((sum, t) => sum + t.queries.length, 0);
 
   console.log(`\n═══ DONE ═══`);
   console.log(`  ${competitors.length} competitors`);
-  console.log(`  ${competitors.length + figureTopics.length} listening topics`);
+  console.log(`  ${competitors.length + allTopicSets.length} listening topics`);
   console.log(`  ${totalQueries} total queries`);
 }
 
