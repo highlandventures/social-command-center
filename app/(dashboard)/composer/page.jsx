@@ -1,14 +1,17 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { trpc } from '@/lib/trpc-client';
 import { PlatformBadge, Skeleton } from '@/components/ui';
 import { useToast } from '@/components/ui';
 
 export default function ComposerPage() {
-  const [selectedPlatform, setSelectedPlatform] = useState('x');
+  const [selectedPlatform, setSelectedPlatform] = useState('X');
   const [postMode, setPostMode] = useState('thread');
-  const [selectedAccount, setSelectedAccount] = useState('@highland_vc');
+  const [selectedAccount, setSelectedAccount] = useState('');
+  const [redditSubreddit, setRedditSubreddit] = useState('');
+  const [redditTitle, setRedditTitle] = useState('');
+  const [redditPostType, setRedditPostType] = useState('Text');
   const [articleTitle, setArticleTitle] = useState(
     'Why Pattern Matching is Broken: 7 Signals We Look For Instead'
   );
@@ -94,7 +97,7 @@ export default function ComposerPage() {
     if (!content.trim()) return;
     predictMutation.mutate({
       content,
-      platform: selectedPlatform === 'x' ? 'X' : 'REDDIT',
+      platform: selectedPlatform,
     });
   }, [tweets, postMode, selectedPlatform, predictMutation]);
 
@@ -114,18 +117,32 @@ export default function ComposerPage() {
   const isThread = postMode === 'thread';
 
   // Find the account ID for the selected handle
-  const selectedAccountObj = accounts.find((a) => a.handle === selectedAccount || a.username === selectedAccount);
+  const platformAccounts = accounts.filter((a) => a.platform === selectedPlatform);
+  const selectedAccountObj = accounts.find((a) => a.username === selectedAccount);
   const selectedAccountId = selectedAccountObj?.id;
 
+  // Auto-select first account when platform changes or accounts load
+  useEffect(() => {
+    if (platformAccounts.length > 0 && !platformAccounts.find((a) => a.username === selectedAccount)) {
+      setSelectedAccount(platformAccounts[0].username);
+    }
+  }, [selectedPlatform, platformAccounts.length]);
+
   const contentTypeMap = { single: 'POST', thread: 'THREAD', article: 'ARTICLE' };
+
+  const getRedditFields = () =>
+    selectedPlatform === 'REDDIT'
+      ? { subreddit: redditSubreddit || undefined, articleTitle: redditTitle || undefined }
+      : {};
 
   const handleSaveDraft = () => {
     if (!selectedAccountId) return;
     createMutation.mutate({
       content: isThread ? tweets.join('\n---\n') : tweets[0],
-      platform: selectedPlatform.toUpperCase(),
+      platform: selectedPlatform,
       accountId: selectedAccountId,
       contentType: contentTypeMap[postMode] || 'POST',
+      ...getRedditFields(),
     });
   };
 
@@ -133,11 +150,12 @@ export default function ComposerPage() {
     if (!selectedAccountId) return;
     createMutation.mutate({
       content: isThread ? tweets.join('\n---\n') : tweets[0],
-      platform: selectedPlatform.toUpperCase(),
+      platform: selectedPlatform,
       accountId: selectedAccountId,
       contentType: contentTypeMap[postMode] || 'POST',
       scheduledFor: new Date(`${scheduleDate}T${scheduleTime}`),
       ...(postMode === 'article' ? { articleTitle } : {}),
+      ...getRedditFields(),
     });
   };
 
@@ -146,10 +164,11 @@ export default function ComposerPage() {
     // First create the post, then publish it
     const post = await createMutation.mutateAsync({
       content: isThread ? tweets.join('\n---\n') : tweets[0],
-      platform: selectedPlatform.toUpperCase(),
+      platform: selectedPlatform,
       accountId: selectedAccountId,
       contentType: contentTypeMap[postMode] || 'POST',
       ...(postMode === 'article' ? { articleTitle } : {}),
+      ...getRedditFields(),
     });
     if (post?.id) {
       publishMutation.mutate({ id: post.id });
@@ -163,14 +182,14 @@ export default function ComposerPage() {
         <div className="flex items-center gap-2 mr-auto flex-wrap">
           <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5">
             {[
-              { key: 'x', label: '\u{1D54F}' },
-              { key: 'reddit', label: 'Reddit' },
+              { key: 'X', label: '\u{1D54F}' },
+              { key: 'REDDIT', label: 'Reddit' },
             ].map((p) => (
               <button
                 key={p.key}
                 onClick={() => {
                   setSelectedPlatform(p.key);
-                  if (p.key === 'reddit') setPostMode('single');
+                  if (p.key === 'REDDIT') setPostMode('single');
                 }}
                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   selectedPlatform === p.key
@@ -187,15 +206,13 @@ export default function ComposerPage() {
             onChange={(e) => setSelectedAccount(e.target.value)}
             className="text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white"
           >
-            {accounts
-              .filter((a) => a.platform === selectedPlatform)
-              .map((a) => (
-                <option key={a.id} value={a.handle}>
-                  {a.handle}
+            {platformAccounts.map((a) => (
+                <option key={a.id} value={a.username}>
+                  @{a.username}
                 </option>
               ))}
           </select>
-          {selectedPlatform === 'x' && (
+          {selectedPlatform === 'X' && (
             <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5">
               {[
                 { key: 'single', label: 'Post' },
@@ -271,7 +288,7 @@ export default function ComposerPage() {
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Compose</h3>
           <div className="flex-1 min-h-0 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
             {/* Thread editor */}
-            {postMode === 'thread' && selectedPlatform === 'x' && (
+            {postMode === 'thread' && selectedPlatform === 'X' && (
               <div className="space-y-2.5">
                 {tweets.map((tweet, i) => (
                   <div key={i} className="bg-white rounded-xl border border-gray-200 p-3 group">
@@ -361,7 +378,7 @@ export default function ComposerPage() {
             )}
 
             {/* Article editor */}
-            {postMode === 'article' && selectedPlatform === 'x' && (
+            {postMode === 'article' && selectedPlatform === 'X' && (
               <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col h-full">
                 <input
                   value={articleTitle}
@@ -395,28 +412,43 @@ export default function ComposerPage() {
             )}
 
             {/* Single post (X or Reddit) */}
-            {(postMode === 'single' || selectedPlatform === 'reddit') && (
+            {(postMode === 'single' || selectedPlatform === 'REDDIT') && (
               <div className="bg-white rounded-xl border border-gray-200 p-3 flex flex-col h-full">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-[10px] text-gray-400 font-medium">
-                    {selectedPlatform === 'reddit' ? 'Post body (Markdown)' : 'Post'}
+                    {selectedPlatform === 'REDDIT' ? 'Post body (Markdown)' : 'Post'}
                   </span>
-                  {selectedPlatform === 'x' && (
+                  {selectedPlatform === 'X' && (
                     <span className="text-[10px] text-gray-400">{tweets[0]?.length || 0}/280</span>
                   )}
                 </div>
-                {selectedPlatform === 'reddit' && (
+                {selectedPlatform === 'REDDIT' && (
                   <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-                    <select className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white">
-                      <option>r/venturecapital</option>
-                      <option>r/startups</option>
-                      <option>r/artificial</option>
+                    <select
+                      value={redditSubreddit}
+                      onChange={(e) => setRedditSubreddit(e.target.value)}
+                      className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white"
+                    >
+                      <option value="">Select subreddit...</option>
+                      <option value="r/FigureTech">r/FigureTech</option>
+                      <option value="r/FigureMarkets">r/FigureMarkets</option>
+                      <option value="r/FIGR">r/FIGR</option>
+                      <option value="r/defi">r/defi</option>
+                      <option value="r/cryptocurrency">r/cryptocurrency</option>
+                      <option value="r/RealEstate">r/RealEstate</option>
+                      <option value="r/fintech">r/fintech</option>
                     </select>
                     <input
+                      value={redditTitle}
+                      onChange={(e) => setRedditTitle(e.target.value)}
                       placeholder="Post title..."
                       className="flex-1 min-w-[100px] text-xs border border-gray-200 rounded-lg px-2 py-1"
                     />
-                    <select className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white">
+                    <select
+                      value={redditPostType}
+                      onChange={(e) => setRedditPostType(e.target.value)}
+                      className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white"
+                    >
                       <option>Text</option>
                       <option>Link</option>
                       <option>Image</option>
@@ -428,7 +460,7 @@ export default function ComposerPage() {
                   value={tweets[0]}
                   onChange={(e) => setTweets([e.target.value])}
                   className="w-full flex-1 text-[13px] text-gray-800 border-none outline-none resize-none leading-relaxed min-h-[200px]"
-                  placeholder={selectedPlatform === 'reddit' ? 'Write your post (Markdown)...' : "What's happening?"}
+                  placeholder={selectedPlatform === 'REDDIT' ? 'Write your post (Markdown)...' : "What's happening?"}
                 />
               </div>
             )}
@@ -511,7 +543,7 @@ export default function ComposerPage() {
         <div className="flex flex-col min-h-0">
           <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Live Preview</h3>
           <div className="flex-1 min-h-0 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
-            {selectedPlatform === 'x' && postMode === 'article' ? (
+            {selectedPlatform === 'X' && postMode === 'article' ? (
               /* X Article preview */
               <div
                 className="rounded-2xl border border-gray-200 overflow-hidden"
@@ -537,16 +569,16 @@ export default function ComposerPage() {
                 <div className="px-5 py-4">
                   <div className="flex items-center gap-2.5 mb-3">
                     <div className="w-10 h-10 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">HV</span>
+                      <span className="text-white text-xs font-bold">{(selectedAccountObj?.displayName || selectedAccount || '').slice(0, 2).toUpperCase()}</span>
                     </div>
                     <div>
                       <div className="flex items-center gap-1">
-                        <span className="text-[13px] font-bold text-white">Highland Ventures</span>
+                        <span className="text-[13px] font-bold text-white">{selectedAccountObj?.displayName || selectedAccount}</span>
                         <svg viewBox="0 0 22 22" className="w-[14px] h-[14px]" style={{ fill: '#1d9bf0' }}>
                           <path d="M20.396 11c-.018-.646-.215-1.275-.57-1.816-.354-.54-.852-.972-1.438-1.246.223-.607.27-1.264.14-1.897-.131-.634-.437-1.218-.882-1.687-.47-.445-1.053-.75-1.687-.882-.633-.13-1.29-.083-1.897.14-.273-.587-.704-1.086-1.245-1.44S11.647 1.62 11 1.604c-.646.017-1.273.213-1.813.568s-.969.855-1.24 1.44c-.608-.223-1.267-.272-1.902-.14-.635.13-1.22.436-1.69.882-.445.47-.749 1.055-.878 1.69-.13.633-.08 1.29.144 1.896-.587.274-1.087.705-1.443 1.245-.356.54-.555 1.17-.574 1.817.02.647.218 1.276.574 1.817.356.54.856.972 1.443 1.245-.224.606-.274 1.263-.144 1.896.13.636.433 1.221.878 1.69.47.446 1.055.752 1.69.883.635.13 1.294.083 1.902-.141.27.587.7 1.086 1.24 1.44.54.354 1.167.551 1.813.568.647-.016 1.276-.213 1.817-.567s.972-.854 1.245-1.44c.604.223 1.261.272 1.894.14.633-.132 1.217-.438 1.684-.883.447-.468.752-1.054.883-1.69.132-.634.085-1.294-.138-1.9.586-.272 1.084-.703 1.438-1.241.355-.54.551-1.17.569-1.816zM9.662 14.85l-3.429-3.428 1.293-1.302 2.072 2.072 4.4-4.794 1.347 1.246z" />
                         </svg>
                       </div>
-                      <span className="text-[11px] text-gray-500">{selectedAccount} &middot; now</span>
+                      <span className="text-[11px] text-gray-500">@{selectedAccount} &middot; now</span>
                     </div>
                   </div>
                   <h1 className="text-xl font-bold text-white leading-tight mb-4">
@@ -583,7 +615,7 @@ export default function ComposerPage() {
                   ))}
                 </div>
               </div>
-            ) : selectedPlatform === 'x' ? (
+            ) : selectedPlatform === 'X' ? (
               /* X Post / Thread preview */
               <div
                 className="rounded-2xl border border-gray-200 overflow-hidden"
@@ -615,7 +647,7 @@ export default function ComposerPage() {
                           <div className="flex gap-2.5">
                             <div className="flex flex-col items-center flex-shrink-0">
                               <div className="w-9 h-9 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center">
-                                <span className="text-white text-[10px] font-bold">HV</span>
+                                <span className="text-white text-[10px] font-bold">{(selectedAccountObj?.displayName || selectedAccount || '').slice(0, 2).toUpperCase()}</span>
                               </div>
                               {isThread && !isLast && tweetText.trim() && (
                                 <div className="w-0.5 flex-1 bg-gray-700 mt-1 min-h-[6px]" />
@@ -623,11 +655,11 @@ export default function ComposerPage() {
                             </div>
                             <div className="flex-1 min-w-0 pb-2.5">
                               <div className="flex items-center gap-1 leading-tight flex-wrap">
-                                <span className="text-[13px] font-bold text-white">Highland Ventures</span>
+                                <span className="text-[13px] font-bold text-white">{selectedAccountObj?.displayName || selectedAccount}</span>
                                 <svg viewBox="0 0 22 22" className="w-[14px] h-[14px] flex-shrink-0" style={{ fill: '#1d9bf0' }}>
                                   <path d="M20.396 11c-.018-.646-.215-1.275-.57-1.816-.354-.54-.852-.972-1.438-1.246.223-.607.27-1.264.14-1.897-.131-.634-.437-1.218-.882-1.687-.47-.445-1.053-.75-1.687-.882-.633-.13-1.29-.083-1.897.14-.273-.587-.704-1.086-1.245-1.44S11.647 1.62 11 1.604c-.646.017-1.273.213-1.813.568s-.969.855-1.24 1.44c-.608-.223-1.267-.272-1.902-.14-.635.13-1.22.436-1.69.882-.445.47-.749 1.055-.878 1.69-.13.633-.08 1.29.144 1.896-.587.274-1.087.705-1.443 1.245-.356.54-.555 1.17-.574 1.817.02.647.218 1.276.574 1.817.356.54.856.972 1.443 1.245-.224.606-.274 1.263-.144 1.896.13.636.433 1.221.878 1.69.47.446 1.055.752 1.69.883.635.13 1.294.083 1.902-.141.27.587.7 1.086 1.24 1.44.54.354 1.167.551 1.813.568.647-.016 1.276-.213 1.817-.567s.972-.854 1.245-1.44c.604.223 1.261.272 1.894.14.633-.132 1.217-.438 1.684-.883.447-.468.752-1.054.883-1.69.132-.634.085-1.294-.138-1.9.586-.272 1.084-.703 1.438-1.241.355-.54.551-1.17.569-1.816zM9.662 14.85l-3.429-3.428 1.293-1.302 2.072 2.072 4.4-4.794 1.347 1.246z" />
                                 </svg>
-                                <span className="text-[13px] text-gray-500">{selectedAccount} &middot; now</span>
+                                <span className="text-[13px] text-gray-500">@{selectedAccount} &middot; now</span>
                               </div>
                               <div className="mt-0.5">
                                 {tweetText.trim() ? (
@@ -751,11 +783,11 @@ export default function ComposerPage() {
                       <div className="w-5 h-5 rounded-full bg-[#FF4500] flex items-center justify-center">
                         <span className="text-white text-[8px] font-bold">r/</span>
                       </div>
-                      <span className="font-bold text-[#D7DADC]">r/venturecapital</span>
-                      <span className="text-[#818384]">&middot; Posted by u/highland_ventures &middot; now</span>
+                      <span className="font-bold text-[#D7DADC]">{redditSubreddit || 'r/subreddit'}</span>
+                      <span className="text-[#818384]">&middot; Posted by u/{selectedAccount || 'username'} &middot; now</span>
                     </div>
                     <h3 className="text-base font-semibold text-[#D7DADC] mb-2 leading-snug">
-                      {tweets[0]?.split('\n')[0]?.slice(0, 80) || 'Post title here'}
+                      {redditTitle || tweets[0]?.split('\n')[0]?.slice(0, 80) || 'Post title here'}
                     </h3>
                     <div className="text-[13px] text-[#D7DADC]/80 leading-relaxed whitespace-pre-wrap break-words">
                       {tweets[0] || <span className="text-[#818384] italic">Start typing...</span>}
