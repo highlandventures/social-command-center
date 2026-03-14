@@ -645,7 +645,7 @@ export default function DashboardPage() {
 
         {/* Sentiment Drivers */}
         <div className="mt-4 border-t border-gray-100 pt-4">
-          <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Sentiment Drivers — AI-Detected Themes</div>
+          <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Sentiment Drivers — Trending Phrases</div>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             {brandSentimentDrivers.map((d) => (
               <div key={d.theme} className="p-3 rounded-lg border border-gray-100 bg-gray-50 hover:bg-white transition-colors">

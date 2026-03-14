@@ -59,12 +59,14 @@ const roadmapItems = [
   { id: 35, phase: 'Phase 5', title: 'SociaVault cost logging in API tracker', status: 'deployed', deployed: 'Mar 14' },
   { id: 36, phase: 'Phase 5', title: 'Infrastructure overview + updated cost tracker', status: 'deployed', deployed: 'Mar 14' },
   { id: 37, phase: 'Phase 5', title: 'Account switcher stacking fix + dropdown z-index', status: 'deployed', deployed: 'Mar 14' },
+  { id: 38, phase: 'Phase 5', title: 'KOL AI scoring wired up (scoreAll + weekly cron)', status: 'deployed', deployed: 'Mar 14' },
+  { id: 39, phase: 'Phase 5', title: 'KOL metrics aggregation cron (engagement stats)', status: 'deployed', deployed: 'Mar 14' },
 
   // Phase 6: Planned — NOT STARTED
-  { id: 38, phase: 'Phase 6', title: 'Individual auth (SSO/email login, audit trail)', status: 'not_started', deployed: null },
-  { id: 39, phase: 'Phase 6', title: 'Image/media upload in posts', status: 'not_started', deployed: null },
-  { id: 40, phase: 'Phase 6', title: 'Mobile-responsive layout', status: 'not_started', deployed: null },
-  { id: 41, phase: 'Phase 6', title: 'LinkedIn integration + multi-platform publishing', status: 'not_started', deployed: null },
+  { id: 40, phase: 'Phase 6', title: 'Individual auth (SSO/email login, audit trail)', status: 'not_started', deployed: null },
+  { id: 41, phase: 'Phase 6', title: 'Image/media upload in posts', status: 'not_started', deployed: null },
+  { id: 42, phase: 'Phase 6', title: 'Mobile-responsive layout', status: 'not_started', deployed: null },
+  { id: 43, phase: 'Phase 6', title: 'LinkedIn integration + multi-platform publishing', status: 'not_started', deployed: null },
 ];
 
 export default function AdminPage() {
@@ -110,6 +112,16 @@ function AdminContent() {
 
   const updateRoleMutation = trpc.admin.users.updateRole.useMutation({
     onSuccess: () => usersQ.refetch(),
+  });
+
+  const [scoringStatus, setScoringStatus] = useState(null);
+  const scoreAllMutation = trpc.kol.scoreAll.useMutation({
+    onSuccess: (data) => {
+      setScoringStatus({ type: 'success', text: `Scored ${data.scored} KOLs${data.failed ? `, ${data.failed} failed` : ''}` });
+    },
+    onError: (err) => {
+      setScoringStatus({ type: 'error', text: err.message });
+    },
   });
 
   // ── Derived data ──────────────────────────────────────────
@@ -421,6 +433,40 @@ function AdminContent() {
             </div>
           </div>
 
+          {/* ── AI Actions ──────────────────────────────────── */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <SectionTitle subtitle="On-demand AI operations powered by Claude">
+              AI Actions
+            </SectionTitle>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between py-3 px-4 rounded-lg border border-gray-100 bg-gray-50">
+                <div>
+                  <span className="text-sm font-medium text-gray-900">Score All KOLs</span>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Run Claude AI scoring on all active KOLs (A–F grade, 4-factor analysis).
+                    Also runs automatically every Monday at 6 AM UTC.
+                  </p>
+                </div>
+                <button
+                  onClick={() => { setScoringStatus(null); scoreAllMutation.mutate(); }}
+                  disabled={scoreAllMutation.isLoading}
+                  className="px-4 py-2 bg-violet-600 text-white text-sm font-medium rounded-lg hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                >
+                  {scoreAllMutation.isLoading ? 'Scoring...' : 'Run Now'}
+                </button>
+              </div>
+              {scoringStatus && (
+                <div className={`px-4 py-2 rounded-lg text-sm ${
+                  scoringStatus.type === 'success'
+                    ? 'bg-green-50 text-green-700 border border-green-200'
+                    : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {scoringStatus.text}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* ── Polling & Data ────────────────────────────────── */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <SectionTitle subtitle="Polling intervals are managed via Vercel cron jobs">
@@ -436,6 +482,7 @@ function AdminContent() {
                 { name: 'AI insights', schedule: 'Weekly on Monday 6 AM', path: '/api/cron/weekly-ai-insights' },
                 { name: 'KOL activations', schedule: 'Every 30 minutes', path: '/api/cron/kol-activations' },
                 { name: 'Subreddit metrics', schedule: 'Daily at 4 AM', path: '/api/cron/poll-subreddit-metrics' },
+                { name: 'KOL metrics aggregation', schedule: 'Daily at 5 AM', path: '/api/cron/aggregate-kol-metrics' },
               ].map((cron) => (
                 <div key={cron.path} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50">
                   <div>
