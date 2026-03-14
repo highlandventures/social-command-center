@@ -44,7 +44,6 @@ export async function GET(request) {
         // Fetch recent posts from subreddit (includes subreddit_subscribers on each post)
         const posts = await getSubredditPosts(sub.subredditName, {
           sort: 'new',
-          timeframe: 'day',
         });
 
         results.subredditsPolled++;
