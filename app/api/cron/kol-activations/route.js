@@ -64,6 +64,7 @@ export async function GET(request) {
     for (const kol of activeKOLs) {
       try {
         let rawHits = [];
+        const searchStart = Date.now();
 
         if (kol.platform === 'X') {
           // Search for tweets from the KOL mentioning any brand handle
@@ -166,7 +167,7 @@ export async function GET(request) {
             endpoint: 'kol-activation-search',
             method: 'GET',
             statusCode: 200,
-            responseTime: 0,
+            responseTime: Date.now() - searchStart,
             estimatedCost: kol.platform === 'X' ? API_COSTS.TWITTERAPI_IO : API_COSTS.REDDIT_OAUTH,
           },
         });

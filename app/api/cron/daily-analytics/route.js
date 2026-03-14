@@ -19,6 +19,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { twitterApiIoRequest } from '@/lib/twitter-api';
+import { API_COSTS } from '@/lib/api-costs';
 
 export const dynamic = 'force-dynamic';
 
@@ -193,7 +194,7 @@ export async function GET(request) {
             },
           });
 
-          // Log cost — TwitterAPI.io: 1 timeline request = ~$0.00015
+          // Log cost — summary entry for this account's daily analytics
           await prisma.aPICallLog.create({
             data: {
               provider: 'twitterapi_io',
@@ -201,7 +202,7 @@ export async function GET(request) {
               method: 'GET',
               statusCode: 200,
               responseTime: 0,
-              estimatedCost: 0.00015, // ~$0.15/1K requests x 1 request
+              estimatedCost: API_COSTS.TWITTERAPI_IO,
               accountId: account.id,
             },
           });

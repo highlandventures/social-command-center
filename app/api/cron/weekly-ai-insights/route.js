@@ -9,8 +9,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { verifyCronAuth } from '@/lib/cron-auth';
-import { generateInsight } from '@/lib/ai';
-import { scoreKOL } from '@/lib/ai/kol-scoring';
+import { generateInsight, AI_PREAMBLE } from '@/lib/ai';
 
 export const dynamic = 'force-dynamic';
 
@@ -87,53 +86,30 @@ export async function GET(request) {
       },
       topPosts: recentPosts
         .sort((a, b) => (b.metrics[0]?.engagementRate || 0) - (a.metrics[0]?.engagementRate || 0))
-        .slice(0, 5)
+        .slice(0, 3)
         .map((p) => ({
-          content: p.content?.substring(0, 200),
+          content: p.content?.substring(0, 150),
           platform: p.platform,
           engagementRate: p.metrics[0]?.engagementRate || 0,
           impressions: p.metrics[0]?.impressions || 0,
-          likes: p.metrics[0]?.likes || 0,
-          retweets: p.metrics[0]?.retweets || 0,
         })),
-      recentMentions: recentMentions.slice(0, 20).map((m) => ({
-        content: m.content?.substring(0, 150),
+      recentMentions: recentMentions.slice(0, 10).map((m) => ({
+        content: m.content?.substring(0, 100),
         mentionType: m.mentionType,
-        authorUsername: m.authorUsername,
       })),
       listeningHighlights: recentListeningHits
         .filter((h) => h.heuristicScore > 0.5)
-        .slice(0, 15)
+        .slice(0, 10)
         .map((h) => ({
-          content: h.content?.substring(0, 150),
+          content: h.content?.substring(0, 100),
           sentiment: h.sentiment,
-          score: h.heuristicScore,
           platform: h.platform,
         })),
     };
 
-    const systemPrompt = `You are a senior social media strategist generating a weekly insights summary.
-Analyze the provided data and generate actionable insights.
-Always respond with valid JSON matching this schema:
-{
-  "summary": "string - 3-4 sentence executive summary of the week",
-  "performanceHighlights": [
-    { "highlight": "string", "metric": "string", "trend": "UP|DOWN|STABLE" }
-  ],
-  "contentInsights": [
-    { "insight": "string", "evidence": "string", "actionability": "HIGH|MEDIUM|LOW" }
-  ],
-  "audienceTrends": [
-    { "trend": "string", "detail": "string" }
-  ],
-  "recommendations": [
-    { "recommendation": "string", "priority": "HIGH|MEDIUM|LOW", "expectedImpact": "string" }
-  ],
-  "optimalPostingTimes": [
-    { "day": "string", "time": "string", "rationale": "string" }
-  ],
-  "weekAhead": "string - brief outlook for the coming week"
-}`;
+    const systemPrompt = `${AI_PREAMBLE}
+Generate a weekly social media insights summary with actionable recommendations.
+Schema: {"summary":"string","performanceHighlights":[{"highlight":"string","metric":"string","trend":"UP|DOWN|STABLE"}],"contentInsights":[{"insight":"string","evidence":"string","actionability":"HIGH|MEDIUM|LOW"}],"audienceTrends":[{"trend":"string","detail":"string"}],"recommendations":[{"recommendation":"string","priority":"HIGH|MEDIUM|LOW","expectedImpact":"string"}],"optimalPostingTimes":[{"day":"string","time":"string","rationale":"string"}],"weekAhead":"string"}`;
 
     // Generate AI insights via Claude
     const aiContent = await generateInsight('cron/weekly-summary', aiContext, {
@@ -175,46 +151,6 @@ Always respond with valid JSON matching this schema:
       });
     }
 
-    // ── KOL Scoring ──────────────────────────────────────────────────
-    // Score all active KOLs using Claude AI while we're already running.
-    let kolScoringResults = { scored: 0, failed: 0 };
-    try {
-      const activeKOLs = await prisma.kOL.findMany({ where: { active: true } });
-
-      for (const kol of activeKOLs) {
-        try {
-          const activations = await prisma.kOLActivation.findMany({
-            where: { kolId: kol.id },
-            orderBy: { detectedAt: 'desc' },
-            take: 50,
-          });
-
-          const latestMetrics = await prisma.kOLMetrics.findFirst({
-            where: { kolId: kol.id },
-            orderBy: { weekStart: 'desc' },
-          });
-
-          const result = await scoreKOL(kol, activations, latestMetrics);
-
-          await prisma.kOL.update({
-            where: { id: kol.id },
-            data: {
-              aiScore: result.score,
-              aiScoreRationale: result.rationale,
-              aiScoreUpdatedAt: new Date(),
-            },
-          });
-
-          kolScoringResults.scored++;
-        } catch (kolErr) {
-          console.error(`Failed to score KOL ${kol.id}:`, kolErr.message);
-          kolScoringResults.failed++;
-        }
-      }
-    } catch (kolBatchErr) {
-      console.error('KOL batch scoring error:', kolBatchErr.message);
-    }
-
     return NextResponse.json({
       ok: true,
       insightId: insight.id,
@@ -229,7 +165,6 @@ Always respond with valid JSON matching this schema:
         totalListeningHits,
         avgEngagementRate: Math.round(avgEngagementRate * 100) / 100,
       },
-      kolScoring: kolScoringResults,
     });
   } catch (error) {
     console.error('weekly-ai-insights cron error:', error);

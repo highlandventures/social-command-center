@@ -10,6 +10,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { verifyCronAuth } from '@/lib/cron-auth';
+import { scoreKOL } from '@/lib/ai/kol-scoring';
 
 export const dynamic = 'force-dynamic';
 
@@ -160,7 +161,44 @@ export async function GET(request) {
       }
     }
 
-    return NextResponse.json({ ok: true, ...results });
+    // ── KOL AI Scoring (Mondays only) ──────────────────────────────
+    const isMonday = new Date().getUTCDay() === 1;
+    let kolScoring = { scored: 0, failed: 0, skipped: !isMonday };
+
+    if (isMonday) {
+      for (const kol of activeKOLs) {
+        try {
+          const activations = await prisma.kOLActivation.findMany({
+            where: { kolId: kol.id },
+            orderBy: { detectedAt: 'desc' },
+            take: 50,
+          });
+
+          const latestMetrics = await prisma.kOLMetrics.findFirst({
+            where: { kolId: kol.id },
+            orderBy: { weekStart: 'desc' },
+          });
+
+          const result = await scoreKOL(kol, activations, latestMetrics);
+
+          await prisma.kOL.update({
+            where: { id: kol.id },
+            data: {
+              aiScore: result.score,
+              aiScoreRationale: result.rationale,
+              aiScoreUpdatedAt: new Date(),
+            },
+          });
+
+          kolScoring.scored++;
+        } catch (kolErr) {
+          console.error(`Failed to score KOL ${kol.id}:`, kolErr.message);
+          kolScoring.failed++;
+        }
+      }
+    }
+
+    return NextResponse.json({ ok: true, ...results, kolScoring });
   } catch (error) {
     console.error('aggregate-kol-metrics cron error:', error);
     return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
