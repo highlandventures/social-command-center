@@ -454,9 +454,16 @@ const kolTopics = [
     pollingTier: 'HOT',
     queries: kolBatches.map((batch) => {
       const fromClauses = batch.usernames.map((u) => `from:${u}`).join(' OR ');
+      const queryString = `(${fromClauses}) (${FIGURE_ECOSYSTEM_TERMS}) lang:en`;
+
+      // Validate query length (buffer below 512 limit)
+      if (queryString.length > 480) {
+        console.warn(`⚠️  KOL batch "${batch.label}" query length: ${queryString.length} chars (approaches 512 limit)`);
+      }
+
       return {
         platform: 'X',
-        queryString: `(${fromClauses}) (${FIGURE_ECOSYSTEM_TERMS}) lang:en`,
+        queryString,
         negativeKeywords: ['figure out', 'figure skating', 'action figure'],
         rationale: `KOL batch "${batch.label}" — ecosystem mentions from ${batch.usernames.length} accounts`,
       };

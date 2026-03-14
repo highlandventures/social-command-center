@@ -78,6 +78,11 @@ export async function GET(request) {
             }
           }
 
+          if (followers === 0) {
+            console.warn(`[daily-analytics] Could not resolve follower count for @${account.username} — timeline author and profile fallback both returned 0`);
+            results.errors.push({ accountId: account.id, error: `Follower count 0 for @${account.username}` });
+          }
+
           if (debugMode) {
             results.debug.push({
               account: account.username,
@@ -152,7 +157,21 @@ export async function GET(request) {
           }
 
           // Upsert AccountMetrics — only write follower data when non-zero
-          // to prevent overwriting valid historical counts with 0
+          // to prevent overwriting valid historical counts with 0.
+          // If followers=0, carry forward from the most recent valid snapshot.
+          let createFollowers = followers;
+          let createFollowing = following;
+          if (followers === 0) {
+            const lastValid = await prisma.accountMetrics.findFirst({
+              where: { accountId: account.id, followers: { gt: 0 } },
+              orderBy: { date: 'desc' },
+            });
+            if (lastValid) {
+              createFollowers = lastValid.followers;
+              createFollowing = lastValid.following ?? following;
+            }
+          }
+
           await prisma.accountMetrics.upsert({
             where: {
               accountId_date: {
@@ -167,8 +186,8 @@ export async function GET(request) {
             create: {
               accountId: account.id,
               date: today,
-              followers,
-              following,
+              followers: createFollowers,
+              following: createFollowing,
               totalPosts: tweets.length,
             },
           });

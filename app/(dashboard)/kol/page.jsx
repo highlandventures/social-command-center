@@ -13,19 +13,54 @@ import {
   TabButton, Avatar, Skeleton,
 } from '@/components/ui';
 
+// Transform API response to UI-friendly format
+function transformKOL(k) {
+  const m = k.latestMetrics;
+  const initials = k.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const followers = m?.followers ?? k.baselineFollowers ?? 0;
+  const scoreLabels = { A: 'High Value', B: 'Good', C: 'Watch', D: 'Low Value', F: 'Drop' };
+  return {
+    ...k,
+    handle: `@${k.username}`,
+    avatar: initials,
+    avatarUrl: null,
+    followers: followers >= 1000 ? `${(followers / 1000).toFixed(1)}K` : followers,
+    followersRaw: followers,
+    type: (k.relationshipType || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).toLowerCase().replace(/^\w/, c => c.toUpperCase()),
+    activations: m?.activationsCount ?? 0,
+    avgEng: (m?.engagementRateBrand ?? k.baselineEngRate ?? 0).toFixed(1),
+    impressions: (m?.totalImpressionsEst ?? 0) >= 1000 ? `${((m?.totalImpressionsEst ?? 0) / 1000).toFixed(1)}K` : (m?.totalImpressionsEst ?? 0),
+    sentiment: (m?.sentimentPositivePct ?? 0).toFixed(0),
+    score: k.aiScore || '—',
+    scoreLabel: scoreLabels[k.aiScore] || 'Unscored',
+    correlation: m?.followerGrowthCorrelation ?? 0,
+    comp: k.compensationMonthly ? `$${k.compensationMonthly.toLocaleString()}/mo` : '—',
+    trend: null,
+    cohortName: k.cohort?.name || 'Uncategorized',
+  };
+}
+
 export default function KOLPage() {
   const [subTab, setSubTab] = useState('roster');
   const [selectedKOL, setSelectedKOL] = useState(null);
 
   // ── tRPC queries ──────────────────────────────────────────
   const kolsQ = trpc.kol.list.useQuery(undefined, { staleTime: 30_000 });
-  const activationsQ = trpc.kol.getActivations.useQuery(undefined, { staleTime: 30_000 });
-  const metricsHistoryQ = trpc.kol.getMetricsHistory.useQuery(undefined, { staleTime: 60_000 });
+  const activationsQ = trpc.kol.getActivations.useQuery(
+    { kolId: selectedKOL },
+    { staleTime: 30_000, enabled: !!selectedKOL }
+  );
+  const metricsHistoryQ = trpc.kol.getMetricsHistory.useQuery(
+    { kolId: selectedKOL },
+    { staleTime: 60_000, enabled: !!selectedKOL }
+  );
+  const discoverQ = trpc.kol.discoverCandidates.useQuery(undefined, { staleTime: 60_000 });
 
   // ── Derived ───────────────────────────────────────────────
-  const kols = kolsQ.data ?? [];
+  const kols = (kolsQ.data ?? []).map(transformKOL);
   const kolActivations = activationsQ.data ?? [];
   const kolPerformanceData = metricsHistoryQ.data ?? [];
+  const discoveries = discoverQ.data ?? [];
 
   // ── KOL detail drill-down ─────────────────────────────────
   if (selectedKOL) {
@@ -299,40 +334,56 @@ export default function KOLPage() {
       {subTab === 'discover' && (
         <div>
           <SectionTitle subtitle="AI-identified potential KOLs from your social listening feed">KOL Discovery Suggestions</SectionTitle>
-          <div className="space-y-4">
-            {[
-              { handle: 'u/data_scientist_jane', platform: 'reddit', followers: '12.8K karma', hits: 6, avgUpvotes: 45, sentiment: 78, topic: 'AI-driven VC tools' },
-              { handle: '@vc_techie_tom', platform: 'x', followers: '34.5K', hits: 4, avgEng: '5.2%', sentiment: 81, topic: 'Deal sourcing automation' },
-            ].map((sug, i) => (
-              <div key={i} className="bg-white rounded-xl border border-gray-200 p-5">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <PlatformBadge platform={sug.platform} />
-                      <span className="font-semibold text-gray-900">{sug.handle}</span>
-                      <span className="text-sm text-gray-400">{sug.followers}</span>
-                    </div>
-                    <p className="text-sm text-gray-700 mb-2">
-                      Appeared <strong>{sug.hits} times</strong> in your listening feed over the past month discussing{' '}
-                      <strong>{sug.topic}</strong>. Average {sug.avgUpvotes ? `${sug.avgUpvotes} upvotes` : `${sug.avgEng} engagement`} per post. Sentiment: {sug.sentiment}% positive.
-                    </p>
-                    <div className="flex items-start gap-2 bg-blue-50 rounded-lg p-3 mt-2">
-                      <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 mt-0.5">AI</div>
-                      <p className="text-xs text-blue-800">
-                        {sug.platform === 'reddit'
-                          ? `This user consistently posts high-quality, well-received content in r/venturecapital about ${sug.topic}. Their posts generate substantive discussion (avg 12 comments). Good candidate for an organic partnership.`
-                          : `Active voice in the ${sug.topic} conversation on X. Their engagement rate (${sug.avgEng}) suggests an authentic, engaged audience. Good candidate for a paid partnership pilot.`}
-                      </p>
+          {discoverQ.isLoading ? (
+            <div className="space-y-4">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-40 w-full rounded-xl" />)}</div>
+          ) : !discoveries.length ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+              <p className="text-3xl mb-3">{'\uD83D\uDD0D'}</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">No candidates yet</h3>
+              <p className="text-sm text-gray-500">AI Discovery analyzes your listening feed to find potential KOLs. Candidates appear after they show up 2+ times in your monitored conversations.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {discoveries.map((sug, i) => {
+                const formattedFollowers = sug.followers >= 1000 ? `${(sug.followers / 1000).toFixed(1)}K` : sug.followers;
+                return (
+                  <div key={i} className="bg-white rounded-xl border border-gray-200 p-5">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <PlatformBadge platform={sug.platform} />
+                          <span className="font-semibold text-gray-900">{sug.username}</span>
+                          <span className="text-sm text-gray-400">{formattedFollowers} {sug.platform === 'REDDIT' ? 'karma' : 'followers'}</span>
+                        </div>
+                        <p className="text-sm text-gray-700 mb-2">
+                          Appeared <strong>{sug.appearances} times</strong> in your listening feed over the past month.
+                          Average {sug.avgEngagement} engagements per post. Sentiment: {sug.sentimentPct}% positive.
+                          {sug.topics.length > 0 && <> Topics: {sug.topics.join(', ')}.</>}
+                        </p>
+                        {sug.sampleContent && (
+                          <p className="text-xs text-gray-500 italic mb-2 line-clamp-2">&ldquo;{sug.sampleContent}&rdquo;</p>
+                        )}
+                        <div className="flex items-start gap-2 bg-blue-50 rounded-lg p-3 mt-2">
+                          <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 mt-0.5">AI</div>
+                          <p className="text-xs text-blue-800">
+                            {sug.avgScore > 0.6
+                              ? `Strong candidate. High engagement (score: ${sug.avgScore}) with ${sug.appearances} organic mentions suggests authentic interest in your ecosystem. Consider reaching out for a partnership.`
+                              : sug.avgScore > 0.3
+                              ? `Moderate candidate. ${sug.appearances} mentions with decent engagement. Worth monitoring for another week before outreach.`
+                              : `Early signal. Appeared ${sug.appearances} times but engagement is still building. Keep on watchlist.`}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2 ml-4">
+                        <button className="px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-800 whitespace-nowrap">Add as KOL</button>
+                        <button className="px-3 py-1.5 bg-gray-100 text-gray-600 text-xs rounded-lg hover:bg-gray-200 whitespace-nowrap">Dismiss</button>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-2 ml-4">
-                    <button className="px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-800 whitespace-nowrap">Add as KOL</button>
-                    <button className="px-3 py-1.5 bg-gray-100 text-gray-600 text-xs rounded-lg hover:bg-gray-200 whitespace-nowrap">Dismiss</button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>

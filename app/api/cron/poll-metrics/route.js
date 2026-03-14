@@ -144,6 +144,8 @@ export async function GET(request) {
               });
             } catch (e) {
               // Non-critical — don't fail the whole metrics poll for a follower snapshot
+              console.warn(`[poll-metrics] Follower snapshot failed for account ${account.id} (@${account.username}):`, e.message);
+              results.errors.push({ accountId: account.id, error: `Follower snapshot: ${e.message}` });
             }
           }
         }

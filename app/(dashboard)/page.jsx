@@ -151,15 +151,23 @@ export default function DashboardPage() {
 
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <SectionTitle>Follower Growth</SectionTitle>
-            <ResponsiveContainer width="100%" height={240}>
-              <AreaChart data={followerData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={4} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Area type="monotone" dataKey="followers" stroke={COLORS.green} fill="#dcfce7" strokeWidth={2} name="Followers" />
-              </AreaChart>
-            </ResponsiveContainer>
+            {followerData.length === 0 ? (
+              <div className="h-[240px] flex flex-col items-center justify-center text-gray-400">
+                <span className="text-3xl mb-2">{'\uD83D\uDCC8'}</span>
+                <p className="text-sm font-medium text-gray-500">No follower data yet</p>
+                <p className="text-xs text-gray-400 mt-1">Snapshots are captured every 15 min and at 2 AM UTC daily</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <AreaChart data={followerData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={4} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="followers" stroke={COLORS.green} fill="#dcfce7" strokeWidth={2} name="Followers" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
@@ -536,6 +544,12 @@ export default function DashboardPage() {
           <SectionTitle>Follower Growth (All Accounts)</SectionTitle>
           {followerGrowthQ.isLoading ? (
             <Skeleton className="h-[200px] w-full" />
+          ) : followerData.length === 0 ? (
+            <div className="h-[200px] flex flex-col items-center justify-center text-gray-400">
+              <span className="text-3xl mb-2">{'\uD83D\uDCC8'}</span>
+              <p className="text-sm font-medium text-gray-500">No follower data yet</p>
+              <p className="text-xs text-gray-400 mt-1">Snapshots are captured every 15 min and at 2 AM UTC daily</p>
+            </div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <AreaChart data={followerData}>

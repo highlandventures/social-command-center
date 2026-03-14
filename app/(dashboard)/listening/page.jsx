@@ -69,6 +69,7 @@ export default function ListeningPage() {
   const accountsQ = trpc.accounts.list.useQuery(undefined, { staleTime: 60_000 });
   const sovQ = trpc.competitors.getSOV.useQuery(undefined, { staleTime: 60_000 });
   const sentimentQ = trpc.analytics.brandSentiment.useQuery(undefined, { staleTime: 30_000 });
+  const mentionMetricsQ = trpc.listening.mentionMetrics.useQuery(undefined, { staleTime: 30_000 });
 
   // ── tRPC mutations ─────────────────────────────────────────
   const utils = trpc.useUtils();
@@ -155,19 +156,18 @@ export default function ListeningPage() {
   const sovTimeData = sovQ.data?.overTime ?? [];
   const sentimentTrendData = sentimentQ.data?.overTime ?? [];
 
-  // Build brand filter from real connected accounts
-  const brandAccounts = [
-    { key: 'all', label: 'All Brands' },
-    ...accounts.map((a) => ({
-      key: a.username,
-      label: a.platform === 'X' ? `@${a.username}` : `u/${a.username}`,
-      platform: a.platform === 'X' ? 'x' : 'reddit',
+  // Build brand filter from listening topics
+  const brandFilters = [
+    { key: 'all', label: 'All Topics' },
+    ...listeningTopics.map((t) => ({
+      key: t.id,
+      label: t.name,
     })),
   ];
 
   const filteredFeed = listeningFeed.filter((h) => {
     const matchRelevance = relevanceFilter === 'all' || h.relevance === relevanceFilter;
-    const matchBrand = brandFilter === 'all' || true; // hits aren't account-scoped, show all
+    const matchBrand = brandFilter === 'all' || h.topicName === (listeningTopics.find(t => t.id === brandFilter)?.name || brandFilter);
     return matchRelevance && matchBrand;
   });
 
@@ -279,27 +279,26 @@ export default function ListeningPage() {
 
   return (
     <div>
-      {/* Brand filter bar */}
+      {/* Topic filter bar */}
       <div className="flex items-center gap-2 mb-4 bg-white rounded-xl border border-gray-200 px-4 py-2.5">
-        <span className="text-xs font-medium text-gray-500 mr-1">Brand:</span>
+        <span className="text-xs font-medium text-gray-500 mr-1">Topic:</span>
         <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5">
-          {brandAccounts.map((b) => (
+          {brandFilters.map((b) => (
             <button
               key={b.key}
               onClick={() => setBrandFilter(b.key)}
-              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors flex items-center gap-1 ${
+              className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
                 brandFilter === b.key ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              {b.platform && <PlatformBadge platform={b.platform} />}
               {b.label}
             </button>
           ))}
         </div>
         {brandFilter !== 'all' && (
           <div className="ml-auto flex items-center gap-2 text-xs">
-            <span className="text-gray-400">Showing data for</span>
-            <span className="font-semibold text-gray-700">{brandFilter}</span>
+            <span className="text-gray-400">Showing hits from</span>
+            <span className="font-semibold text-gray-700">{listeningTopics.find(t => t.id === brandFilter)?.name || 'Unknown'}</span>
             <button onClick={() => setBrandFilter('all')} className="text-blue-600 hover:text-blue-700 font-medium">
               Clear
             </button>
@@ -1103,7 +1102,68 @@ export default function ListeningPage() {
       {/* ── SOV sub-tab ─── */}
       {subTab === 'sov' && (
         <div>
-          <SectionTitle subtitle="Your brand's share of the conversation vs. competitors">Share of Voice</SectionTitle>
+          <SectionTitle subtitle="Your brand's share of the conversation vs. competitors">Share of Voice & Analytics</SectionTitle>
+
+          {/* Mention Metrics Summary */}
+          {mentionMetricsQ.isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+              {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <p className="text-xs text-gray-500 mb-1">Total (30d)</p>
+                <p className="text-2xl font-bold text-gray-900">{mentionMetricsQ.data?.total30d || 0}</p>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <p className="text-xs text-gray-500 mb-1">This Week (7d)</p>
+                <p className="text-2xl font-bold text-gray-900">{mentionMetricsQ.data?.total7d || 0}</p>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <p className="text-xs text-gray-500 mb-1">Positive</p>
+                <p className="text-2xl font-bold text-green-600">{mentionMetricsQ.data?.bySentiment?.POSITIVE || 0}</p>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <p className="text-xs text-gray-500 mb-1">Neutral</p>
+                <p className="text-2xl font-bold text-gray-600">{mentionMetricsQ.data?.bySentiment?.NEUTRAL || 0}</p>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <p className="text-xs text-gray-500 mb-1">Negative</p>
+                <p className="text-2xl font-bold text-red-600">{mentionMetricsQ.data?.bySentiment?.NEGATIVE || 0}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Topic Breakdown */}
+          {mentionMetricsQ.data?.byTopic && mentionMetricsQ.data.byTopic.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
+              <h4 className="text-sm font-semibold text-gray-900 mb-3">Mentions by Topic (7d)</h4>
+              <div className="space-y-2">
+                {mentionMetricsQ.data.byTopic.map((topic) => (
+                  <div key={topic.topicId} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                    <span className="text-sm text-gray-700">{topic.topicName}</span>
+                    <span className="font-semibold text-gray-900">{topic.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Daily Trend */}
+          {mentionMetricsQ.data?.dailyTrend && mentionMetricsQ.data.dailyTrend.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
+              <h4 className="text-sm font-semibold text-gray-900 mb-3">Daily Mention Trend (14d)</h4>
+              <ResponsiveContainer width="100%" height={200}>
+                <AreaChart data={mentionMetricsQ.data.dailyTrend}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="count" stroke="#3b82f6" fill="#93c5fd" name="Mentions" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
 
           {sovQ.isLoading ? (
             <Skeleton className="h-[300px] w-full rounded-xl mb-8" />

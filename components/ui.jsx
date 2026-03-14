@@ -145,13 +145,23 @@ export const TabButton = ({ active, onClick, children, badge }) => (
   </button>
 );
 
-export const Avatar = ({ initials, platform, size = "md" }) => {
+export const Avatar = ({ initials, src, platform, size = "md" }) => {
   const p = (platform || '').toLowerCase();
   const sizes = {
     sm: "w-7 h-7 text-xs",
     md: "w-9 h-9 text-sm",
     lg: "w-12 h-12 text-base",
   };
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={initials || ''}
+        className={`${sizes[size]} rounded-full object-cover`}
+        onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+      />
+    );
+  }
   return (
     <div
       className={`${sizes[size]} rounded-full flex items-center justify-center font-bold text-white ${

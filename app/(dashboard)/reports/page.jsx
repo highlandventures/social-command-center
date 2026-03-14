@@ -42,7 +42,7 @@ export default function ReportsPage() {
   const filteredReports =
     reportTypeFilter === 'all'
       ? reportRepository
-      : reportRepository.filter((r) => (r.reportType || r.type || '').toLowerCase().includes(reportTypeFilter));
+      : reportRepository.filter((r) => (r.reportType || '').toLowerCase().includes(reportTypeFilter));
 
   const reportTypeLabels = {
     WEEKLY_PERFORMANCE: 'Weekly Performance',
@@ -339,7 +339,7 @@ export default function ReportsPage() {
                           <span className="text-lg">{'\uD83D\uDCC4'}</span>
                           <div>
                             <span className="font-medium text-gray-900 block">{report.title}</span>
-                            {report.status === 'draft' && (
+                            {!report.content && (
                               <span className="text-[10px] px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded font-medium">Draft</span>
                             )}
                           </div>
@@ -348,30 +348,30 @@ export default function ReportsPage() {
                       <td className="py-3 px-4">
                         <span
                           className={`text-xs px-2 py-1 rounded-full font-medium ${
-                            report.type === 'weekly'
+                            report.reportType === 'WEEKLY_PERFORMANCE'
                               ? 'bg-blue-50 text-blue-600'
-                              : report.type === 'monthly'
+                              : report.reportType === 'MONTHLY_SUMMARY'
                               ? 'bg-purple-50 text-purple-600'
-                              : report.type === 'campaign'
+                              : report.reportType === 'KOL_REPORT'
                               ? 'bg-green-50 text-green-600'
-                              : report.type === 'competitor'
+                              : report.reportType === 'COMPETITIVE_ANALYSIS'
                               ? 'bg-red-50 text-red-600'
                               : 'bg-gray-100 text-gray-600'
                           }`}
                         >
-                          {report.type}
+                          {reportTypeLabels[report.reportType] || report.reportType}
                         </span>
                       </td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-1.5">
-                          {(report.createdBy ?? '').includes('AI') && (
+                          {(report.aiPct ?? 0) > 0 && (
                             <span className="w-4 h-4 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 text-[8px] font-bold">AI</span>
                           )}
-                          <span className="text-gray-600 text-xs">{report.createdBy}</span>
+                          <span className="text-gray-600 text-xs">{report.createdById || '—'}</span>
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-gray-500 text-xs">{report.created}</td>
-                      <td className="py-3 px-4 text-gray-600">{report.pages}</td>
+                      <td className="py-3 px-4 text-gray-500 text-xs">{new Date(report.createdAt).toLocaleDateString()}</td>
+                      <td className="py-3 px-4 text-gray-600">—</td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-1.5">
                           <div className="w-12 h-1.5 bg-gray-100 rounded-full overflow-hidden">
