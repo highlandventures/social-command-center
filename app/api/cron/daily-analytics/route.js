@@ -18,6 +18,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { verifyCronAuth } from '@/lib/cron-auth';
+import { twitterApiIoRequest } from '@/lib/twitter-api';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,7 +51,7 @@ export async function GET(request) {
         if (account.platform === 'X') {
           // ── Use TwitterAPI.io for all reads (much cheaper) ──
           // Single timeline request gives us tweets + author follower data
-          const timelineRes = await twitterApiIoRequest(apiKey, '/user/last_tweets', {
+          const timelineRes = await twitterApiIoRequest(apiKey, '/twitter/user/last_tweets', {
             userName: account.username,
           });
 
@@ -67,7 +68,7 @@ export async function GET(request) {
           // If timeline didn't yield follower data, fetch the profile directly
           if (followers === 0) {
             try {
-              const profileRes = await twitterApiIoRequest(apiKey, '/user/profile_by_username', {
+              const profileRes = await twitterApiIoRequest(apiKey, '/twitter/user/profile_by_username', {
                 userName: account.username,
               });
               const profile = profileRes?.data || profileRes || {};
@@ -226,33 +227,3 @@ export async function GET(request) {
   }
 }
 
-/**
- * Simple TwitterAPI.io request helper — avoids importing the full adapter
- * and the OAuth token dependency (TwitterAPI.io uses API key auth only).
- */
-async function twitterApiIoRequest(apiKey, path, params = {}) {
-  const url = new URL(`https://api.twitterapi.io/twitter${path}`);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v));
-
-  const start = Date.now();
-  const res = await fetch(url, {
-    headers: { 'X-API-Key': apiKey },
-  });
-
-  // Track in API call log
-  await prisma.aPICallLog.create({
-    data: {
-      provider: 'twitterapi_io',
-      endpoint: path,
-      method: 'GET',
-      statusCode: res.status,
-      responseTime: Date.now() - start,
-      estimatedCost: 0.00015,
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error(`TwitterAPI.io ${res.status}: ${await res.text().catch(() => 'unknown')}`);
-  }
-  return res.json();
-}

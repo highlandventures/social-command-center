@@ -16,6 +16,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { verifyCronAuth } from '@/lib/cron-auth';
+import { twitterApiIoRequest } from '@/lib/twitter-api';
 
 export const dynamic = 'force-dynamic';
 
@@ -101,34 +102,14 @@ export async function GET(request) {
     for (const { account, posts } of Object.values(xPostsByAccount)) {
       try {
         // Fetch the user's recent timeline from TwitterAPI.io
-        const url = new URL('https://api.twitterapi.io/twitter/user/last_tweets');
-        url.searchParams.set('userName', account.username);
-
-        const start = Date.now();
-        const res = await fetch(url, {
-          headers: { 'X-API-Key': apiKey },
-        });
-
-        await prisma.aPICallLog.create({
-          data: {
-            provider: 'twitterapi_io',
-            endpoint: '/user/last_tweets',
-            method: 'GET',
-            statusCode: res.status,
-            responseTime: Date.now() - start,
-            estimatedCost: 0.00015,
-            accountId: account.id,
-          },
-        });
+        const data = await twitterApiIoRequest(
+          apiKey,
+          '/twitter/user/last_tweets',
+          { userName: account.username },
+          { accountId: account.id },
+        );
 
         results.apiCalls++;
-
-        if (!res.ok) {
-          results.errors.push({ accountId: account.id, error: `TwitterAPI.io ${res.status}` });
-          continue;
-        }
-
-        const data = await res.json();
         // TwitterAPI.io nests tweets inside data.tweets
         const tweets = data?.data?.tweets || data?.tweets || [];
 

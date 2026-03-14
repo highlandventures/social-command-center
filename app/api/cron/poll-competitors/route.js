@@ -13,25 +13,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { verifyCronAuth } from '@/lib/cron-auth';
+import { twitterApiIoRequest } from '@/lib/twitter-api';
+import { API_COSTS } from '@/lib/api-costs';
 
 export const dynamic = 'force-dynamic';
-
-// ── TwitterAPI.io helper ──────────────────────────────────────
-
-async function twitterApiIoRequest(apiKey, endpoint, params = {}) {
-  const url = new URL(`https://api.twitterapi.io${endpoint}`);
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-
-  const res = await fetch(url.toString(), {
-    headers: { 'X-API-Key': apiKey },
-  });
-
-  if (!res.ok) {
-    throw new Error(`TwitterAPI.io ${endpoint} returned ${res.status}`);
-  }
-
-  return res.json();
-}
 
 export async function GET(request) {
   if (!verifyCronAuth(request)) {
@@ -169,7 +154,7 @@ export async function GET(request) {
             method: 'GET',
             statusCode: 200,
             responseTime: 0,
-            estimatedCost: comp.accounts.length * 0.0003,
+            estimatedCost: comp.accounts.length * API_COSTS.TWITTERAPI_IO * 2,
           },
         });
 
