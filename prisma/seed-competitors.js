@@ -7,10 +7,10 @@
  * Competitors themselves are upserted (not deleted).
  *
  * Sources researched Mar 2026:
- *   Securitize — BUIDL, ACRED, DS Protocol, DS Token
- *   Ondo Finance — OUSG, USDY, ONDO, Ondo Global Markets, SWEEP
+ *   Securitize — BUIDL, ACRED, DS Protocol, DS Token, Securitize Markets/Capital
+ *   Ondo Finance — OUSG, USDY, ONDO, Ondo Global Markets, SWEEP, Flux Finance
  *   Centrifuge — CFG, Tinlake, Centrifuge Prime, JTRSY, SPXA
- *   Superstate — USTB, USCC, Opening Bell
+ *   Superstate — USTB, USCC, Opening Bell, Robert Leshner
  *   Tokeny — T-REX, ERC-3643
  *   Goldfinch — GFI, Goldfinch Prime
  *   Tradable — tradable.xyz, @tradable_xyz (NOT @tradable)
@@ -36,7 +36,6 @@ const competitors = [
       'Securitize', 'BUIDL', 'ACRED', 'DS Protocol', 'DS Token',
       'Securitize Markets', 'Securitize Capital',
     ],
-    // Dedicated X queries — multiple focused queries beat one giant one
     xQueries: [
       {
         queryString: '("Securitize" OR from:Securitize) -giveaway -airdrop -scam min_faves:2 lang:en',
@@ -44,9 +43,24 @@ const competitors = [
         rationale: 'Core brand mentions and own-account posts. min_faves:2 filters bot noise.',
       },
       {
-        queryString: '("BUIDL" OR "ACRED") ("tokenized" OR "BlackRock" OR "Securitize" OR "RWA") -giveaway min_faves:2 lang:en',
+        queryString: 'from:Securitize lang:en',
+        negativeKeywords: [],
+        rationale: 'All official @Securitize posts — no engagement gate to catch every announcement.',
+      },
+      {
+        queryString: '("BUIDL" OR "ACRED") ("tokenized" OR "BlackRock" OR "Securitize" OR "RWA" OR "fund") -giveaway min_faves:2 lang:en',
         negativeKeywords: ['giveaway', 'airdrop'],
         rationale: 'Product-specific: BlackRock BUIDL fund and ACRED token mentions in RWA context',
+      },
+      {
+        queryString: '("Securitize Markets" OR "Securitize Capital") lang:en',
+        negativeKeywords: ['giveaway', 'airdrop', 'scam'],
+        rationale: 'Subsidiary brand mentions — Securitize Markets (broker-dealer) and Securitize Capital (fund manager).',
+      },
+      {
+        queryString: '("Securitize" OR "BUIDL") ("BlackRock" OR "Hamilton Lane" OR "KKR" OR "Ares" OR "Apollo") min_faves:2 lang:en',
+        negativeKeywords: ['giveaway', 'airdrop'],
+        rationale: 'Partnership mentions — major institutional partners using Securitize infrastructure.',
       },
       {
         queryString: '("DS Protocol" OR "DS Token") ("Securitize" OR "tokenized" OR "security token") min_faves:2 lang:en',
@@ -56,8 +70,22 @@ const competitors = [
     ],
     redditQueries: [
       {
-        queryString: '"Securitize" OR "BUIDL" OR "ACRED"',
+        queryString: '"Securitize" OR "Securitize Markets" OR "Securitize Capital"',
+        negativeKeywords: ['giveaway', 'airdrop', 'scam', 'fake'],
+        subreddits: ['SecurityToken', 'defi', 'cryptocurrency', 'ethfinance', 'CryptoMarkets', 'RWA', 'investing', 'wallstreetbets'],
+        rationale: 'Core brand and subsidiary mentions. Negative keywords filter crypto spam.',
+      },
+      {
+        queryString: '"BUIDL" AND ("BlackRock" OR "Securitize" OR "tokenized" OR "RWA" OR "fund")',
+        negativeKeywords: ['giveaway', 'airdrop'],
         subreddits: ['SecurityToken', 'defi', 'cryptocurrency', 'ethfinance', 'CryptoMarkets', 'RWA'],
+        rationale: 'Product-specific: BlackRock BUIDL fund. "BUIDL" qualified with finance context to avoid dev slang.',
+      },
+      {
+        queryString: '"ACRED" OR "DS Protocol" OR "DS Token"',
+        negativeKeywords: ['giveaway', 'airdrop'],
+        subreddits: ['SecurityToken', 'defi', 'cryptocurrency', 'ethfinance', 'RWA'],
+        rationale: 'ACRED yield token and DS Protocol infrastructure. Unambiguous terms.',
       },
     ],
   },
@@ -66,7 +94,7 @@ const competitors = [
     accounts: [{ platform: 'X', username: 'OndoFinance' }],
     keywords: [
       'Ondo Finance', 'ONDO', 'OUSG', 'USDY',
-      'Ondo Global Markets', 'OGM', 'SWEEP',
+      'Ondo Global Markets', 'OGM', 'SWEEP', 'Flux Finance', 'fOUSG',
     ],
     xQueries: [
       {
@@ -75,20 +103,60 @@ const competitors = [
         rationale: 'Core brand mentions. min_faves:2 filters bot noise.',
       },
       {
-        queryString: '($ONDO OR "OUSG" OR "USDY") ("tokenized" OR "treasury" OR "yield" OR "RWA" OR "Ondo") -giveaway -airdrop min_faves:2 lang:en',
-        negativeKeywords: ['giveaway', 'airdrop', 'scam'],
-        rationale: 'Token and product mentions — OUSG (treasuries), USDY (yield token), $ONDO governance',
+        queryString: 'from:OndoFinance lang:en',
+        negativeKeywords: [],
+        rationale: 'All official @OndoFinance posts — catch every announcement without engagement gate.',
       },
       {
-        queryString: '("Ondo Global Markets" OR "OGM" OR "SWEEP") ("tokenized" OR "stocks" OR "ETF" OR "fund") min_faves:2 lang:en',
+        queryString: '("OUSG" OR "USDY") ("tokenized" OR "treasury" OR "yield" OR "RWA" OR "Ondo" OR "stablecoin") -giveaway -airdrop min_faves:2 lang:en',
+        negativeKeywords: ['giveaway', 'airdrop', 'scam'],
+        rationale: 'Product mentions — OUSG (treasuries), USDY (yield token). Qualified to avoid noise.',
+      },
+      {
+        queryString: '$ONDO ("tokenized" OR "treasury" OR "yield" OR "RWA" OR "Ondo" OR "DeFi" OR "governance") -giveaway -airdrop min_faves:3 lang:en',
+        negativeKeywords: ['giveaway', 'airdrop', 'scam'],
+        rationale: '$ONDO ticker — higher min_faves:3 gate to filter price bot noise. Qualified with context.',
+      },
+      {
+        queryString: '("Ondo Global Markets" OR "OGM" OR "SWEEP") ("tokenized" OR "stocks" OR "ETF" OR "fund" OR "equities") min_faves:2 lang:en',
         negativeKeywords: [],
         rationale: 'New products: Global Markets (tokenized equities) and SWEEP fund',
+      },
+      {
+        queryString: '("Flux Finance" OR "fOUSG") ("Ondo" OR "lending" OR "DeFi" OR "yield" OR "borrow") lang:en',
+        negativeKeywords: [],
+        rationale: 'Flux Finance lending protocol (Ondo subsidiary) and fOUSG wrapped token.',
+      },
+      {
+        queryString: '("Ondo" OR "OUSG" OR "USDY") ("Solana" OR "Arbitrum" OR "Mantle" OR "Aptos" OR "multichain" OR "cross-chain") min_faves:2 lang:en',
+        negativeKeywords: ['giveaway', 'airdrop'],
+        rationale: 'Chain expansion tracking — Ondo deploying across multiple L1/L2s.',
       },
     ],
     redditQueries: [
       {
-        queryString: '"Ondo Finance" OR "OUSG" OR "USDY" OR "$ONDO"',
+        queryString: '"Ondo Finance" OR "OndoFinance"',
+        negativeKeywords: ['giveaway', 'airdrop', 'scam'],
         subreddits: ['defi', 'cryptocurrency', 'ethfinance', 'SecurityToken', 'CryptoMarkets', 'RWA'],
+        rationale: 'Core brand mentions.',
+      },
+      {
+        queryString: '"OUSG" OR "USDY" OR "$ONDO"',
+        negativeKeywords: ['giveaway', 'airdrop', 'scam'],
+        subreddits: ['defi', 'cryptocurrency', 'ethfinance', 'CryptoMarkets', 'RWA'],
+        rationale: 'Product tokens. All unique to Ondo — no disambiguation needed.',
+      },
+      {
+        queryString: '"Ondo" AND ("Solana" OR "Arbitrum" OR "Mantle" OR "Aptos")',
+        negativeKeywords: ['giveaway', 'airdrop'],
+        subreddits: ['defi', 'solana', 'Arbitrum', 'cryptocurrency'],
+        rationale: 'Chain expansion tracking — Ondo deploying across multiple L1/L2s.',
+      },
+      {
+        queryString: '"Flux Finance" OR "fOUSG" OR "Ondo Global Markets"',
+        negativeKeywords: [],
+        subreddits: ['defi', 'cryptocurrency', 'ethfinance'],
+        rationale: 'Subsidiary products. Unambiguous terms.',
       },
     ],
   },
@@ -113,8 +181,16 @@ const competitors = [
     ],
     redditQueries: [
       {
-        queryString: '"Centrifuge" AND ("RWA" OR "tokenized" OR "DeFi")',
+        queryString: '"Centrifuge" AND ("RWA" OR "tokenized" OR "DeFi" OR "lending" OR "protocol")',
+        negativeKeywords: ['centrifuge machine', 'centrifuge pump', 'laboratory', 'blood'],
         subreddits: ['defi', 'cryptocurrency', 'ethfinance', 'Polkadot', 'CryptoMarkets', 'RWA'],
+        rationale: 'Brand mentions qualified with finance context. "Centrifuge" is highly ambiguous on Reddit (science/lab equipment).',
+      },
+      {
+        queryString: '"Tinlake" OR "Centrifuge Prime" OR "$CFG" OR "JTRSY" OR "SPXA"',
+        negativeKeywords: ['giveaway', 'airdrop'],
+        subreddits: ['defi', 'cryptocurrency', 'ethfinance', 'Polkadot', 'RWA'],
+        rationale: 'Product and token mentions. All are unique enough to not need disambiguation.',
       },
     ],
   },
@@ -123,7 +199,7 @@ const competitors = [
     accounts: [{ platform: 'X', username: 'SuperstateInc' }],
     keywords: [
       'Superstate', 'USTB', 'USCC', 'Opening Bell',
-      'Superstate Fund',
+      'Superstate Fund', 'Superstate Crypto',
     ],
     xQueries: [
       {
@@ -132,20 +208,54 @@ const competitors = [
         rationale: 'Brand mentions — qualified with finance terms to avoid "super state" false positives',
       },
       {
-        queryString: '("USTB" OR "USCC") ("Superstate" OR "tokenized" OR "treasury" OR "crypto basis") min_faves:2 lang:en',
+        queryString: 'from:SuperstateInc lang:en',
         negativeKeywords: [],
-        rationale: 'Product-specific: USTB (tokenized treasuries) and USCC (crypto basis fund)',
+        rationale: 'All official @SuperstateInc posts — catch every announcement.',
       },
       {
-        queryString: '("Opening Bell" OR "Superstate") ("onchain equities" OR "tokenized shares" OR "tokenized equity" OR "tokenized stock") min_faves:2 lang:en',
+        queryString: '("USTB") ("tokenized" OR "treasury" OR "Superstate" OR "fund" OR "yield" OR "onchain") min_faves:2 lang:en',
+        negativeKeywords: [],
+        rationale: 'USTB token — qualified to avoid USB typo noise. Requires treasury/fund context.',
+      },
+      {
+        queryString: '("USCC") ("Superstate" OR "crypto basis" OR "crypto carry" OR "fund" OR "tokenized") min_faves:2 lang:en',
+        negativeKeywords: [],
+        rationale: 'USCC crypto basis fund — qualified with product context.',
+      },
+      {
+        queryString: '("Opening Bell" OR "Superstate") ("onchain equities" OR "tokenized shares" OR "tokenized equity" OR "tokenized stock" OR "regulated equities") min_faves:2 lang:en',
         negativeKeywords: [],
         rationale: 'Opening Bell platform — regulated onchain equities',
+      },
+      {
+        queryString: 'from:rleshner ("Superstate" OR "USTB" OR "USCC" OR "tokenized" OR "treasury" OR "Opening Bell" OR "onchain") lang:en',
+        negativeKeywords: [],
+        rationale: 'Robert Leshner (Superstate founder, ex-Compound) posts about Superstate and RWA.',
+      },
+      {
+        queryString: '("Superstate Fund" OR "Superstate Crypto") lang:en',
+        negativeKeywords: ['super state', 'superstate of matter'],
+        rationale: 'Explicit product name mentions — Superstate Fund and Superstate Crypto.',
       },
     ],
     redditQueries: [
       {
-        queryString: '"Superstate" OR "USTB" OR "USCC"',
-        subreddits: ['defi', 'cryptocurrency', 'ethfinance', 'SecurityToken', 'CryptoMarkets', 'RWA'],
+        queryString: '"Superstate" AND ("tokenized" OR "treasury" OR "fund" OR "crypto" OR "onchain" OR "RWA")',
+        negativeKeywords: ['super state', 'superstate of matter', 'quantum superstate'],
+        subreddits: ['defi', 'cryptocurrency', 'ethfinance', 'SecurityToken', 'CryptoMarkets', 'RWA', 'investing'],
+        rationale: 'Brand mentions qualified with finance context. "Superstate" is ambiguous (physics, political theory).',
+      },
+      {
+        queryString: '"USTB" AND ("Superstate" OR "tokenized" OR "treasury" OR "fund")',
+        negativeKeywords: [],
+        subreddits: ['defi', 'cryptocurrency', 'ethfinance', 'investing'],
+        rationale: 'USTB token. Qualified to avoid USB typo noise.',
+      },
+      {
+        queryString: '"USCC" OR ("Opening Bell" AND ("Superstate" OR "tokenized" OR "equities"))',
+        negativeKeywords: [],
+        subreddits: ['defi', 'cryptocurrency', 'ethfinance', 'investing'],
+        rationale: 'USCC crypto carry fund and Opening Bell equities platform.',
       },
     ],
   },
@@ -170,8 +280,10 @@ const competitors = [
     ],
     redditQueries: [
       {
-        queryString: '"Tokeny" OR ("T-REX" AND "token") OR "ERC-3643"',
+        queryString: '"Tokeny" OR "ERC-3643" OR "ERC3643" OR ("T-REX" AND ("token" OR "compliance" OR "security token"))',
+        negativeKeywords: ['dinosaur', 'jurassic', 'giveaway'],
         subreddits: ['SecurityToken', 'defi', 'ethereum', 'cryptocurrency', 'RWA'],
+        rationale: 'Brand and protocol mentions. T-REX qualified to avoid dinosaur content.',
       },
     ],
   },
@@ -196,8 +308,10 @@ const competitors = [
     ],
     redditQueries: [
       {
-        queryString: '"Goldfinch" AND ("DeFi" OR "crypto" OR "RWA" OR "lending")',
+        queryString: '"Goldfinch" AND ("DeFi" OR "crypto" OR "RWA" OR "lending" OR "credit" OR "protocol")',
+        negativeKeywords: ['bird', 'birding', 'ornithology', 'backyard', 'feeder'],
         subreddits: ['defi', 'cryptocurrency', 'ethfinance', 'CryptoMarkets', 'RWA'],
+        rationale: 'Brand mentions qualified with finance context. "Goldfinch" is a common bird — Reddit has large birding communities.',
       },
     ],
   },
@@ -221,8 +335,10 @@ const competitors = [
     ],
     redditQueries: [
       {
-        queryString: '"tradable.xyz" OR ("Tradable" AND "tokenized" AND "ZKsync")',
+        queryString: '"tradable.xyz" OR ("Tradable" AND ("ZKsync" OR "tokenized" OR "RWA" OR "ParaFi"))',
+        negativeKeywords: ['forex', 'CFD', 'broker', 'metatrader'],
         subreddits: ['defi', 'cryptocurrency', 'zksync', 'RWA'],
+        rationale: 'Brand mentions. "Tradable" is generic English — must qualify with product context. Excludes forex/CFD trading platform noise.',
       },
     ],
   },
@@ -244,7 +360,7 @@ const competitors = [
 //
 // LENDING & MARKETPLACE:
 //   Figure HELOC ($FIGR_HELOC), Figure Lending, Figure Connect (marketplace),
-//   DSCR loans, crypto-backed loans, cash-out refinance
+//   Figure Pay, DSCR loans, crypto-backed loans, cash-out refinance
 //
 // CAPITAL MARKETS:
 //   Figure ATS (Alternative Trading System), Figure Securities,
@@ -269,7 +385,7 @@ const figureTopics = [
   {
     name: 'Figure Brand & Products',
     description:
-      'Track all mentions of the Figure ecosystem: Figure Technology Solutions (FIGR), Figure Markets, Figure Lending/HELOC, Provenance Blockchain, $YLDS, Hastra/PRIME, OPEN, and Democratized Prime. Research-backed queries with zero common-word noise.',
+      'Track all mentions of the Figure ecosystem: Figure Technology Solutions (FIGR), Figure Markets, Figure Lending/HELOC, Figure Pay, Provenance Blockchain, $YLDS, Hastra/PRIME, OPEN, and Democratized Prime. Research-backed queries with zero common-word noise.',
     pollingTier: 'HOT',
     queries: [
       // ═══ X QUERIES — every term is unambiguous or context-qualified ═══
@@ -285,9 +401,9 @@ const figureTopics = [
       // Q2: Official accounts — all posts from Figure ecosystem accounts
       {
         platform: 'X',
-        queryString: '(from:Figure OR from:FigureMarkets OR from:HastraFi) lang:en',
+        queryString: '(from:Figure OR from:FigureMarkets OR from:HastraFi OR from:provenancefdn) lang:en',
         negativeKeywords: [],
-        rationale: 'All posts from official @Figure, @FigureMarkets, and @HastraFi accounts. Pure signal.',
+        rationale: 'All posts from official @Figure, @FigureMarkets, @HastraFi, and @provenancefdn accounts. Pure signal.',
       },
 
       // Q3: Figure Markets + $YLDS + Figure ATS
@@ -298,28 +414,28 @@ const figureTopics = [
         rationale: 'Figure Markets ATS, $YLDS stablecoin, Figure Securities subsidiary, and FGRD blockchain stock ticker. All unique.',
       },
 
-      // Q4: Figure HELOC + Figure Lending (largest revenue product)
+      // Q4: Figure HELOC + Figure Lending (largest revenue product) — expanded consumer terms
       {
         platform: 'X',
-        queryString: '("Figure HELOC" OR "Figure home equity" OR "Figure Lending") lang:en',
+        queryString: '("Figure HELOC" OR "Figure home equity" OR "Figure Lending" OR "Figure loan" OR "Figure refinance" OR "Figure rate") lang:en',
         negativeKeywords: ['figure out', 'figure skating', 'action figure'],
-        rationale: 'HELOC product ($2.7B quarterly volume). "Figure HELOC" and "Figure Lending" are unambiguous.',
+        rationale: 'HELOC product + consumer search terms. Consumers search "Figure rate", "Figure loan", "Figure refinance".',
       },
 
-      // Q5: Figure Connect marketplace — needs qualifier
+      // Q5: Figure Connect marketplace — broadened qualifiers
       {
         platform: 'X',
-        queryString: '("Figure Connect") ("loan" OR "marketplace" OR "HELOC" OR "lending" OR "origination" OR "blockchain" OR "RWA" OR "auto" OR "DSCR") lang:en',
+        queryString: '("Figure Connect") ("loan" OR "marketplace" OR "HELOC" OR "lending" OR "origination" OR "blockchain" OR "RWA" OR "auto" OR "DSCR" OR "secondary" OR "trading" OR "whole loan") lang:en',
         negativeKeywords: ['figure out', 'figure skating', 'action figure', 'figurine'],
-        rationale: 'Figure Connect marketplace. Requires lending/RWA qualifier to avoid "figure" + "connect" noise.',
+        rationale: 'Figure Connect marketplace. Broadened qualifiers: secondary trading, whole loan marketplace.',
       },
 
-      // Q6: OPEN (On-chain Public Equity Network) + Blockchain Stock
+      // Q6: OPEN (On-chain Public Equity Network) + Blockchain Stock — broadened qualifiers
       {
         platform: 'X',
-        queryString: '("OPEN" OR "On-chain Public Equity" OR "Blockchain Stock") ("Figure" OR "FIGR" OR "Provenance" OR "blockchain-native equity" OR "tokenized equity") lang:en',
+        queryString: '("OPEN" OR "On-chain Public Equity" OR "Blockchain Stock") ("Figure" OR "FIGR" OR "Provenance" OR "blockchain-native equity" OR "tokenized equity" OR "onchain equity" OR "equity token" OR "blockchain IPO") lang:en',
         negativeKeywords: [],
-        rationale: 'OPEN network for blockchain-native equities. "OPEN" alone is too generic, so requires Figure/Provenance context.',
+        rationale: 'OPEN network for blockchain-native equities. Broadened with "onchain equity", "equity token", "blockchain IPO".',
       },
 
       // Q7: Provenance Blockchain — full brand name + official account only
@@ -338,28 +454,28 @@ const figureTopics = [
         rationale: '$HASH token qualified with Provenance/Figure context. Without qualifier, $HASH matches computing/crypto-mining chatter.',
       },
 
-      // Q9: Hastra + PRIME token (Solana DeFi layer)
+      // Q9: Hastra + PRIME token (Solana DeFi layer) — broadened qualifiers
       {
         platform: 'X',
-        queryString: '("HastraFi" OR "Hastra" OR "$PRIME") ("Figure" OR "Provenance" OR "Democratized Prime" OR "Solana" OR "RWA" OR "Kamino" OR "Chainlink") lang:en',
+        queryString: '("HastraFi" OR "Hastra" OR "$PRIME") ("Figure" OR "Provenance" OR "Democratized Prime" OR "Solana" OR "RWA" OR "Kamino" OR "Chainlink" OR "liquidity protocol" OR "Solana RWA") lang:en',
         negativeKeywords: ['amazon prime', 'prime video', 'prime minister', 'optimus prime'],
-        rationale: 'Hastra liquidity protocol and PRIME token on Solana. Qualified to avoid Amazon Prime and other noise.',
+        rationale: 'Hastra liquidity protocol and PRIME token on Solana. Added "liquidity protocol" and "Solana RWA" qualifiers.',
       },
 
-      // Q10: Democratized Prime + Intellidebt — unique product names
+      // Q10: Democratized Prime + Intellidebt + DART — fixed syntax
       {
         platform: 'X',
-        queryString: '("Democratized Prime" OR "Intellidebt" OR "DART" "Digital Asset Registry") lang:en',
+        queryString: '("Democratized Prime" OR "Intellidebt" OR "DART Digital Asset Registry" OR ("DART" ("Figure" OR "Provenance" OR "registry"))) lang:en',
         negativeKeywords: [],
-        rationale: 'Unique product names: Democratized Prime (RWA pool), Intellidebt (debt consolidation), DART (registry tech).',
+        rationale: 'Unique product names. Fixed DART syntax — now matches full phrase or DART with Figure/Provenance context.',
       },
 
-      // Q11: Mike Cagney — CEO posts about Figure ecosystem
+      // Q11: Mike Cagney — CEO posts + @mentions + name mentions
       {
         platform: 'X',
-        queryString: 'from:mcagney ("Figure" OR "FIGR" OR "Provenance" OR "HELOC" OR "YLDS" OR "Hastra" OR "PRIME" OR "OPEN" OR "blockchain") lang:en',
+        queryString: '(from:mcagney OR @mcagney OR "Mike Cagney") ("Figure" OR "FIGR" OR "Provenance" OR "HELOC" OR "YLDS" OR "Hastra" OR "PRIME" OR "OPEN" OR "blockchain" OR "RWA" OR "tokenized") lang:en',
         negativeKeywords: [],
-        rationale: 'CEO Mike Cagney posts frequently about Figure. Qualified with ecosystem terms.',
+        rationale: 'CEO Mike Cagney — expanded to catch @mentions and name references, not just his own posts.',
       },
 
       // Q12: Partnership mentions — Agora Data, Ondo x Figure
@@ -370,40 +486,154 @@ const figureTopics = [
         rationale: 'Agora Data partnership (auto loan tokenization on Provenance). Qualified to ensure Figure context.',
       },
 
+      // Q13: Figure Pay — NEW (missing entirely in v1)
+      {
+        platform: 'X',
+        queryString: '("Figure Pay") lang:en',
+        negativeKeywords: ['figure out', 'figure skating'],
+        rationale: 'Figure Pay product — crypto-backed payments. Unambiguous product name.',
+      },
+
+      // Q14: $FIGR investor sentiment — NEW
+      {
+        platform: 'X',
+        queryString: '$FIGR ("buy" OR "sell" OR "hold" OR "earnings" OR "IPO" OR "valuation" OR "revenue" OR "bullish" OR "bearish" OR "analyst" OR "target price" OR "PT" OR "undervalued" OR "overvalued") lang:en',
+        negativeKeywords: [],
+        rationale: 'Retail investor sentiment around $FIGR — catches investment discussion, analyst commentary, price targets.',
+      },
+
+      // Q15: Regulatory/compliance mentions — NEW
+      {
+        platform: 'X',
+        queryString: '("Figure" OR "FIGR" OR "Provenance") ("SEC" OR "regulation" OR "compliance" OR "license" OR "approved" OR "enforcement" OR "FINRA" OR "registered") min_faves:2 lang:en',
+        negativeKeywords: ['figure out', 'figure skating'],
+        rationale: 'Regulatory news — RWA is heavily regulated. Catches SEC filings, FINRA updates, compliance discussion.',
+      },
+
+      // Q16: RWA industry context mentioning Figure — NEW
+      {
+        platform: 'X',
+        queryString: '("RWA" OR "real world assets" OR "tokenized assets") ("Figure" OR "FIGR" OR "Provenance" OR "YLDS") min_faves:2 lang:en',
+        negativeKeywords: [],
+        rationale: 'Industry roundup posts that mention Figure in broader RWA narratives.',
+      },
+
+      // Q17: Community engagement directed at Figure — NEW
+      {
+        platform: 'X',
+        queryString: '(to:Figure OR to:FigureMarkets OR @FigureMarkets) -from:Figure -from:FigureMarkets lang:en',
+        negativeKeywords: [],
+        rationale: 'Inbound replies/mentions TO official accounts — catches community engagement, questions, feedback.',
+      },
+
+      // Q18: Figure review/experience — NEW (consumer voice)
+      {
+        platform: 'X',
+        queryString: '("Figure" OR "Figure HELOC") ("review" OR "experience" OR "recommend" OR "customer service" OR "applied" OR "approved" OR "denied") lang:en',
+        negativeKeywords: ['figure out', 'figure skating', 'action figure', 'figurine'],
+        rationale: 'Consumer experience posts — people sharing their HELOC/lending experience with Figure.',
+      },
+
       // ═══ REDDIT QUERIES — via SociaVault ═══
 
-      // R1: Core brand + ticker
+      // R1: Core brand + ticker — expanded subreddits
       {
         platform: 'REDDIT',
         queryString: '"Figure Technology" OR "Figure Markets" OR "$FIGR" OR "FIGR stock"',
-        subreddits: ['FigureTech', 'FigureMarkets', 'FIGR', 'defi', 'cryptocurrency', 'SecurityToken', 'ethfinance', 'wallstreetbets', 'stocks', 'investing'],
-        rationale: 'Core brand on Reddit. Includes Figure-owned subreddits + major finance/crypto subs.',
+        negativeKeywords: ['figure out', 'figure skating', 'action figure', 'figurine'],
+        subreddits: ['FigureTech', 'FigureMarkets', 'FIGR', 'defi', 'cryptocurrency', 'SecurityToken', 'ethfinance', 'wallstreetbets', 'stocks', 'investing', 'fintech', 'CryptoMarkets'],
+        rationale: 'Core brand on Reddit. Expanded to r/fintech and r/CryptoMarkets.',
       },
 
-      // R2: HELOC + lending products
+      // R2: HELOC + lending products — expanded consumer terms
       {
         platform: 'REDDIT',
-        queryString: '"Figure HELOC" OR "Figure Lending" OR "Figure home equity"',
-        subreddits: ['RealEstate', 'personalfinance', 'HomeOwners', 'FirstTimeHomeBuyer', 'loanoriginators'],
-        rationale: 'Lending products on consumer finance subreddits.',
+        queryString: '"Figure HELOC" OR "Figure Lending" OR "Figure home equity" OR "Figure rate" OR "Figure review" OR "Figure loan"',
+        negativeKeywords: ['figure out', 'figure skating', 'action figure'],
+        subreddits: ['RealEstate', 'personalfinance', 'HomeOwners', 'FirstTimeHomeBuyer', 'loanoriginators', 'fintech', 'HELOC'],
+        rationale: 'Lending products + consumer search terms on finance subreddits.',
       },
 
-      // R3: Provenance + HASH + DeFi products
+      // R3: Provenance + HASH + DeFi products — expanded subreddits
       {
         platform: 'REDDIT',
         queryString: '"Provenance Blockchain" OR "$YLDS" OR "Democratized Prime" OR "HastraFi" OR "$HASH Provenance"',
-        subreddits: ['defi', 'cryptocurrency', 'cosmosnetwork', 'solana', 'ethfinance'],
-        rationale: 'Blockchain infrastructure + DeFi products across crypto subreddits.',
+        negativeKeywords: ['giveaway', 'airdrop', 'hash rate', 'hash function', 'hashtag'],
+        subreddits: ['defi', 'cryptocurrency', 'cosmosnetwork', 'solana', 'ethfinance', 'CryptoMarkets'],
+        rationale: 'Blockchain infrastructure + DeFi products. Added r/CryptoMarkets.',
       },
 
       // R4: Figure-owned subreddits — monitor ALL posts (no keyword filter)
-      // These are Figure's own community subreddits; we want every post tracked over time.
       {
         platform: 'REDDIT',
         queryString: '',
+        negativeKeywords: [],
         subreddits: ['FigureTech', 'FigureMarkets', 'FIGR'],
         monitorAll: true,
         rationale: 'Figure-owned subreddits. Full monitoring — every post is relevant by definition.',
+      },
+
+      // R5: RWA industry discussion mentioning Figure
+      {
+        platform: 'REDDIT',
+        queryString: '"RWA" AND ("Figure" OR "Provenance" OR "FIGR")',
+        negativeKeywords: ['figure out', 'figure skating'],
+        subreddits: ['defi', 'cryptocurrency', 'ethfinance', 'CryptoMarkets', 'SecurityToken', 'RWA'],
+        rationale: 'Industry discussion posts that mention Figure in RWA context.',
+      },
+
+      // R6: Figure Pay + regulatory
+      {
+        platform: 'REDDIT',
+        queryString: '"Figure Pay" OR ("Figure" AND ("SEC" OR "regulation" OR "FINRA"))',
+        negativeKeywords: ['figure out', 'figure skating'],
+        subreddits: ['defi', 'cryptocurrency', 'fintech', 'SecurityToken', 'investing'],
+        rationale: 'Figure Pay product + regulatory discussion on Reddit.',
+      },
+
+      // R7: Figure Connect marketplace
+      {
+        platform: 'REDDIT',
+        queryString: '"Figure Connect" AND ("loan" OR "marketplace" OR "HELOC" OR "lending" OR "secondary" OR "trading")',
+        negativeKeywords: ['figure out', 'figure skating', 'action figure'],
+        subreddits: ['defi', 'cryptocurrency', 'fintech', 'loanoriginators', 'SecurityToken'],
+        rationale: 'Figure Connect institutional marketplace. Qualified with product context.',
+      },
+
+      // R8: $HASH token — must qualify with Provenance/Figure context
+      {
+        platform: 'REDDIT',
+        queryString: '"$HASH" AND ("Provenance" OR "Figure" OR "validator" OR "staking")',
+        negativeKeywords: ['hash rate', 'hash function', 'hashtag', 'hash brown'],
+        subreddits: ['cryptocurrency', 'cosmosnetwork', 'defi', 'CryptoMarkets'],
+        rationale: '$HASH token. Must qualify with Provenance/Figure context — "$HASH" is extremely ambiguous on Reddit.',
+      },
+
+      // R9: CEO Mike Cagney mentions
+      {
+        platform: 'REDDIT',
+        queryString: '"Mike Cagney" OR ("mcagney" AND ("Figure" OR "Provenance" OR "blockchain"))',
+        negativeKeywords: [],
+        subreddits: ['fintech', 'cryptocurrency', 'defi', 'stocks', 'investing'],
+        rationale: 'CEO mentions on Reddit. "Mike Cagney" is unique enough; "mcagney" needs Figure context.',
+      },
+
+      // R10: $FIGR investor sentiment
+      {
+        platform: 'REDDIT',
+        queryString: '"$FIGR" AND ("buy" OR "sell" OR "hold" OR "earnings" OR "bullish" OR "bearish" OR "valuation")',
+        negativeKeywords: [],
+        subreddits: ['stocks', 'investing', 'wallstreetbets', 'SecurityToken', 'fintech'],
+        rationale: 'Investor sentiment around $FIGR on Reddit finance subs.',
+      },
+
+      // R11: Consumer experience/review posts
+      {
+        platform: 'REDDIT',
+        queryString: '"Figure HELOC" AND ("review" OR "experience" OR "recommend" OR "approved" OR "denied" OR "rate")',
+        negativeKeywords: ['figure out', 'figure skating'],
+        subreddits: ['personalfinance', 'RealEstate', 'HomeOwners', 'FirstTimeHomeBuyer', 'HELOC'],
+        rationale: 'Consumer experience/review posts. High-value signal for product feedback.',
       },
     ],
   },
@@ -420,12 +650,13 @@ const figureTopics = [
 // within X API query length limits.
 // ═══════════════════════════════════════════════════════════════
 
+// KOL ecosystem terms — trimmed to stay within 512 char query limit.
+// High-signal terms only; less common products covered by Figure Brand topic.
 const FIGURE_ECOSYSTEM_TERMS = [
   'Figure', 'FIGR', 'Provenance', 'HASH', 'YLDS', 'Hastra', 'PRIME',
   'HELOC', 'Figure Markets', 'Figure Lending', 'Figure Connect',
-  'Democratized Prime', 'Intellidebt', 'OPEN', 'FGRD', 'DART',
-  'Figure ATS', 'Figure Securities', 'mcagney', 'Agora Data',
-  'blockchain stock', 'RWA Consortium',
+  'Democratized Prime', 'Intellidebt', 'FGRD', 'DART',
+  'Figure ATS', 'mcagney', 'Agora Data', 'Figure Pay',
 ].map((t) => `"${t}"`).join(' OR ');
 
 // KOL usernames grouped into query batches (max ~12 per batch for query length)
@@ -468,7 +699,7 @@ const kolTopics = [
 
       // Validate query length (buffer below 512 limit)
       if (queryString.length > 480) {
-        console.warn(`⚠️  KOL batch "${batch.label}" query length: ${queryString.length} chars (approaches 512 limit)`);
+        console.warn(`\u26a0\ufe0f  KOL batch "${batch.label}" query length: ${queryString.length} chars (approaches 512 limit)`);
       }
 
       return {
@@ -577,7 +808,7 @@ async function main() {
       ...comp.redditQueries.map((q) => ({
         platform: 'REDDIT',
         queryString: q.queryString,
-        negativeKeywords: [],
+        negativeKeywords: q.negativeKeywords || [],
         subreddits: q.subreddits || [],
       })),
     ];

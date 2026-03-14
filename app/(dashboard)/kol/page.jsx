@@ -97,6 +97,7 @@ export default function KOLPage() {
     { staleTime: 60_000, enabled: !!selectedKOL }
   );
   const discoverQ = trpc.kol.discoverCandidates.useQuery(undefined, { staleTime: 60_000 });
+  const recentActivationsQ = trpc.kol.recentActivations.useQuery(undefined, { staleTime: 30_000 });
 
   // ── AI Scorecard ────────────────────────────────────────
   const [scorecard, setScorecard] = useState(null);
@@ -254,28 +255,36 @@ export default function KOLPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <SectionTitle>Activation Performance Over Time</SectionTitle>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={kolPerformanceData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="week" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Bar dataKey="activations" fill={COLORS.blue} radius={[4, 4, 0, 0]} name="Activations" />
-              </BarChart>
-            </ResponsiveContainer>
+            {kolPerformanceData.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-12">No weekly metrics yet. Data aggregates daily at 5 AM UTC.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={kolPerformanceData.map(d => ({ ...d, week: new Date(d.weekStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="week" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Bar dataKey="activationsCount" fill={COLORS.blue} radius={[4, 4, 0, 0]} name="Activations" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
 
           <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <SectionTitle>Impressions per Activation</SectionTitle>
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={kolPerformanceData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="week" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Line type="monotone" dataKey="impressions" stroke={COLORS.purple} strokeWidth={2} dot={false} name="Impressions" />
-              </LineChart>
-            </ResponsiveContainer>
+            <SectionTitle>Estimated Impressions Over Time</SectionTitle>
+            {kolPerformanceData.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-12">No weekly metrics yet.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={kolPerformanceData.map(d => ({ ...d, week: new Date(d.weekStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }))}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="week" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="totalImpressionsEst" stroke={COLORS.purple} strokeWidth={2} dot={false} name="Est. Impressions" />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
@@ -283,24 +292,32 @@ export default function KOLPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <SectionTitle>Activation Timeline</SectionTitle>
           <div className="space-y-3">
-            {kolActivations
-              .filter((a) => a.kol === kol.handle)
-              .map((act, i) => (
-                <div key={i} className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50">
+            {kolActivations.length === 0 && (
+              <p className="text-sm text-gray-400 text-center py-6">No activations detected yet. The cron job checks every 30 minutes.</p>
+            )}
+            {kolActivations.map((act) => {
+              const m = act.metricsAtDetection || {};
+              const engagements = (m.likes || 0) + (m.retweets || 0) + (m.replies || 0) + (m.upvotes || 0) + (m.comments || 0);
+              const impressions = m.impressions || ((m.upvotes || 0) + (m.comments || 0)) * 10;
+              const typeLabel = (act.activationType || 'MENTION').replace(/_/g, ' ');
+              return (
+                <div key={act.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50">
                   <div className="w-2 h-2 rounded-full bg-blue-400 mt-2 flex-shrink-0" />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-medium text-blue-600">{act.type}</span>
-                      <span className="text-xs text-gray-400">{act.time}</span>
+                      <span className="text-xs font-medium text-blue-600">{typeLabel}</span>
+                      <span className="text-xs text-gray-400">{act.detectedAt ? new Date(act.detectedAt).toLocaleDateString() : ''}</span>
                     </div>
                     <p className="text-sm text-gray-800">{act.content}</p>
                     <div className="flex gap-3 mt-1 text-xs text-gray-500">
-                      <span>{act.engagements} engagements</span>
-                      <span>{act.impressions} impressions</span>
+                      <span>{engagements} engagements</span>
+                      <span>{impressions} impressions</span>
+                      {act.sourceUrl && <a href={act.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">View</a>}
                     </div>
                   </div>
                 </div>
-              ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -464,26 +481,42 @@ export default function KOLPage() {
       {subTab === 'activations' && (
         <div>
           <SectionTitle subtitle="All KOL activations across platforms, most recent first">Recent Activations</SectionTitle>
-          {activationsQ.isLoading ? (
+          {recentActivationsQ.isLoading ? (
             <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}</div>
+          ) : !recentActivationsQ.data?.length ? (
+            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+              <p className="text-3xl mb-3">{'\uD83D\uDCE1'}</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">No activations yet</h3>
+              <p className="text-sm text-gray-500">The KOL activation scanner runs every 30 minutes, searching for brand mentions from tracked KOLs.</p>
+            </div>
           ) : (
             <div className="space-y-3">
-              {kolActivations.map((act, i) => (
-                <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-gray-900 text-sm">{act.kol}</span>
-                      <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">{act.type}</span>
+              {recentActivationsQ.data.map((act) => {
+                const m = act.metricsAtDetection || {};
+                const engagements = (m.likes || 0) + (m.retweets || 0) + (m.replies || 0) + (m.upvotes || 0) + (m.comments || 0);
+                const impressions = m.impressions || ((m.upvotes || 0) + (m.comments || 0)) * 10;
+                const typeLabel = (act.activationType || 'MENTION').replace(/_/g, ' ');
+                return (
+                  <div key={act.id} className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Avatar initials={act.kol?.name?.split(' ').map(w => w[0]).join('').slice(0, 2) || '?'} src={act.kol?.avatarUrl} platform={act.kol?.platform || act.platform} size="sm" />
+                        <span className="font-semibold text-gray-900 text-sm">{act.kol?.name || 'Unknown'}</span>
+                        <span className="text-xs text-gray-400">@{act.kol?.username}</span>
+                        <PlatformBadge platform={act.platform} />
+                        <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">{typeLabel}</span>
+                      </div>
+                      <span className="text-xs text-gray-400">{act.detectedAt ? new Date(act.detectedAt).toLocaleDateString() : ''}</span>
                     </div>
-                    <span className="text-xs text-gray-400">{act.time}</span>
+                    <p className="text-sm text-gray-800 leading-relaxed mb-2">{act.content}</p>
+                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <span>{engagements} engagements</span>
+                      <span>{impressions} impressions</span>
+                      {act.sourceUrl && <a href={act.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">View post</a>}
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-800 leading-relaxed mb-2">{act.content}</p>
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <span>{act.engagements} engagements</span>
-                    <span>{act.impressions} impressions</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
