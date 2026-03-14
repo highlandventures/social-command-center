@@ -458,31 +458,63 @@ export default function ReportsPage() {
             )}
           </div>
 
-          {/* Benchmark summary cards */}
+          {/* Benchmark summary cards — computed from real data */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-            {[
-              { label: 'Engagement Rate', current: '4.2%', start: '2.1%', change: '+100%', goal: '5.0%', goalPct: 84 },
-              { label: 'Followers', current: '16.4K', start: '6.2K', change: '+165%', goal: '20K', goalPct: 82 },
-              { label: 'Impressions/mo', current: '24.3K', start: '8.0K', change: '+204%', goal: '30K', goalPct: 81 },
-              { label: 'Brand Sentiment', current: '72', start: '55', change: '+31%', goal: '80', goalPct: 90 },
-              { label: 'Share of Voice', current: '34%', start: '22%', change: '+55%', goal: '40%', goalPct: 85 },
-            ].map((b, i) => (
-              <div key={i} className="bg-white rounded-xl border border-gray-200 p-4">
-                <p className="text-xs text-gray-500 mb-1">{b.label}</p>
-                <div className="flex items-end gap-2 mb-2">
-                  <span className="text-2xl font-bold text-gray-900">{b.current}</span>
-                  <span className="text-xs text-green-600 font-medium mb-1">{b.change} YoY</span>
+            {(() => {
+              const bd = benchmarkData;
+              const latest = bd[bd.length - 1] || {};
+              const earliest = bd[0] || {};
+              const fmt = (v, suffix = '') => v != null ? (v >= 1000 ? `${(v / 1000).toFixed(1)}K` : `${v}`) + suffix : '—';
+              const pctChange = (cur, start) => cur != null && start != null && start > 0
+                ? `${((cur - start) / start * 100) >= 0 ? '+' : ''}${Math.round((cur - start) / start * 100)}%`
+                : '—';
+              return [
+                {
+                  label: 'Engagement Rate',
+                  current: latest.engRate != null ? `${latest.engRate.toFixed(1)}%` : '—',
+                  start: earliest.engRate != null ? `${earliest.engRate.toFixed(1)}%` : '—',
+                  change: pctChange(latest.engRate, earliest.engRate),
+                },
+                {
+                  label: 'Followers',
+                  current: fmt(latest.followers),
+                  start: fmt(earliest.followers),
+                  change: pctChange(latest.followers, earliest.followers),
+                },
+                {
+                  label: 'Impressions/mo',
+                  current: fmt(latest.impressions),
+                  start: fmt(earliest.impressions),
+                  change: pctChange(latest.impressions, earliest.impressions),
+                },
+                {
+                  label: 'Brand Sentiment',
+                  current: latest.sentiment != null ? `${latest.sentiment}` : '—',
+                  start: earliest.sentiment != null ? `${earliest.sentiment}` : '—',
+                  change: pctChange(latest.sentiment, earliest.sentiment),
+                },
+                {
+                  label: 'Posts Published',
+                  current: `${latest.postCount ?? 0}`,
+                  start: `${earliest.postCount ?? 0}`,
+                  change: pctChange(latest.postCount, earliest.postCount),
+                },
+              ].map((b, i) => (
+                <div key={i} className="bg-white rounded-xl border border-gray-200 p-4">
+                  <p className="text-xs text-gray-500 mb-1">{b.label}</p>
+                  <div className="flex items-end gap-2 mb-2">
+                    <span className="text-2xl font-bold text-gray-900">{b.current}</span>
+                    <span className={`text-xs font-medium mb-1 ${b.change.startsWith('+') ? 'text-green-600' : b.change.startsWith('-') ? 'text-red-600' : 'text-gray-400'}`}>
+                      {b.change !== '—' ? `${b.change} period` : ''}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-gray-400">
+                    <span>Start: {b.start}</span>
+                    <span>Current: {b.current}</span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
-                  <span>Start: {b.start}</span>
-                  <span>Goal: {b.goal}</span>
-                </div>
-                <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500 rounded-full" style={{ width: `${b.goalPct}%` }} />
-                </div>
-                <p className="text-[10px] text-gray-400 mt-1">{b.goalPct}% to goal</p>
-              </div>
-            ))}
+              ));
+            })()}
           </div>
 
           {/* Period comparison */}

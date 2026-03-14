@@ -51,7 +51,7 @@ export default function DashboardPage() {
   );
 
   const sentimentQ = trpc.analytics.brandSentiment.useQuery(
-    undefined,
+    { range: dateRange },
     { staleTime: 30_000 }
   );
 

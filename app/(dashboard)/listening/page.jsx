@@ -1212,9 +1212,9 @@ export default function ListeningPage() {
                     <XAxis dataKey="week" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} />
                     <Tooltip />
-                    <Area type="monotone" dataKey="Highland" stackId="1" stroke="#3b82f6" fill="#93c5fd" />
-                    <Area type="monotone" dataKey="Competitor A" stackId="1" stroke="#ef4444" fill="#fca5a5" />
-                    <Area type="monotone" dataKey="Competitor B" stackId="1" stroke="#f59e0b" fill="#fcd34d" />
+                    {sovData.map((entry, i) => (
+                      <Area key={entry.name} type="monotone" dataKey={entry.name} stackId="1" stroke={entry.color} fill={entry.color} fillOpacity={0.3} />
+                    ))}
                     <Legend />
                   </AreaChart>
                 </ResponsiveContainer>
