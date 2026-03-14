@@ -1,12 +1,12 @@
 /**
  * Cron: Poll Subreddit Metrics
- * Schedule: Every 6 hours (0 */6 * * *)
+ * Schedule: Daily at 4 AM UTC (0 4 * * *)
  *
  * Fetches subscriber counts, post volume, and engagement stats for
  * all active MonitoredSubreddit records via SociaVault.
  * Stores daily snapshots in SubredditMetrics for trending over time.
  *
- * COST: 1 SociaVault credit per subreddit per poll.
+ * COST: 1 SociaVault credit per subreddit per run (3 credits/day for Figure subs).
  */
 
 import { NextResponse } from 'next/server';

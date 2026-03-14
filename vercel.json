@@ -8,6 +8,6 @@
     { "path": "/api/cron/weekly-ai-insights", "schedule": "0 6 * * 1" },
     { "path": "/api/cron/kol-activations", "schedule": "*/30 * * * *" },
     { "path": "/api/cron/poll-competitors", "schedule": "0 3 * * *" },
-    { "path": "/api/cron/poll-subreddit-metrics", "schedule": "0 */6 * * *" }
+    { "path": "/api/cron/poll-subreddit-metrics", "schedule": "0 4 * * *" }
   ]
 }
