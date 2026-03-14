@@ -196,6 +196,21 @@ export async function GET(request) {
         today.setUTCHours(0, 0, 0, 0);
         const todayStr = today.toISOString().slice(0, 10);
 
+        // Get the last known follower count to carry forward for historical dates
+        // instead of writing 0 (which corrupts the follower growth chart).
+        let carryForwardFollowers = followerCount;
+        let carryForwardFollowing = followingCount;
+        if (carryForwardFollowers === 0) {
+          const lastValid = await prisma.accountMetrics.findFirst({
+            where: { accountId: account.id, followers: { gt: 0 } },
+            orderBy: { date: 'desc' },
+          });
+          if (lastValid) {
+            carryForwardFollowers = lastValid.followers;
+            carryForwardFollowing = lastValid.following ?? 0;
+          }
+        }
+
         for (const [dateStr, data] of Object.entries(datesToMetrics)) {
           const date = new Date(dateStr + 'T00:00:00.000Z');
           const isToday = dateStr === todayStr;
@@ -216,9 +231,10 @@ export async function GET(request) {
               create: {
                 accountId: account.id,
                 date,
-                // Only set followers for today; historical dates get 0 (unknown)
-                followers: isToday ? followerCount : 0,
-                following: isToday ? followingCount : 0,
+                // Carry forward the last known follower count for historical dates
+                // instead of writing 0 which creates gaps in the chart
+                followers: isToday ? followerCount : carryForwardFollowers,
+                following: isToday ? followingCount : carryForwardFollowing,
                 totalPosts: data.postCount,
               },
             });
