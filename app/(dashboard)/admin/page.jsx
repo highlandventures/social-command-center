@@ -11,7 +11,7 @@ import { trpc } from '@/lib/trpc-client';
 import { MetricCard, SectionTitle, TabButton, PlatformBadge, Skeleton } from '@/components/ui';
 
 // ── Static roadmap data (internal planning, not from API) ───
-// Last updated: Mar 9, 2026 — Sprint 3 complete, Sprint 4 in progress
+// Last updated: Mar 14, 2026 — Sprint 5 (Reddit + cost optimization)
 const roadmapItems = [
   // Phase 1: Foundation — COMPLETE
   { id: 1, phase: 'Phase 1', title: 'Project scaffolding + Prisma schema (30+ models)', status: 'deployed', deployed: 'Jan 15' },
@@ -40,14 +40,31 @@ const roadmapItems = [
   { id: 20, phase: 'Phase 3', title: 'Lib directory restructure (adapters/, etc.)', status: 'deployed', deployed: 'Mar 9' },
   { id: 21, phase: 'Phase 3', title: 'PRD v1.0 documentation', status: 'deployed', deployed: 'Mar 9' },
 
-  // Phase 4: Quality & Scale — IN PROGRESS
-  { id: 22, phase: 'Phase 4', title: 'Vitest unit tests for critical business logic', status: 'in_progress', deployed: null },
-  { id: 23, phase: 'Phase 4', title: 'Composer AI suggestions wiring (live)', status: 'in_progress', deployed: null },
-  { id: 24, phase: 'Phase 4', title: 'Encryption key startup validation', status: 'in_progress', deployed: null },
-  { id: 25, phase: 'Phase 4', title: 'Mention type classification (reply/quote/retweet)', status: 'in_progress', deployed: null },
-  { id: 26, phase: 'Phase 4', title: 'Individual auth (SSO/email login, audit trail)', status: 'not_started', deployed: null },
-  { id: 27, phase: 'Phase 4', title: 'Image/media upload in posts', status: 'not_started', deployed: null },
-  { id: 28, phase: 'Phase 4', title: 'Mobile-responsive layout', status: 'not_started', deployed: null },
+  // Phase 4: Data Quality & Accuracy — COMPLETE
+  { id: 22, phase: 'Phase 4', title: 'Sentiment drivers, SOV, benchmark remediation', status: 'deployed', deployed: 'Mar 10' },
+  { id: 23, phase: 'Phase 4', title: 'Follower snapshots — backfill zeros + gap prevention', status: 'deployed', deployed: 'Mar 11' },
+  { id: 24, phase: 'Phase 4', title: 'Fix poll-metrics to snapshot all active accounts', status: 'deployed', deployed: 'Mar 11' },
+  { id: 25, phase: 'Phase 4', title: 'KOL profile pictures + competitor quality thresholds', status: 'deployed', deployed: 'Mar 12' },
+  { id: 26, phase: 'Phase 4', title: 'Listening accuracy — AI prompt, scoring, KOL gate', status: 'deployed', deployed: 'Mar 12' },
+  { id: 27, phase: 'Phase 4', title: 'Functional account switcher dropdown + filtering', status: 'deployed', deployed: 'Mar 13' },
+  { id: 28, phase: 'Phase 4', title: 'Sentiment trend uses original post timestamps', status: 'deployed', deployed: 'Mar 13' },
+
+  // Phase 5: Reddit & Cost Optimization — IN PROGRESS
+  { id: 29, phase: 'Phase 5', title: 'SociaVault Reddit adapter + search normalization', status: 'deployed', deployed: 'Mar 13' },
+  { id: 30, phase: 'Phase 5', title: 'Figure subreddit monitoring (r/FigureTech, r/FigureMarkets, r/FIGR)', status: 'deployed', deployed: 'Mar 14' },
+  { id: 31, phase: 'Phase 5', title: 'Subreddit metrics tracking — subscribers, posts, engagement', status: 'deployed', deployed: 'Mar 14' },
+  { id: 32, phase: 'Phase 5', title: 'Reddit polling throttle (3x/day via Redis KV)', status: 'deployed', deployed: 'Mar 14' },
+  { id: 33, phase: 'Phase 5', title: 'Global Reddit search — 80% cost reduction', status: 'deployed', deployed: 'Mar 14' },
+  { id: 34, phase: 'Phase 5', title: 'Reddit Communities card on dashboard', status: 'deployed', deployed: 'Mar 14' },
+  { id: 35, phase: 'Phase 5', title: 'SociaVault cost logging in API tracker', status: 'deployed', deployed: 'Mar 14' },
+  { id: 36, phase: 'Phase 5', title: 'Infrastructure overview + updated cost tracker', status: 'deployed', deployed: 'Mar 14' },
+  { id: 37, phase: 'Phase 5', title: 'Account switcher stacking fix + dropdown z-index', status: 'deployed', deployed: 'Mar 14' },
+
+  // Phase 6: Planned — NOT STARTED
+  { id: 38, phase: 'Phase 6', title: 'Individual auth (SSO/email login, audit trail)', status: 'not_started', deployed: null },
+  { id: 39, phase: 'Phase 6', title: 'Image/media upload in posts', status: 'not_started', deployed: null },
+  { id: 40, phase: 'Phase 6', title: 'Mobile-responsive layout', status: 'not_started', deployed: null },
+  { id: 41, phase: 'Phase 6', title: 'LinkedIn integration + multi-platform publishing', status: 'not_started', deployed: null },
 ];
 
 export default function AdminPage() {
@@ -110,12 +127,14 @@ function AdminContent() {
     x_official: '#1d9bf0',
     twitterapi_io: '#6b7280',
     reddit: '#ff4500',
+    sociavault: '#ff6b35',
     claude: '#8b5cf6',
   };
   const providerLabels = {
     x_official: 'X Official API',
     twitterapi_io: 'TwitterAPI.io',
-    reddit: 'Reddit API',
+    reddit: 'Reddit (Legacy)',
+    sociavault: 'SociaVault (Reddit)',
     claude: 'Claude AI',
   };
 
@@ -416,6 +435,7 @@ function AdminContent() {
                 { name: 'Daily analytics', schedule: 'Daily at 2 AM', path: '/api/cron/daily-analytics' },
                 { name: 'AI insights', schedule: 'Weekly on Monday 6 AM', path: '/api/cron/weekly-ai-insights' },
                 { name: 'KOL activations', schedule: 'Every 30 minutes', path: '/api/cron/kol-activations' },
+                { name: 'Subreddit metrics', schedule: 'Daily at 4 AM', path: '/api/cron/poll-subreddit-metrics' },
               ].map((cron) => (
                 <div key={cron.path} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-gray-50">
                   <div>
@@ -502,7 +522,7 @@ function AdminContent() {
 
               {/* Daily trend chart */}
               {timeSeries.length > 0 && (
-                <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
                   <SectionTitle>Daily Cost Trend</SectionTitle>
                   <ResponsiveContainer width="100%" height={240}>
                     <AreaChart
@@ -536,6 +556,109 @@ function AdminContent() {
               )}
             </>
           )}
+
+          {/* ── Infrastructure Overview (always shown) ─────────── */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 mt-6">
+            <SectionTitle subtitle="Fixed and usage-based costs across all platform services">
+              Infrastructure Overview
+            </SectionTitle>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                {
+                  name: 'SociaVault',
+                  icon: '🔍',
+                  color: 'border-orange-200 bg-orange-50',
+                  plan: 'Starter — $29 / 6,000 credits',
+                  usage: '~42 credits/day (throttled 3x/day + global search)',
+                  projected: '~$6/mo (pack lasts ~5 months)',
+                  details: 'Reddit scraping: search, subreddit monitoring, metrics polling',
+                },
+                {
+                  name: 'TwitterAPI.io',
+                  icon: '🐦',
+                  color: 'border-blue-200 bg-blue-50',
+                  plan: 'Pay-as-you-go — $0.15/1K requests',
+                  usage: `${(byProvider.twitterapi_io?.callCount || 0).toLocaleString()} calls (last 30d)`,
+                  projected: `$${((byProvider.twitterapi_io?.totalCost || 0)).toFixed(2)}/mo`,
+                  details: 'Tweet fetching, user profiles, mentions, metrics',
+                },
+                {
+                  name: 'X Official API',
+                  icon: '𝕏',
+                  color: 'border-gray-200 bg-gray-50',
+                  plan: 'Basic — $100/mo (write access)',
+                  usage: `${(byProvider.x_official?.callCount || 0).toLocaleString()} calls (last 30d)`,
+                  projected: '$100/mo (fixed)',
+                  details: 'Publishing posts, threads. Reads fall back to TwitterAPI.io',
+                },
+                {
+                  name: 'Claude AI (Anthropic)',
+                  icon: '🧠',
+                  color: 'border-purple-200 bg-purple-50',
+                  plan: 'Haiku 3.5 — $0.25/MTok in, $1.25/MTok out',
+                  usage: `${(byProvider.claude?.callCount || 0).toLocaleString()} calls (last 30d)`,
+                  projected: `$${((byProvider.claude?.totalCost || 0)).toFixed(2)}/mo`,
+                  details: 'Sentiment analysis, listening scoring, KOL evaluation, reports',
+                },
+                {
+                  name: 'Vercel',
+                  icon: '▲',
+                  color: 'border-gray-200 bg-gray-50',
+                  plan: 'Pro — $20/mo',
+                  usage: 'Hosting, serverless functions, cron jobs',
+                  projected: '$20/mo (fixed)',
+                  details: 'Next.js hosting, 8 cron jobs, edge functions',
+                },
+                {
+                  name: 'Neon (PostgreSQL)',
+                  icon: '🐘',
+                  color: 'border-green-200 bg-green-50',
+                  plan: 'Free tier',
+                  usage: '30+ tables, connection pooling',
+                  projected: '$0/mo',
+                  details: 'Primary database with Prisma ORM, branching support',
+                },
+                {
+                  name: 'Upstash (Redis KV)',
+                  icon: '⚡',
+                  color: 'border-red-200 bg-red-50',
+                  plan: 'Free tier — 10K commands/day',
+                  usage: 'Rate limiting, poll throttle, cron locking',
+                  projected: '$0/mo',
+                  details: 'Reddit polling throttle (8-hr interval), cron deduplication',
+                },
+              ].map((svc) => (
+                <div key={svc.name} className={`p-4 border rounded-lg ${svc.color}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">{svc.icon}</span>
+                    <h5 className="text-sm font-semibold text-gray-900">{svc.name}</h5>
+                  </div>
+                  <p className="text-xs text-gray-600 mb-1">{svc.plan}</p>
+                  <p className="text-xs text-gray-500 mb-1">{svc.usage}</p>
+                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-200/60">
+                    <span className="text-xs text-gray-400">{svc.details}</span>
+                    <span className="text-sm font-bold text-gray-900 whitespace-nowrap ml-2">{svc.projected}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">Estimated Total Monthly Cost</span>
+                <span className="text-lg font-bold text-gray-900">
+                  ~${(
+                    126 + // X Official ($100) + Vercel ($20) + SociaVault ($6)
+                    (byProvider.twitterapi_io?.totalCost || 0) +
+                    (byProvider.claude?.totalCost || 0) +
+                    (byProvider.sociavault?.totalCost || 0)
+                  ).toFixed(0)}/mo
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Fixed: $120/mo (X Official + Vercel). Variable: TwitterAPI.io + Claude + SociaVault based on usage.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -555,7 +678,7 @@ function AdminContent() {
               label="In Progress"
               value={roadmapItems.filter((r) => r.status === 'in_progress').length}
             />
-            <MetricCard label="Current Phase" value="Phase 3" />
+            <MetricCard label="Current Phase" value="Phase 5" />
             <MetricCard label="Accounts Connected" value={accounts.length} />
           </div>
 
@@ -574,7 +697,7 @@ function AdminContent() {
             </div>
           </div>
 
-          {['Phase 1', 'Phase 2', 'Phase 3', 'Phase 4'].map((phase) => {
+          {['Phase 1', 'Phase 2', 'Phase 3', 'Phase 4', 'Phase 5', 'Phase 6'].map((phase) => {
             const items = roadmapItems.filter((r) => r.phase === phase);
             if (items.length === 0) return null;
             const deployed = items.filter((r) => r.status === 'deployed').length;
