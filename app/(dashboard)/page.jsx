@@ -12,6 +12,7 @@ import {
   MetricCard, MetricCardSkeleton, SectionTitle,
   Avatar, Sparkline, Skeleton,
 } from '@/components/ui';
+import { useSelectedAccount } from '@/lib/account-context';
 
 // ── Fallback / empty data shapes ────────────────────────────
 const EMPTY_ENGAGEMENT = [];
@@ -28,40 +29,46 @@ const EMPTY_HEATMAP = [];
 export default function DashboardPage() {
   const [dateRange, setDateRange] = useState('30d');
   const [detailAccount, setDetailAccount] = useState(null);
+  const { selectedAccount } = useSelectedAccount();
+
+  // Build query input with optional account filter
+  const queryInput = selectedAccount
+    ? { range: dateRange, accountId: selectedAccount }
+    : { range: dateRange };
 
   // ── tRPC queries ──────────────────────────────────────────
   const dashboardQ = trpc.analytics.dashboard.useQuery(
-    { range: dateRange },
+    queryInput,
     { staleTime: 30_000 }
   );
 
   const accountBreakdownQ = trpc.analytics.accountBreakdown.useQuery(
-    { range: dateRange },
+    queryInput,
     { staleTime: 30_000 }
   );
 
   const engagementTrendQ = trpc.analytics.engagementTrend.useQuery(
-    { range: dateRange },
+    queryInput,
     { staleTime: 30_000 }
   );
 
   const followerGrowthQ = trpc.analytics.followerGrowth.useQuery(
-    { range: dateRange },
+    queryInput,
     { staleTime: 30_000 }
   );
 
   const sentimentQ = trpc.analytics.brandSentiment.useQuery(
-    { range: dateRange },
+    queryInput,
     { staleTime: 30_000 }
   );
 
   const heatmapQ = trpc.analytics.heatmap.useQuery(
-    { range: dateRange },
+    queryInput,
     { staleTime: 60_000 }
   );
 
   const postPerfQ = trpc.analytics.postPerformance.useQuery(
-    { range: dateRange },
+    queryInput,
     { staleTime: 30_000 }
   );
 

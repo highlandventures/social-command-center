@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc-client';
 import { Avatar } from '@/components/ui';
+import { AccountProvider } from '@/lib/account-context';
 
 const tabs = [
   { key: "/", label: "Dashboard", icon: "\uD83D\uDCCA" },
@@ -199,7 +200,9 @@ export default function DashboardLayout({ children }) {
       </div>
 
       {/* ── Page content ── */}
-      <main className="px-6 py-6 max-w-[1400px] mx-auto">{children}</main>
+      <AccountProvider value={{ selectedAccount, setSelectedAccount }}>
+        <main className="px-6 py-6 max-w-[1400px] mx-auto">{children}</main>
+      </AccountProvider>
     </div>
   );
 }
