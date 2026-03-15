@@ -470,7 +470,7 @@ export default function ListeningPage() {
                         <span className="text-xs text-content-faint">{timeAgo(hit.time)}</span>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-800 leading-relaxed mb-2">{hit.content}</p>
+                    <p className="text-sm text-content-secondary leading-relaxed mb-2">{hit.content}</p>
                     {hit.topicName && (
                       <p className="text-[11px] text-content-faint mb-2">Topic: {hit.topicName}</p>
                     )}

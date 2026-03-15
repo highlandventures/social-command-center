@@ -39,7 +39,25 @@ export async function GET(request) {
     const today = new Date();
     today.setUTCHours(0, 0, 0, 0);
 
-    for (const sub of monitoredSubs) {
+    // Skip subreddits already updated today by the listening scanner's
+    // batch metrics pass. This avoids burning duplicate SociaVault credits.
+    const alreadyUpdated = await prisma.subredditMetrics.findMany({
+      where: { date: today },
+      select: { subredditId: true },
+    });
+    const alreadyUpdatedIds = new Set(alreadyUpdated.map((m) => m.subredditId));
+    const subsToFetch = monitoredSubs.filter((s) => !alreadyUpdatedIds.has(s.id));
+    results.skippedAlreadyUpdated = monitoredSubs.length - subsToFetch.length;
+
+    if (subsToFetch.length === 0) {
+      return NextResponse.json({
+        ok: true,
+        message: 'All subreddits already updated by listening scanner',
+        ...results,
+      });
+    }
+
+    for (const sub of subsToFetch) {
       try {
         // Fetch recent posts from subreddit (includes subreddit_subscribers on each post)
         const posts = await getSubredditPosts(sub.subredditName, {

@@ -686,9 +686,9 @@ function AdminContent() {
                   name: 'X Official API',
                   icon: '𝕏',
                   color: 'border-border bg-surface-page',
-                  plan: 'Basic — $100/mo (write access)',
+                  plan: 'Pay-as-you-go — $0.003/read, $0.01/write',
                   usage: `${(byProvider.x_official?.callCount || 0).toLocaleString()} calls (last 30d)`,
-                  projected: '$100/mo (fixed)',
+                  projected: `$${((byProvider.x_official?.totalCost || 0)).toFixed(2)}/mo`,
                   details: 'Publishing posts, threads. Reads fall back to TwitterAPI.io',
                 },
                 {
@@ -747,7 +747,8 @@ function AdminContent() {
                 <span className="text-sm font-medium text-content-secondary">Estimated Total Monthly Cost</span>
                 <span className="text-lg font-bold text-content-primary">
                   ~${(
-                    126 + // X Official ($100) + Vercel ($20) + SociaVault ($6)
+                    26 + // Vercel ($20) + SociaVault (~$6)
+                    (byProvider.x_official?.totalCost || 0) +
                     (byProvider.twitterapi_io?.totalCost || 0) +
                     (byProvider.claude?.totalCost || 0) +
                     (byProvider.sociavault?.totalCost || 0)
@@ -755,7 +756,7 @@ function AdminContent() {
                 </span>
               </div>
               <p className="text-xs text-content-faint mt-1">
-                Fixed: $120/mo (X Official + Vercel). Variable: TwitterAPI.io + Claude + SociaVault based on usage.
+                Fixed: $20/mo (Vercel). Variable: X Official + TwitterAPI.io + Claude + SociaVault based on usage.
               </p>
             </div>
           </div>

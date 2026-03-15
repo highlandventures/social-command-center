@@ -82,6 +82,8 @@ export default function CalendarPage() {
           timeRaw: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
           status: (p.status || '').toLowerCase(),
           draggable: p.status === 'SCHEDULED',
+          accountId: p.account?.id,
+          accountUsername: p.account?.username || p.account?.displayName,
         });
       }
     });
@@ -95,11 +97,39 @@ export default function CalendarPage() {
   const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   const postColors = {
-    scheduled: 'bg-blue-100 border-blue-200 text-blue-800',
-    published: 'bg-green-100 border-green-200 text-green-800',
+    scheduled: 'bg-blue-100 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200',
+    published: 'bg-green-100 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200',
     ghost: 'bg-surface-page border-dashed border-gray-300 text-content-muted',
   };
-  const platformDot = { x: 'bg-gray-800', reddit: 'bg-orange-500' };
+
+  // ── Account color map ───────────────────────────────────────
+  const ACCOUNT_COLORS = [
+    { bg: 'bg-blue-500', border: 'border-l-blue-500', dot: 'bg-blue-500', text: 'text-blue-600 dark:text-blue-400' },
+    { bg: 'bg-purple-500', border: 'border-l-purple-500', dot: 'bg-purple-500', text: 'text-purple-600 dark:text-purple-400' },
+    { bg: 'bg-cyan-500', border: 'border-l-cyan-500', dot: 'bg-cyan-500', text: 'text-cyan-600 dark:text-cyan-400' },
+    { bg: 'bg-amber-500', border: 'border-l-amber-500', dot: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400' },
+    { bg: 'bg-rose-500', border: 'border-l-rose-500', dot: 'bg-rose-500', text: 'text-rose-600 dark:text-rose-400' },
+    { bg: 'bg-indigo-500', border: 'border-l-indigo-500', dot: 'bg-indigo-500', text: 'text-indigo-600 dark:text-indigo-400' },
+    { bg: 'bg-teal-500', border: 'border-l-teal-500', dot: 'bg-teal-500', text: 'text-teal-600 dark:text-teal-400' },
+    { bg: 'bg-orange-500', border: 'border-l-orange-500', dot: 'bg-orange-500', text: 'text-orange-600 dark:text-orange-400' },
+  ];
+
+  const accountColorMap = useMemo(() => {
+    const map = {};
+    const seen = [];
+    posts.forEach((p) => {
+      const id = p.account?.id;
+      if (id && !map[id]) {
+        map[id] = {
+          ...ACCOUNT_COLORS[seen.length % ACCOUNT_COLORS.length],
+          username: p.account?.username || p.account?.displayName || '—',
+          platform: p.platform,
+        };
+        seen.push(id);
+      }
+    });
+    return map;
+  }, [posts]);
 
   // ── Drag & Drop handlers ──────────────────────────────────
   const handleDragStart = useCallback((e, post) => {
@@ -196,6 +226,17 @@ export default function CalendarPage() {
               <span className="w-2.5 h-2.5 rounded bg-surface-secondary border border-dashed border-gray-300" />
               AI Suggestion
             </span>
+            {Object.entries(accountColorMap).length > 1 && (
+              <>
+                <span className="text-content-faint">|</span>
+                {Object.entries(accountColorMap).map(([id, acct]) => (
+                  <span key={id} className="flex items-center gap-1">
+                    <span className={`w-2.5 h-2.5 rounded-sm ${acct.bg}`} />
+                    <span className={acct.text}>@{acct.username}</span>
+                  </span>
+                ))}
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -247,17 +288,18 @@ export default function CalendarPage() {
                       )}
                     </div>
                     <div className="space-y-1">
-                      {day.posts.map((post, i) => (
+                      {day.posts.map((post, i) => {
+                        const acctColor = accountColorMap[post.accountId];
+                        return (
                         <div
                           key={i}
                           draggable={post.draggable}
                           onDragStart={post.draggable ? (e) => handleDragStart(e, post) : undefined}
-                          className={`px-1.5 py-1 rounded border text-[10px] leading-tight transition-shadow ${
+                          className={`px-1.5 py-1 rounded border-l-[3px] border border-l-transparent text-[10px] leading-tight transition-shadow ${
                             postColors[post.status || post.type]
-                          } ${post.draggable ? 'cursor-grab active:cursor-grabbing hover:shadow-md hover:ring-1 hover:ring-blue-300' : 'cursor-default'}`}
+                          } ${acctColor ? acctColor.border : ''} ${post.draggable ? 'cursor-grab active:cursor-grabbing hover:shadow-md hover:ring-1 hover:ring-blue-300' : 'cursor-default'}`}
                         >
                           <div className="flex items-center gap-1">
-                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${platformDot[post.platform]}`} />
                             <span className="truncate font-medium">{post.label}</span>
                             {post.draggable && (
                               <span className="ml-auto text-[8px] opacity-40 flex-shrink-0" title="Drag to reschedule">&#x2630;</span>
@@ -265,9 +307,11 @@ export default function CalendarPage() {
                           </div>
                           <span className="text-[9px] opacity-70">
                             {post.time} &middot; {post.type === 'ghost' ? 'Suggestion' : post.type}
+                            {post.accountUsername && ` · @${post.accountUsername}`}
                           </span>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
@@ -317,20 +361,25 @@ export default function CalendarPage() {
                         {label} {isToday && '(Today)'}
                       </p>
                       <div className="space-y-2">
-                        {dayData?.posts.map((post, j) => (
+                        {dayData?.posts.map((post, j) => {
+                          const acctColor = accountColorMap[post.accountId];
+                          return (
                           <div
                             key={j}
                             draggable={post.draggable}
                             onDragStart={post.draggable ? (e) => handleDragStart(e, post) : undefined}
-                            className={`p-2 rounded-lg border ${postColors[post.status || post.type]} ${
-                              post.draggable ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : ''
-                            }`}
+                            className={`p-2 rounded-lg border border-l-[3px] border-l-transparent ${postColors[post.status || post.type]} ${
+                              acctColor ? acctColor.border : ''
+                            } ${post.draggable ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : ''}`}
                           >
                             <div className="flex items-center gap-1 mb-1">
-                              <span className={`w-2 h-2 rounded-full ${platformDot[post.platform]}`} />
+                              <span className={`w-2 h-2 rounded-full ${acctColor?.dot || 'bg-gray-400'}`} />
                               <span className="text-[10px] font-medium uppercase">
                                 {post.type === 'ghost' ? 'AI Suggestion' : post.type}
                               </span>
+                              {post.accountUsername && (
+                                <span className={`text-[10px] ${acctColor?.text || 'text-content-muted'}`}>@{post.accountUsername}</span>
+                              )}
                               {post.draggable && (
                                 <span className="ml-auto text-[9px] opacity-40">&#x2630;</span>
                               )}
@@ -338,7 +387,8 @@ export default function CalendarPage() {
                             <p className="text-xs leading-snug">{post.label}</p>
                             <p className="text-[10px] text-content-faint mt-1">{post.time}</p>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   );
@@ -367,7 +417,14 @@ export default function CalendarPage() {
                       <td className="py-3 px-3">
                         <PlatformBadge platform={p.platform} />
                       </td>
-                      <td className="py-3 px-3 text-content-secondary">{p.account}</td>
+                      <td className="py-3 px-3 text-content-secondary">
+                        <span className="flex items-center gap-1.5">
+                          {accountColorMap[p.account?.id] && (
+                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${accountColorMap[p.account.id].dot}`} />
+                          )}
+                          @{p.account?.username || '—'}
+                        </span>
+                      </td>
                       <td className="py-3 px-3">
                         <span className="text-xs font-medium text-content-secondary">
                           {p.contentType === 'THREAD' ? 'Thread' : p.contentType === 'ARTICLE' ? 'Article' : 'Post'}
@@ -392,15 +449,21 @@ export default function CalendarPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         <div className="bg-surface-card rounded-xl border border-border p-5">
           <h4 className="text-sm font-semibold text-content-primary mb-3">Upcoming (Next 7 Days)</h4>
-          {scheduledPosts.map((p) => (
+          {scheduledPosts.map((p) => {
+            const acctColor = accountColorMap[p.account?.id];
+            return (
             <div key={p.id} className="flex items-center justify-between py-2 border-b border-border-secondary last:border-0">
               <div className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${platformDot[p.platform] || 'bg-gray-400'}`} />
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${acctColor?.dot || 'bg-gray-400'}`} />
                 <span className="text-sm text-content-primary truncate max-w-xs">{p.content}</span>
+                {p.account?.username && (
+                  <span className={`text-xs flex-shrink-0 ${acctColor?.text || 'text-content-muted'}`}>@{p.account.username}</span>
+                )}
               </div>
               <span className="text-xs text-content-faint whitespace-nowrap">{p.scheduledFor ? new Date(p.scheduledFor).toLocaleString() : '—'}</span>
             </div>
-          ))}
+            );
+          })}
         </div>
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5">
           <div className="flex items-center gap-2 mb-3">
