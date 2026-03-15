@@ -408,7 +408,7 @@ Return a JSON object with keys: themes, formats, strategyCards, contentGaps.`,
         };
 
         const aiResult = await generateInsight('competitor_strategy', aiContext, {
-          model: 'claude-3-5-haiku-20241022',
+          model: 'claude-haiku-4-5-20251001',
           maxTokens: 2048,
           systemPrompt: 'You are a competitive intelligence analyst for a social media team in the RWA/tokenization space. Analyze competitor posting strategies and compare to our (Figure) performance. Always respond with valid JSON matching the requested schema.',
         });
