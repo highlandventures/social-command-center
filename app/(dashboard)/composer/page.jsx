@@ -54,6 +54,12 @@ export default function ComposerPage() {
     },
   });
 
+  const deleteMutation = trpc.posts.delete.useMutation({
+    onSuccess: () => {
+      utils.posts.list.invalidate();
+    },
+  });
+
   // ── AI mutations ────────────────────────────────────────────
   const [aiSuggestion, setAiSuggestion] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -919,10 +925,10 @@ export default function ComposerPage() {
                   >
                     <div className="flex items-center gap-1.5 mb-1">
                       <PlatformBadge platform={d.platform} />
-                      {d.type === 'thread' && (
-                        <span className="text-[10px] text-blue-600 font-medium">{d.tweets} tweets</span>
+                      {d.contentType === 'THREAD' && (
+                        <span className="text-[10px] text-blue-600 font-medium">Thread</span>
                       )}
-                      <span className="text-[10px] text-content-faint ml-auto">{d.created}</span>
+                      <span className="text-[10px] text-content-faint ml-auto">{d.createdAt ? new Date(d.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}</span>
                     </div>
                     <p
                       className="text-[11px] text-content-secondary leading-snug line-clamp-2"
@@ -938,7 +944,17 @@ export default function ComposerPage() {
                     <div className="flex items-center gap-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button className="text-[10px] text-blue-600 font-medium">Edit</button>
                       <span className="text-gray-300">&middot;</span>
-                      <button className="text-[10px] text-red-500 font-medium">Delete</button>
+                      <button
+                        className="text-[10px] text-red-500 font-medium"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm('Delete this draft?')) {
+                            deleteMutation.mutate({ id: d.id });
+                          }
+                        }}
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
                 ))}

@@ -1,14 +1,30 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { trpc } from '@/lib/trpc-client';
-import { PlatformBadge, Skeleton } from '@/components/ui';
+import { PlatformBadge, Skeleton, useToast } from '@/components/ui';
 
 export default function CalendarPage() {
   const [view, setView] = useState('month');
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() }; // 0-indexed
+  });
+  const [dragOverDay, setDragOverDay] = useState(null);
+  const [rescheduleModal, setRescheduleModal] = useState(null); // { postId, postLabel, originalTime, targetDay }
+  const [newTime, setNewTime] = useState('09:15');
+
+  const toast = useToast();
+  const utils = trpc.useUtils();
+
+  const updateMutation = trpc.posts.update.useMutation({
+    onSuccess: () => {
+      utils.posts.list.invalidate();
+      toast.success('Post updated');
+    },
+    onError: (err) => {
+      toast.error(err.message || 'Failed to update post');
+    },
   });
 
   const goToPrevMonth = () => {
@@ -58,11 +74,14 @@ export default function CalendarPage() {
         const dayNum = d.getDate();
         if (!postMap[dayNum]) postMap[dayNum] = [];
         postMap[dayNum].push({
+          id: p.id,
           type: p.contentType?.toLowerCase() || p.type || 'post',
           platform: (p.platform || 'X').toLowerCase(),
           label: (p.content || '').slice(0, 40),
           time: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+          timeRaw: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
           status: (p.status || '').toLowerCase(),
+          draggable: p.status === 'SCHEDULED',
         });
       }
     });
@@ -81,6 +100,64 @@ export default function CalendarPage() {
     ghost: 'bg-surface-page border-dashed border-gray-300 text-content-muted',
   };
   const platformDot = { x: 'bg-gray-800', reddit: 'bg-orange-500' };
+
+  // ── Drag & Drop handlers ──────────────────────────────────
+  const handleDragStart = useCallback((e, post) => {
+    e.dataTransfer.setData('application/json', JSON.stringify({
+      postId: post.id,
+      postLabel: post.label,
+      originalTime: post.timeRaw,
+      originalTimeDisplay: post.time,
+    }));
+    e.dataTransfer.effectAllowed = 'move';
+  }, []);
+
+  const handleDragOver = useCallback((e, dayNum) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverDay(dayNum);
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setDragOverDay(null);
+  }, []);
+
+  const handleDrop = useCallback((e, targetDay) => {
+    e.preventDefault();
+    setDragOverDay(null);
+    try {
+      const data = JSON.parse(e.dataTransfer.getData('application/json'));
+      setNewTime(data.originalTime);
+      setRescheduleModal({
+        postId: data.postId,
+        postLabel: data.postLabel,
+        originalTime: data.originalTime,
+        originalTimeDisplay: data.originalTimeDisplay,
+        targetDay,
+      });
+    } catch { /* invalid drag data */ }
+  }, []);
+
+  const handleReschedule = useCallback((action) => {
+    if (!rescheduleModal) return;
+    const { postId, originalTime, targetDay } = rescheduleModal;
+
+    if (action === 'drafts') {
+      updateMutation.mutate({
+        id: postId,
+        data: { status: 'DRAFT', scheduledFor: null },
+      });
+    } else {
+      const time = action === 'keep' ? originalTime : newTime;
+      const [hours, minutes] = time.split(':').map(Number);
+      const newDate = new Date(currentMonth.year, currentMonth.month, targetDay, hours, minutes);
+      updateMutation.mutate({
+        id: postId,
+        data: { scheduledFor: newDate },
+      });
+    }
+    setRescheduleModal(null);
+  }, [rescheduleModal, newTime, currentMonth, updateMutation]);
 
   return (
     <div>
@@ -139,16 +216,21 @@ export default function CalendarPage() {
               </div>
               {/* Calendar grid */}
               <div className="grid grid-cols-7">
-                {/* Padding for days before March 1 */}
+                {/* Padding for days before the 1st */}
                 {Array.from({ length: startPadCount }, (_, i) => (
                   <div key={`pad-${i}`} className="min-h-[100px] border-b border-r border-border-secondary bg-surface-page/50" />
                 ))}
                 {calendarDays.map((day) => (
                   <div
                     key={day.day}
-                    className={`min-h-[100px] border-b border-r border-border-secondary p-1.5 ${
-                      day.isToday ? 'bg-blue-50/50' : 'hover:bg-surface-hover'
-                    } transition-colors`}
+                    onDragOver={(e) => handleDragOver(e, day.day)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, day.day)}
+                    className={`min-h-[100px] border-b border-r border-border-secondary p-1.5 transition-colors ${
+                      dragOverDay === day.day
+                        ? 'bg-blue-100/60 dark:bg-blue-900/30 ring-2 ring-inset ring-blue-400'
+                        : day.isToday ? 'bg-blue-50/50' : 'hover:bg-surface-hover'
+                    }`}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span
@@ -168,13 +250,18 @@ export default function CalendarPage() {
                       {day.posts.map((post, i) => (
                         <div
                           key={i}
-                          className={`px-1.5 py-1 rounded border text-[10px] leading-tight cursor-pointer hover:shadow-sm transition-shadow ${
+                          draggable={post.draggable}
+                          onDragStart={post.draggable ? (e) => handleDragStart(e, post) : undefined}
+                          className={`px-1.5 py-1 rounded border text-[10px] leading-tight transition-shadow ${
                             postColors[post.status || post.type]
-                          }`}
+                          } ${post.draggable ? 'cursor-grab active:cursor-grabbing hover:shadow-md hover:ring-1 hover:ring-blue-300' : 'cursor-default'}`}
                         >
                           <div className="flex items-center gap-1">
-                            <span className={`w-1.5 h-1.5 rounded-full ${platformDot[post.platform]}`} />
+                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${platformDot[post.platform]}`} />
                             <span className="truncate font-medium">{post.label}</span>
+                            {post.draggable && (
+                              <span className="ml-auto text-[8px] opacity-40 flex-shrink-0" title="Drag to reschedule">&#x2630;</span>
+                            )}
                           </div>
                           <span className="text-[9px] opacity-70">
                             {post.time} &middot; {post.type === 'ghost' ? 'Suggestion' : post.type}
@@ -217,8 +304,13 @@ export default function CalendarPage() {
                   return (
                     <div
                       key={i}
-                      className={`rounded-lg border p-3 min-h-[200px] ${
-                        isToday ? 'border-blue-300 bg-blue-50/30' : 'border-border'
+                      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverDay(dayNum); }}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, dayNum)}
+                      className={`rounded-lg border p-3 min-h-[200px] transition-colors ${
+                        dragOverDay === dayNum
+                          ? 'border-blue-400 bg-blue-50/40 ring-2 ring-blue-300'
+                          : isToday ? 'border-blue-300 bg-blue-50/30' : 'border-border'
                       }`}
                     >
                       <p className={`text-xs font-medium mb-2 ${isToday ? 'text-blue-700' : 'text-content-muted'}`}>
@@ -226,12 +318,22 @@ export default function CalendarPage() {
                       </p>
                       <div className="space-y-2">
                         {dayData?.posts.map((post, j) => (
-                          <div key={j} className={`p-2 rounded-lg border ${postColors[post.status || post.type]}`}>
+                          <div
+                            key={j}
+                            draggable={post.draggable}
+                            onDragStart={post.draggable ? (e) => handleDragStart(e, post) : undefined}
+                            className={`p-2 rounded-lg border ${postColors[post.status || post.type]} ${
+                              post.draggable ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : ''
+                            }`}
+                          >
                             <div className="flex items-center gap-1 mb-1">
                               <span className={`w-2 h-2 rounded-full ${platformDot[post.platform]}`} />
                               <span className="text-[10px] font-medium uppercase">
                                 {post.type === 'ghost' ? 'AI Suggestion' : post.type}
                               </span>
+                              {post.draggable && (
+                                <span className="ml-auto text-[9px] opacity-40">&#x2630;</span>
+                              )}
                             </div>
                             <p className="text-xs leading-snug">{post.label}</p>
                             <p className="text-[10px] text-content-faint mt-1">{post.time}</p>
@@ -268,11 +370,10 @@ export default function CalendarPage() {
                       <td className="py-3 px-3 text-content-secondary">{p.account}</td>
                       <td className="py-3 px-3">
                         <span className="text-xs font-medium text-content-secondary">
-                          {p.type}
-                          {(p.tweets ?? 0) > 1 ? ` (${p.tweets})` : ''}
+                          {p.contentType === 'THREAD' ? 'Thread' : p.contentType === 'ARTICLE' ? 'Article' : 'Post'}
                         </span>
                       </td>
-                      <td className="py-3 px-3 text-content-secondary">{p.scheduledFor}</td>
+                      <td className="py-3 px-3 text-content-secondary">{p.scheduledFor ? new Date(p.scheduledFor).toLocaleString() : '—'}</td>
                       <td className="py-3 px-3">
                         <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
                           Scheduled
@@ -297,7 +398,7 @@ export default function CalendarPage() {
                 <span className={`w-2 h-2 rounded-full ${platformDot[p.platform] || 'bg-gray-400'}`} />
                 <span className="text-sm text-content-primary truncate max-w-xs">{p.content}</span>
               </div>
-              <span className="text-xs text-content-faint whitespace-nowrap">{p.scheduledFor}</span>
+              <span className="text-xs text-content-faint whitespace-nowrap">{p.scheduledFor ? new Date(p.scheduledFor).toLocaleString() : '—'}</span>
             </div>
           ))}
         </div>
@@ -334,6 +435,86 @@ export default function CalendarPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Reschedule Modal ────────────────────────────────── */}
+      {rescheduleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setRescheduleModal(null)}>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-[380px] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-semibold text-content-primary mb-1">Reschedule Post</h3>
+            <p className="text-xs text-content-secondary mb-4 truncate">
+              {rescheduleModal.postLabel}...
+            </p>
+
+            <div className="space-y-2">
+              {/* Option 1: Keep same time */}
+              <button
+                onClick={() => handleReschedule('keep')}
+                disabled={updateMutation.isPending}
+                className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-surface-hover transition-colors text-left"
+              >
+                <span className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-sm flex-shrink-0">
+                  {'\uD83D\uDD50'}
+                </span>
+                <div>
+                  <p className="text-sm font-medium text-content-primary">
+                    Move to {new Date(currentMonth.year, currentMonth.month, rescheduleModal.targetDay).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </p>
+                  <p className="text-xs text-content-muted">Keep original time: {rescheduleModal.originalTimeDisplay}</p>
+                </div>
+              </button>
+
+              {/* Option 2: New time */}
+              <div className="p-3 rounded-lg border border-border">
+                <div className="flex items-center gap-3">
+                  <span className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-sm flex-shrink-0">
+                    {'\u23F0'}
+                  </span>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-content-primary">Set new time</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <input
+                        type="time"
+                        value={newTime}
+                        onChange={(e) => setNewTime(e.target.value)}
+                        className="px-2 py-1 text-xs border border-border rounded bg-surface-page text-content-primary"
+                      />
+                      <button
+                        onClick={() => handleReschedule('newTime')}
+                        disabled={updateMutation.isPending}
+                        className="px-3 py-1 text-xs font-medium bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {updateMutation.isPending ? 'Saving...' : 'Confirm'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Option 3: Move to Drafts */}
+              <button
+                onClick={() => handleReschedule('drafts')}
+                disabled={updateMutation.isPending}
+                className="w-full flex items-center gap-3 p-3 rounded-lg border border-red-200 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors text-left"
+              >
+                <span className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600 text-sm flex-shrink-0">
+                  {'\uD83D\uDCC4'}
+                </span>
+                <div>
+                  <p className="text-sm font-medium text-content-primary">Move to Drafts</p>
+                  <p className="text-xs text-content-muted">Unschedule and save as draft</p>
+                </div>
+              </button>
+            </div>
+
+            <button
+              onClick={() => setRescheduleModal(null)}
+              className="mt-3 w-full text-center text-xs text-content-muted hover:text-content-secondary py-1"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
