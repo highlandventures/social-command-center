@@ -1,12 +1,22 @@
-# Listening Intelligence
+# Social Command Center
 
 ## What This Is
 
-An upgrade to Social Command's social listening engine that makes query management fully autonomous and transforms generic AI summaries into structured Strengths / Weaknesses / Threats (SWT) analysis. The system should maintain comprehensive brand and competitor coverage without manual intervention, and surface categorized insights that teams can filter per-brand and act on — especially for crisis monitoring and competitive intelligence.
+An internal social media command center for Figure Technology Solutions (Highland Ventures portfolio). Manages X and Reddit presence across multiple brand accounts (@provenancefdn, @HastraFi, @Figure), with social listening, KOL tracking, competitor intelligence, content composition, and AI-powered analytics. Built with Next.js, tRPC, Prisma, and Claude AI.
 
 ## Core Value
 
-Every relevant conversation about our brands and competitors is captured automatically, and the AI surfaces actionable patterns (strengths to amplify, weaknesses to address, threats to counter) — not just summaries.
+The team can compose, schedule, and publish high-performing content across X and Reddit — informed by real data on what works, what competitors do, and what the audience needs.
+
+## Current Milestone: v1.0 Content Intelligence System
+
+**Goal:** Transform the composer from a publishing tool into an intelligence-driven content creation engine that learns from performance data, competitor strategies, and audience needs.
+
+**Target features:**
+- Content performance insights panel (our posts: top/avg/poor with pattern analysis)
+- Competitor content intel panel (themes, formats, strategies that resonate)
+- Audience questions panel (what people want to understand from us)
+- Interactive Content Co-Pilot (conversational agent for content co-creation)
 
 ## Requirements
 
@@ -14,70 +24,65 @@ Every relevant conversation about our brands and competitors is captured automat
 
 <!-- Existing capabilities that work and are relied upon -->
 
+- ✓ Multi-account X publishing (single posts, threads, articles) — existing
+- ✓ Reddit publishing via Late API — existing
+- ✓ Post scheduling with cron-based auto-publish — existing
+- ✓ Live preview (X and Reddit format) in composer — existing
+- ✓ AI thread optimization (per-tweet suggestions) — existing (`ai.optimizeThread`)
+- ✓ AI performance prediction (impressions, engagement rate) — existing (`ai.predictPerformance`)
+- ✓ AI content ideas from listening feed — existing (`ai.suggestContent`)
+- ✓ Post metrics polling (impressions, engagements, likes, retweets, replies) — existing
+- ✓ Competitor metrics (followers, engagement rate, share of voice) — existing
+- ✓ Social listening with sentiment analysis — existing
+- ✓ Weekly AI insights cron (performance highlights, optimal posting times) — existing
+- ✓ KOL tracking with AI scoring — existing
 - ✓ Topic-based listening with boolean queries for X and Reddit — existing
-- ✓ AI-assisted query generation via Claude (generateQueries endpoint) — existing
-- ✓ AI-assisted query refinement with performance context (refineTopicQueries) — existing
-- ✓ Heuristic scoring and relevance classification of hits — existing
-- ✓ Sentiment analysis (POSITIVE/NEUTRAL/NEGATIVE) on listening hits — existing
 - ✓ Query performance tracking (noise rate, actionable rate, health grade) — existing
-- ✓ Generic theme extraction from recent hits (extractThemes) — existing
-- ✓ Mention volume metrics with topic/sentiment/platform breakdown — existing
-- ✓ Cron-based polling for listening topics (poll-listening) — existing
-- ✓ Hit dismissal with feedback tracking (dismissed/spam counters) — existing
-- ✓ Multi-select brand and platform filtering — existing
-- ✓ Competitor tracking with Share of Voice — existing
 
 ### Active
 
 <!-- Current scope. Building toward these. -->
 
-- [ ] System autonomously detects query coverage gaps and expands/refines queries without human intervention
-- [ ] System periodically audits all topic queries against known brand names, products, tickers, and common misspellings
-- [ ] Competitor topic queries are as comprehensive as owned brand queries (parity)
-- [ ] AI insights are categorized into Strengths, Weaknesses, and Threats (SWT) per brand/competitor
-- [ ] Users can filter SWT analysis by individual brand or competitor
-- [ ] Threats category surfaces crisis signals: negative narratives gaining traction, emerging competitors, PR risks
-- [ ] Weaknesses category identifies consumer-perceived gaps and areas for improvement
-- [ ] Strengths category identifies what consumers value most about each brand
-- [ ] SWT analysis runs cost-efficiently (batched, cached, incremental — not per-hit)
-- [ ] Query expansion runs cost-efficiently (scheduled, not on every poll cycle)
+- [ ] Team can view content performance insights (top/avg/poor posts with pattern analysis) in composer
+- [ ] Team can see competitor content themes, formats, and strategies in composer
+- [ ] Team can discover audience questions and knowledge gaps as content opportunities
+- [ ] Team can co-create content with an AI agent that has full context on performance, competitors, and audience
+- [ ] AI agent learns brand voice from top-performing published posts
+- [ ] AI agent can pull in specific data on demand (competitor activity, audience questions, performance patterns)
 
 ### Out of Scope
 
-- Real-time alerting/push notifications for threats — defer to future milestone
-- Automated response/counter-narrative generation — humans decide actions
-- Custom SWT categories beyond Strengths/Weaknesses/Threats — keep it simple for v1
-- Multi-language query support — English only for now
+- A/B testing framework — complexity too high for v1, defer to future
+- Automated posting without human review — humans decide what gets published
+- Cross-platform content adaptation (auto-convert X thread to Reddit post) — defer to future
+- Real-time competitor monitoring alerts — use existing scheduled cron
+- Multi-language content generation — English only for now
+- Video/media content generation — text-first
 
 ## Context
 
-The social listening system already has strong bones: topic/query/hit pipeline, AI-assisted query generation, sentiment analysis, query performance tracking with noise/actionable metrics, and dismissal feedback loops. The main gaps are:
+The composer page (`app/(dashboard)/composer/page.jsx`) already has a robust UI with platform switching (X/Reddit), account selection, content type tabs (Post/Thread/Article), live preview, scheduling, and publishing. The AI infrastructure exists in `lib/ai.js` (Claude Haiku), `lib/ai/content-suggestions.js`, `lib/ai/sentiment.js`, and `lib/routers/ai.js` with endpoints for optimization, prediction, and content suggestions.
 
-1. **Query management is manual.** Michelle currently works with Claude to generate and refine queries, then feeds them into the system. This is time-consuming and means queries drift as new products/terms emerge.
+The data layer is rich: `PostMetrics` tracks engagement per post (15-min polling), `CompetitorMetrics` captures daily competitor stats, `ListeningHit` stores social mentions with sentiment and relevance scoring, and `AIInsight` holds weekly generated analyses. The `analytics` tRPC router already provides engagement trends, heatmaps, and post performance data.
 
-2. **AI insights are generic summaries.** The extractThemes endpoint pulls top themes but doesn't categorize them into actionable buckets (strengths vs weaknesses vs threats).
-
-3. **Competitor coverage is inconsistent.** Some competitors have thorough queries, others are thin. No automated parity check exists.
-
-The system uses Figure Technology Solutions' context (FIGR, Figure Markets, Provenance Blockchain, $HASH, $YLDS, etc.) and tracks competitors like Securitize, Ondo Finance, Centrifuge, Superstate, Tokeny, Goldfinch, and Tradable.
-
-**Cost concerns:** Both API call costs (Claude for analysis, TwitterAPI.io/SociaVault for fetching) and human time for query curation are too high. The autonomous system must be cheaper than the current manual process.
+The gap is **surfacing these insights in the composer workflow** where content decisions are made. Currently, insights live on separate dashboard pages — disconnected from the act of creating content.
 
 ## Constraints
 
-- **API costs**: Query expansion and SWT analysis must be batched/scheduled (not real-time) to control Claude API spend
-- **Existing schema**: Build on the current ListeningTopic/ListeningQuery/ListeningHit/Competitor models — don't rebuild
-- **Platform**: Vercel serverless (cron jobs, no long-running processes)
-- **AI model**: Claude Sonnet 4 for analysis tasks (already used in query generation)
+- **API costs**: Claude calls must be batched/cached — no per-keystroke analysis
+- **Existing schema**: Build on PostMetrics, CompetitorMetrics, ListeningHit, AIInsight — don't rebuild
+- **Platform**: Vercel serverless (cron jobs for heavy analysis, not real-time)
+- **AI model**: Claude 3.5 Haiku for most tasks (cost-efficient), Sonnet for co-pilot conversations
+- **UI**: Panels must fit within existing composer layout without breaking the publish workflow
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| SWT (not SWOT) | Opportunities are internal strategy, not derived from listening data — Threats covers external signals | — Pending |
-| Fully autonomous query management | Manual curation doesn't scale and costs too much human time | — Pending |
-| Per-brand SWT filtering | Team needs to see each brand/competitor individually, not just aggregate | — Pending |
-| Batch/scheduled over real-time | Cost control — run analysis on accumulated data, not per-hit | — Pending |
+| Panels in composer (not separate page) | Insights must be where content decisions happen | — Pending |
+| Build intel panels before co-pilot | Co-pilot quality depends on intel data quality | — Pending |
+| Use existing data pipelines | PostMetrics, CompetitorMetrics, ListeningHit already collect the right data | — Pending |
+| Co-pilot as conversational chat | Multi-turn lets team iterate on ideas, not just one-shot generation | — Pending |
 
 ---
-*Last updated: 2026-03-14 after initialization*
+*Last updated: 2026-03-14 after Content Intelligence milestone initialization*
