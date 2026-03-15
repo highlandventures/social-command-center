@@ -160,14 +160,14 @@ function TieredPostsSection() {
     { staleTime: 5 * 60 * 1000 }
   );
 
-  // Collect all post IDs to batch-fetch sparklines
+  // Collect post IDs to batch-fetch sparklines (limit to 50 to stay within URL/schema limits)
   const allPostIds = useMemo(() => {
     if (!data?.tiers) return [];
     return [
       ...data.tiers.top,
       ...data.tiers.average,
       ...data.tiers.poor,
-    ].map((p) => p.id);
+    ].map((p) => p.id).slice(0, 50);
   }, [data]);
 
   const { data: sparklines } = trpc.performanceIntel.sparklineBatch.useQuery(
