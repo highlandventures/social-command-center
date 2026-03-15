@@ -1,19 +1,46 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { trpc } from '@/lib/trpc-client';
 import ReportViewer from '@/components/ReportViewer';
-import { Skeleton } from '@/components/ui';
+import { Skeleton, useToast } from '@/components/ui';
 
 export default function ReportDetailPage() {
   const { id } = useParams();
   const router = useRouter();
+  const toast = useToast();
   const reportQ = trpc.reports.getById.useQuery({ id }, { staleTime: 30_000 });
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   if (reportQ.isLoading) return <LoadingSkeleton />;
   if (reportQ.error || !reportQ.data) return <NotFound onBack={() => router.push('/reports')} />;
 
   const report = reportQ.data;
+
+  async function handleExportPDF() {
+    setPdfLoading(true);
+    try {
+      const res = await fetch(`/api/pdf/${id}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'PDF generation failed');
+      }
+      const { url } = await res.json();
+      // Trigger download by opening in new tab
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.click();
+      toast.success('PDF ready - downloading');
+    } catch (err) {
+      console.error('[Export PDF]', err);
+      toast.error(err.message || 'PDF generation failed');
+    } finally {
+      setPdfLoading(false);
+    }
+  }
 
   return (
     <div className="p-6">
@@ -30,14 +57,31 @@ export default function ReportDetailPage() {
             {(report.reportType || '').replace(/_/g, ' ')} | Generated {new Date(report.createdAt).toLocaleDateString()}
           </p>
         </div>
-        {/* Status badge if GENERATING or FAILED */}
-        {report.status && report.status !== 'READY' && (
-          <span className={`px-2 py-1 rounded text-xs font-medium ${
-            report.status === 'GENERATING' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
-          }`}>
-            {report.status}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Export PDF button */}
+          <button
+            onClick={handleExportPDF}
+            disabled={pdfLoading}
+            className="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm font-medium rounded-lg px-4 py-2 hover:bg-gray-800 dark:hover:bg-gray-200 disabled:opacity-50 transition-colors"
+          >
+            {pdfLoading ? 'Generating...' : 'Export PDF'}
+          </button>
+          {/* Email Report placeholder (Plan 02) */}
+          <button
+            disabled
+            className="bg-white dark:bg-surface-card border border-gray-300 dark:border-border text-gray-700 dark:text-content-muted text-sm font-medium rounded-lg px-4 py-2 opacity-50 cursor-not-allowed"
+          >
+            Email Report
+          </button>
+          {/* Status badge if GENERATING or FAILED */}
+          {report.status && report.status !== 'READY' && (
+            <span className={`px-2 py-1 rounded text-xs font-medium ${
+              report.status === 'GENERATING' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+            }`}>
+              {report.status}
+            </span>
+          )}
+        </div>
       </div>
       <ReportViewer report={report} />
     </div>
