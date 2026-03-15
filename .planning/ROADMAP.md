@@ -1,94 +1,160 @@
-# Roadmap: Content Intelligence System
+# Roadmap: Social Command Center
 
-## Overview
+## Milestones
 
-Transform the composer from a publishing tool into an intelligence-driven content creation engine. Four phases follow the natural data dependency chain: first surface our own performance data (PostMetrics already exists), then capture and analyze competitor content, then extract audience questions from listening data, and finally wire all three intel sources into a conversational co-pilot that lives in the composer.
+- ✅ **v1.0 Content Intelligence System** - Phases 1-4 (shipped 2026-03-15)
+- 🚧 **v1.1 Report Center** - Phases 5-8 (in progress)
 
 ## Phases
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3, 4): Planned milestone work
-- Decimal phases (e.g., 2.1): Urgent insertions (marked with INSERTED)
+<details>
+<summary>v1.0 Content Intelligence System (Phases 1-4) - SHIPPED 2026-03-15</summary>
 
-Decimal phases appear between their surrounding integers in numeric order.
-
-- [x] **Phase 1: Performance Intel** - Surface our post performance data as actionable insight cards in the composer sidebar
+- [x] **Phase 1: Performance Intel** - Surface post performance data as actionable insight cards in the composer sidebar
 - [x] **Phase 2: Competitor Intel** - Capture competitor post content and extract strategic patterns via AI analysis
 - [x] **Phase 3: Audience Questions** - Extract, cluster, and score questions from listening hits as content opportunities
-- [ ] **Phase 4: Content Co-Pilot** - Conversational AI agent in the composer with full context on performance, competitors, and audience
-
-## Phase Details
+- [ ] **Phase 4: Content Co-Pilot** - Deferred to future milestone
 
 ### Phase 1: Performance Intel
 **Goal**: Team can see what content works and why, directly in the composer where they make content decisions
-**Depends on**: Nothing (uses existing PostMetrics data and analytics router)
+**Depends on**: Nothing
 **Requirements**: PERF-01, PERF-02, PERF-03, PERF-04
 **Success Criteria** (what must be TRUE):
   1. Team can open a sidebar panel in the composer and see their published posts grouped into top / average / poor tiers with engagement metrics visible
-  2. Team can see pattern callouts identifying which topics, formats (thread vs post vs article), and posting times correlate with high performance
+  2. Team can see pattern callouts identifying which topics, formats, and posting times correlate with high performance
   3. Team can see a sparkline next to each post showing its engagement trajectory over time
-  4. Insight cards in the sidebar display reusable takeaways (e.g., "Threads about RWA outperform single posts by 3.2x") that persist across composer sessions
-**Plans**: 2 plans
+  4. Insight cards in the sidebar display reusable takeaways that persist across composer sessions
+**Plans**: 2 plans (complete)
 
 Plans:
-- [x] 01-01-PLAN.md -- Backend API: performanceIntel tRPC router with tier ranking, pattern analysis, sparkline data, and AI insight card generation
-- [x] 01-02-PLAN.md -- Frontend UI: PerformanceIntelPanel component in composer sidebar with tiered posts, patterns, sparklines, and insight cards
+- [x] 01-01: Backend API -- performanceIntel tRPC router
+- [x] 01-02: Frontend UI -- PerformanceIntelPanel component
 
 ### Phase 2: Competitor Intel
-**Goal**: Team can understand competitor content strategies -- what they post about, which formats work for them, and how we compare
-**Depends on**: Phase 1 (composer sidebar pattern established; competitor post content capture pipeline needed)
+**Goal**: Team can understand competitor content strategies
+**Depends on**: Phase 1
 **Requirements**: COMP-01, COMP-02, COMP-03, COMP-04
 **Success Criteria** (what must be TRUE):
-  1. System is capturing competitor post content (text, format, engagement) from X on an automated schedule, stored alongside existing CompetitorMetrics (Reddit deferred)
-  2. Team can open a competitor intel panel in the composer and see AI-extracted themes with frequency counts showing what competitors talk about most
-  3. Team can see which content formats competitors use and which formats drive their highest engagement
-  4. Team can view a per-competitor strategy card showing posting cadence, top themes, and engagement benchmarks compared to our accounts
-**Plans**: 2 plans
+  1. System captures competitor post content from X on an automated schedule
+  2. Team can see AI-extracted themes with frequency counts
+  3. Team can see which content formats competitors use and which drive highest engagement
+  4. Team can view per-competitor strategy cards with benchmarks vs our accounts
+**Plans**: 2 plans (complete)
 
 Plans:
-- [x] 02-01-PLAN.md -- Backend: CompetitorPost schema, cron stores post content, competitorIntel tRPC router with themes/formatAnalysis/strategyCards
-- [x] 02-02-PLAN.md -- Frontend: CompetitorIntelPanel component in composer sidebar with strategy cards, themes, and format breakdown
+- [x] 02-01: Backend -- CompetitorPost schema, cron, competitorIntel tRPC router
+- [x] 02-02: Frontend -- CompetitorIntelPanel component
 
 ### Phase 3: Audience Questions
 **Goal**: Team can discover what the audience wants to know and use those questions as content fuel
-**Depends on**: Phase 1 (composer sidebar pattern established; uses existing ListeningHit data)
+**Depends on**: Phase 1
 **Requirements**: AUDQ-01, AUDQ-02, AUDQ-03, AUDQ-04
 **Success Criteria** (what must be TRUE):
-  1. System extracts questions from listening hits using intent classification and surfaces them in a dedicated panel in the composer
-  2. Questions are grouped into topic clusters (e.g., "tokenization", "staking", "Figure vs competitors") so the team sees themes, not a raw list
-  3. Unanswered and recurring questions are highlighted as content opportunities the team has not yet addressed
-  4. Each question cluster displays a content opportunity score based on question volume and associated engagement, so the team knows which topics to prioritize
-**Plans**: 2 plans
+  1. System extracts questions from listening hits using intent classification
+  2. Questions are grouped into topic clusters
+  3. Unanswered and recurring questions are highlighted as content opportunities
+  4. Each question cluster displays a content opportunity score
+**Plans**: 2 plans (complete)
 
 Plans:
-- [x] 03-01-PLAN.md -- Backend: AUDIENCE_QUESTION InsightType, batch AI analysis in listening scanner, audienceQuestions tRPC router with clusters and questions procedures
-- [x] 03-02-PLAN.md -- Frontend: AudienceQuestionsPanel component in composer sidebar with cluster cards, opportunity scores, and expandable questions
+- [x] 03-01: Backend -- audienceQuestions tRPC router
+- [x] 03-02: Frontend -- AudienceQuestionsPanel component
 
 ### Phase 4: Content Co-Pilot
-**Goal**: Team can co-create content with an AI agent that has full context on what works, what competitors do, and what the audience needs
-**Depends on**: Phase 1, Phase 2, Phase 3 (co-pilot quality depends on all three intel sources being available)
-**Requirements**: CPLT-01, CPLT-02, CPLT-03, CPLT-04, CPLT-05
+**Status**: Deferred to future milestone
+**Requirements**: CPLT-01 through CPLT-05 (deferred)
+
+</details>
+
+### v1.1 Report Center (In Progress)
+
+**Milestone Goal:** Transform the Report Center from a manual text-only report builder into a fully automated reporting system with rich visuals, PDF export, email distribution, scheduled cadence reports, conversational ad hoc reports, and flexible benchmarking.
+
+**Phase Numbering:**
+- Integer phases (5, 6, 7, 8): Planned milestone work
+- Decimal phases (e.g., 6.1): Urgent insertions (marked with INSERTED)
+
+- [ ] **Phase 5: Report Engine + Charts** - Rich report generation with inline charts, KPI stats, executive summaries, and comparison deltas
+- [ ] **Phase 6: Export + Distribution** - PDF export and email delivery with full visual content inline
+- [ ] **Phase 7: Scheduling + Ad Hoc Reports** - Automated cadence reports and conversational AI report scoping
+- [ ] **Phase 8: Benchmarking** - Period-over-period comparisons and custom milestone benchmarking
+
+## Phase Details
+
+### Phase 5: Report Engine + Charts
+**Goal**: Team can generate reports with rich visual content -- topline KPIs, AI executive summaries, inline charts, sentiment themes, and comparison deltas -- replacing the current text-only output
+**Depends on**: Phase 4 (v1.0 complete)
+**Requirements**: RCNT-01, RCNT-02, RCNT-03, RCNT-04, RCNT-05, RCNT-06, RCNT-07
 **Success Criteria** (what must be TRUE):
-  1. Team can open a chat interface in the composer and have multi-turn conversations to develop content ideas into publishable drafts
-  2. Co-pilot responses reflect awareness of performance patterns, competitor themes, and audience questions -- referencing specific data when relevant
-  3. Co-pilot writes in the brand voice learned from top-performing published posts, and the team can tell the difference from generic AI output
-  4. Team can ask the co-pilot to predict how a draft will perform and receive an engagement estimate before publishing
-  5. Team can click a button to insert co-pilot drafted content directly into the active composer editor
-**Plans**: 3 plans
+  1. Team can trigger report generation and see topline KPI stats (impressions, engagement rate, follower delta, top post, sentiment) displayed prominently at the top of the report
+  2. Every generated report includes an AI-written executive summary explaining what happened, what is notable, and what to do next
+  3. Reports display inline charts (engagement trend line, content type breakdown, sentiment distribution) rendered as images within the report body
+  4. Reports show comparison deltas vs the previous equivalent period with directional trend arrows (up/down/flat)
+  5. Report content is stored as structured JSON with both data arrays (for in-app rendering) and chart image URLs (for PDF and email), so all downstream channels render from a single source of truth
+**Plans**: TBD
 
 Plans:
-- [ ] 04-01-PLAN.md -- Foundation: Prisma schema (CopilotThread/CopilotMessage), lib/copilot modules (intel-context, brand-voice, system-prompt, draft-detector), dependencies, tests
-- [ ] 04-02-PLAN.md -- Backend API: Streaming chat route (/api/copilot/chat) with auth + persistence + cost logging, copilot tRPC router for thread CRUD and suggestion chips
-- [ ] 04-03-PLAN.md -- Frontend UI: CopilotPanel with streaming chat, suggestion chips, draft insertion, prediction cards, wired into composer replacing AI Ideas tab
+- [ ] 05-01: TBD
+- [ ] 05-02: TBD
+
+### Phase 6: Export + Distribution
+**Goal**: Team can export any report as a formatted PDF and distribute reports via email with full visual content inline
+**Depends on**: Phase 5
+**Requirements**: EXPT-01, EXPT-02, DIST-01, DIST-02, DIST-03, DIST-04
+**Success Criteria** (what must be TRUE):
+  1. Team can click "Export PDF" on any report and download a formatted PDF containing KPI cards, executive summary, chart images, and recommendations
+  2. Scheduled reports auto-deliver via email to configured recipients with the full visual report rendered inline (not just a link)
+  3. Team can configure which email recipients receive reports for each schedule or on-demand share
+  4. Every delivery (email send, PDF export) is logged with status (sent/failed), recipient, and timestamp, visible in the report detail UI
+**Plans**: TBD
+
+Plans:
+- [ ] 06-01: TBD
+- [ ] 06-02: TBD
+
+### Phase 7: Scheduling + Ad Hoc Reports
+**Goal**: Reports generate automatically on configured cadences without manual intervention, and team can create custom ad hoc reports through a guided AI conversation
+**Depends on**: Phase 6
+**Requirements**: SCHED-01, SCHED-02, SCHED-03, SCHED-04, ADHC-01, ADHC-02, ADHC-03, ADHC-04, ADHC-05
+**Success Criteria** (what must be TRUE):
+  1. Team can create a report schedule selecting weekly, monthly, quarterly, or yearly cadence, and reports auto-generate at that cadence without manual intervention
+  2. Team can view, enable/disable, edit, and delete report schedules, and see schedule status showing next run, last run, and a link to the latest generated report
+  3. Team can open an in-app chat, describe what they want a report to cover, and the AI asks clarifying questions to scope the report before generating it
+  4. Ad hoc reports support snapshot re-runs (re-check metrics at configured intervals) and manual re-trigger via a "Re-run" button
+  5. Chat conversation state for ad hoc report scoping persists across page refreshes
+**Plans**: TBD
+
+Plans:
+- [ ] 07-01: TBD
+- [ ] 07-02: TBD
+
+### Phase 8: Benchmarking
+**Goal**: Team can compare report metrics against previous time periods and custom milestones to understand performance trends and event impact
+**Depends on**: Phase 5 (comparison delta infrastructure), Phase 7 (scheduling for auto-benchmarks)
+**Requirements**: BNCH-01, BNCH-02, BNCH-03, BNCH-04
+**Success Criteria** (what must be TRUE):
+  1. Team can compare any report's metrics against a previous equivalent period (week-over-week, month-over-month, quarter-over-quarter, year-over-year)
+  2. Team can create named milestones (product launches, campaigns, events) with start and end dates
+  3. Team can benchmark a report against any named milestone's time period to see how current performance compares to the milestone period
+  4. All benchmark comparisons display absolute values and percentage deltas with directional indicators (green up arrows, red down arrows)
+**Plans**: TBD
+
+Plans:
+- [ ] 08-01: TBD
+- [ ] 08-02: TBD
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4
+Phases execute in numeric order: 5 -> 5.1 -> 6 -> 6.1 -> 7 -> 8
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Performance Intel | 2/2 | ✅ Complete | 2026-03-14 |
-| 2. Competitor Intel | 2/2 | ✅ Complete | 2026-03-14 |
-| 3. Audience Questions | 2/2 | Complete   | 2026-03-15 |
-| 4. Content Co-Pilot | 0/3 | Planning complete | - |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. Performance Intel | v1.0 | 2/2 | Complete | 2026-03-14 |
+| 2. Competitor Intel | v1.0 | 2/2 | Complete | 2026-03-14 |
+| 3. Audience Questions | v1.0 | 2/2 | Complete | 2026-03-15 |
+| 4. Content Co-Pilot | v1.0 | 0/3 | Deferred | - |
+| 5. Report Engine + Charts | v1.1 | 0/? | Not started | - |
+| 6. Export + Distribution | v1.1 | 0/? | Not started | - |
+| 7. Scheduling + Ad Hoc Reports | v1.1 | 0/? | Not started | - |
+| 8. Benchmarking | v1.1 | 0/? | Not started | - |

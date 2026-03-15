@@ -1,13 +1,13 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: Defining requirements
-stopped_at: Phase 4 context gathered
-last_updated: "2026-03-15T07:18:43.021Z"
-last_activity: 2026-03-15 — Milestone v1.1 started
+milestone: v1.1
+milestone_name: Report Center
+status: Ready to plan
+stopped_at: Roadmap created for v1.1
+last_updated: "2026-03-15"
+last_activity: 2026-03-15 -- Roadmap created for v1.1 Report Center
 progress:
-  total_phases: 4
+  total_phases: 8
   completed_phases: 3
   total_plans: 6
   completed_plans: 6
@@ -20,35 +20,52 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** Team can compose high-performing content informed by real data on what works, what competitors do, and what the audience needs.
-**Current focus:** Milestone v1.1 Report Center -- Defining requirements
+**Current focus:** Phase 5 - Report Engine + Charts
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-03-15 — Milestone v1.1 started
+Phase: 5 of 8 (Report Engine + Charts)
+Plan: 0 of ? in current phase
+Status: Ready to plan
+Last activity: 2026-03-15 -- Roadmap created for v1.1 Report Center milestone
 
-## v1.0 Results (Content Intelligence System)
+Progress: [########............] 46% (v1.0 phases 1-3 complete, v1.1 starting)
 
-Phases 1-3 complete, Phase 4 (Content Co-Pilot) deferred:
-- PERF-01 through PERF-04: Performance intel in composer ✓
-- COMP-01 through COMP-04: Competitor intel in composer ✓
-- AUDQ-01 through AUDQ-04: Audience questions in composer ✓
+## Performance Metrics
+
+**Velocity:**
+- Total plans completed: 6 (v1.0)
+- Average duration: -
+- Total execution time: -
+
+**By Phase:**
+
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| 1. Performance Intel | 2 | - | - |
+| 2. Competitor Intel | 2 | - | - |
+| 3. Audience Questions | 2 | - | - |
+
+**Recent Trend:**
+- Last 5 plans: -
+- Trend: Starting new milestone
+
+*Updated after each plan completion*
 
 ## Accumulated Context
 
 ### Decisions
 
-- Panels in composer sidebar (not separate pages): insights must be where content decisions happen
-- Build intel panels before co-pilot: co-pilot quality depends on intel data being available and tested
-- Use existing data pipelines: PostMetrics, CompetitorMetrics, ListeningHit already collect the right data
-- Claude Haiku for analysis tasks, Sonnet for co-pilot conversations (cost/quality split)
-- All tRPC procedures read from AIInsight cache only -- no live AI computation in API routes
-- Batch AI analysis runs during cron, caching results in AIInsight
-- Single daily cron for all report cadences (check nextRunAt) rather than separate crons
-- QuickChart.io for server-side chart rendering (no Puppeteer, Vercel serverless compatible)
-- Slack Incoming Webhooks (not full Slack App) for report distribution
+Decisions are logged in PROJECT.md Key Decisions table.
+Recent decisions affecting current work:
+
+- [v1.1 Research]: QuickChart.io POST API for server-side chart rendering (no Puppeteer, no node-canvas)
+- [v1.1 Research]: @react-pdf/renderer for PDF (requires serverExternalPackages config in next.config.js)
+- [v1.1 Research]: @react-email/components + nodemailer for email distribution
+- [v1.1 Research]: Slack distribution deferred to Future requirements
+- [v1.1 Research]: Chart images stored as URLs at generation time; all channels reference stored URLs
+- [v1.1 Research]: Single Vercel cron checks all due schedules via nextRunAt field
+- [v1.1 Roadmap]: 4 phases (5-8), coarse granularity -- Engine, Export+Dist, Scheduling+AdHoc, Benchmarking
 
 ### Pending Todos
 
@@ -56,10 +73,11 @@ None yet.
 
 ### Blockers/Concerns
 
-None.
+- SMTP provider not yet configured (needed before Phase 6 email delivery)
+- QuickChart.io free tier rate limit needs staging validation (60 vs 120 req/min -- not blocking at projected usage)
 
 ## Session Continuity
 
-Last session: 2026-03-15T07:18:43.018Z
-Stopped at: Phase 4 context gathered
-Resume file: .planning/phases/04-content-co-pilot/04-CONTEXT.md
+Last session: 2026-03-15
+Stopped at: Roadmap created for v1.1 Report Center
+Resume file: None

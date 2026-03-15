@@ -3,30 +3,30 @@
 **Defined:** 2026-03-14
 **Core Value:** Team can compose high-performing content informed by real data on what works, what competitors do, and what the audience needs.
 
-## v1.0 Requirements (Content Intelligence System) — Complete
+## v1.0 Requirements (Content Intelligence System) -- Complete
 
-### Performance Intel — ✓ Complete
+### Performance Intel -- Complete
 
 - [x] **PERF-01**: Team can view published posts ranked by performance tier (top / average / poor) with engagement metrics
 - [x] **PERF-02**: Team can see pattern analysis -- which topics, content formats (thread vs post vs article), and posting times correlate with high performance
 - [x] **PERF-03**: Team can view engagement trend sparklines per post showing trajectory over time
 - [x] **PERF-04**: Insights are displayed as reusable cards in the composer sidebar (e.g., "Threads about RWA outperform single posts by 3.2x")
 
-### Competitor Intel — ✓ Complete
+### Competitor Intel -- Complete
 
 - [x] **COMP-01**: System captures competitor post content (not just account-level metrics) from X (Reddit deferred to future phase)
 - [x] **COMP-02**: AI extracts themes and topics competitors are posting about with frequency analysis
 - [x] **COMP-03**: AI identifies content formats competitors use and which formats get highest engagement
 - [x] **COMP-04**: Team can view a per-competitor strategy summary (posting cadence, top themes, engagement benchmarks vs ours)
 
-### Audience Questions — ✓ Complete
+### Audience Questions -- Complete
 
 - [x] **AUDQ-01**: System extracts questions from listening hits (filtering intent = "question" from mentions, replies, comments)
 - [x] **AUDQ-02**: Questions are clustered by topic (e.g., "tokenization questions", "staking questions", "Figure vs competitor")
 - [x] **AUDQ-03**: Unanswered/recurring questions are surfaced as content opportunities
 - [x] **AUDQ-04**: Each question cluster has a content opportunity score based on volume and engagement
 
-### Content Co-Pilot — Deferred
+### Content Co-Pilot -- Deferred
 
 - [ ] **CPLT-01**: Chat interface in composer for multi-turn content co-creation conversations
 - [ ] **CPLT-02**: Co-pilot has access to all 3 intel panels as context (performance patterns, competitor themes, audience questions)
@@ -148,39 +148,39 @@ Which phases cover which requirements. Updated during roadmap creation.
 | AUDQ-02 | Phase 3 | Complete |
 | AUDQ-03 | Phase 3 | Complete |
 | AUDQ-04 | Phase 3 | Complete |
-| SCHED-01 | — | Pending |
-| SCHED-02 | — | Pending |
-| SCHED-03 | — | Pending |
-| SCHED-04 | — | Pending |
-| RCNT-01 | — | Pending |
-| RCNT-02 | — | Pending |
-| RCNT-03 | — | Pending |
-| RCNT-04 | — | Pending |
-| RCNT-05 | — | Pending |
-| RCNT-06 | — | Pending |
-| RCNT-07 | — | Pending |
-| ADHC-01 | — | Pending |
-| ADHC-02 | — | Pending |
-| ADHC-03 | — | Pending |
-| ADHC-04 | — | Pending |
-| ADHC-05 | — | Pending |
-| EXPT-01 | — | Pending |
-| EXPT-02 | — | Pending |
-| DIST-01 | — | Pending |
-| DIST-02 | — | Pending |
-| DIST-03 | — | Pending |
-| DIST-04 | — | Pending |
-| BNCH-01 | — | Pending |
-| BNCH-02 | — | Pending |
-| BNCH-03 | — | Pending |
-| BNCH-04 | — | Pending |
+| RCNT-01 | Phase 5 | Pending |
+| RCNT-02 | Phase 5 | Pending |
+| RCNT-03 | Phase 5 | Pending |
+| RCNT-04 | Phase 5 | Pending |
+| RCNT-05 | Phase 5 | Pending |
+| RCNT-06 | Phase 5 | Pending |
+| RCNT-07 | Phase 5 | Pending |
+| EXPT-01 | Phase 6 | Pending |
+| EXPT-02 | Phase 6 | Pending |
+| DIST-01 | Phase 6 | Pending |
+| DIST-02 | Phase 6 | Pending |
+| DIST-03 | Phase 6 | Pending |
+| DIST-04 | Phase 6 | Pending |
+| SCHED-01 | Phase 7 | Pending |
+| SCHED-02 | Phase 7 | Pending |
+| SCHED-03 | Phase 7 | Pending |
+| SCHED-04 | Phase 7 | Pending |
+| ADHC-01 | Phase 7 | Pending |
+| ADHC-02 | Phase 7 | Pending |
+| ADHC-03 | Phase 7 | Pending |
+| ADHC-04 | Phase 7 | Pending |
+| ADHC-05 | Phase 7 | Pending |
+| BNCH-01 | Phase 8 | Pending |
+| BNCH-02 | Phase 8 | Pending |
+| BNCH-03 | Phase 8 | Pending |
+| BNCH-04 | Phase 8 | Pending |
 
 **Coverage:**
 - v1.0 requirements: 12 complete, 5 deferred
 - v1.1 requirements: 26 total
-- Mapped to phases: 0
-- Unmapped: 26 ⚠️
+- Mapped to phases: 26
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-14*
-*Last updated: 2026-03-15 after v1.1 Report Center milestone definition*
+*Last updated: 2026-03-15 after v1.1 roadmap creation*
