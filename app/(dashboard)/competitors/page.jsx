@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   PieChart, Pie, Cell, AreaChart, Area,
@@ -65,6 +65,14 @@ function timeAgo(d) {
 // ============================================================
 
 export default function CompetitorsPage() {
+  return (
+    <Suspense fallback={<div className="animate-pulse p-8 text-content-muted">Loading...</div>}>
+      <CompetitorsContent />
+    </Suspense>
+  );
+}
+
+function CompetitorsContent() {
   const searchParams = useSearchParams();
   const [activeTab, setActiveTab] = useState('overview');
 
