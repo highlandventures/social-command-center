@@ -81,6 +81,7 @@ export default function ListeningPage() {
   const sovQ = trpc.competitors.getSOV.useQuery(undefined, { staleTime: 60_000 });
   const sentimentQ = trpc.analytics.brandSentiment.useQuery(undefined, { staleTime: 30_000 });
   const mentionMetricsQ = trpc.listening.mentionMetrics.useQuery(undefined, { staleTime: 30_000 });
+  const competitorActivityQ = trpc.competitors.activity.useQuery(undefined, { staleTime: 60_000 });
 
   // ── tRPC mutations ─────────────────────────────────────────
   const utils = trpc.useUtils();
@@ -1305,6 +1306,72 @@ export default function ListeningPage() {
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
+            </div>
+          )}
+
+          {/* Competitor Activity — posting cadence + engagement */}
+          {competitorActivityQ.isLoading ? (
+            <Skeleton className="h-[200px] w-full rounded-xl mb-8" />
+          ) : competitorActivityQ.data?.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
+              <h4 className="text-sm font-semibold text-gray-900 mb-3">Competitor Activity (30d)</h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      {['Competitor', 'Followers', 'Posts/Day', 'Avg Engagement', 'Mentions', 'Sentiment', 'SOV', 'Follower Growth'].map((h) => (
+                        <th key={h} className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {competitorActivityQ.data.map((comp) => (
+                      <tr key={comp.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="py-3 px-3">
+                          <div>
+                            <span className="font-medium text-gray-900">{comp.name}</span>
+                            {comp.accounts.filter((a) => a.platform === 'X').map((a) => (
+                              <span key={a.username} className="text-xs text-gray-400 ml-1">@{a.username}</span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 font-semibold">{comp.followersX > 0 ? formatFollowers(comp.followersX) : '—'}</td>
+                        <td className="py-3 px-3">
+                          <span className={comp.postsPerDay >= 3 ? 'text-green-600 font-medium' : comp.postsPerDay >= 1 ? 'text-gray-900' : 'text-gray-400'}>
+                            {comp.postsPerDay > 0 ? comp.postsPerDay : '—'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3">
+                          {comp.avgEngagementRate > 0 ? (
+                            <span className={comp.avgEngagementRate >= 1 ? 'text-green-600 font-medium' : 'text-gray-900'}>
+                              {comp.avgEngagementRate.toFixed(2)}%
+                            </span>
+                          ) : '—'}
+                        </td>
+                        <td className="py-3 px-3">{comp.totalMentions > 0 ? comp.totalMentions : '—'}</td>
+                        <td className="py-3 px-3">
+                          {comp.avgSentimentPositivePct > 0 ? (
+                            <span className={comp.avgSentimentPositivePct > 65 ? 'text-green-600' : 'text-amber-600'}>
+                              {comp.avgSentimentPositivePct}% pos
+                            </span>
+                          ) : '—'}
+                        </td>
+                        <td className="py-3 px-3 font-semibold">{comp.shareOfVoicePct > 0 ? `${comp.shareOfVoicePct}%` : '—'}</td>
+                        <td className="py-3 px-3">
+                          {comp.followerGrowth !== 0 ? (
+                            <span className={comp.followerGrowth > 0 ? 'text-green-600 font-medium' : 'text-red-600'}>
+                              {comp.followerGrowth > 0 ? '+' : ''}{formatFollowers(comp.followerGrowth)}
+                            </span>
+                          ) : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {competitorActivityQ.data[0]?.daysTracked === 0 && (
+                <p className="text-xs text-gray-400 mt-3">No metrics collected yet. Run the competitor poll cron to start tracking.</p>
+              )}
             </div>
           )}
 
