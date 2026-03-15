@@ -114,6 +114,12 @@ export default function DashboardPage() {
     { staleTime: 60_000 }
   );
 
+  // ── Benchmark summary (top 10% crypto accounts) ───
+  const benchmarkQ = trpc.benchmarks.summary.useQuery(
+    undefined,
+    { staleTime: 300_000 }
+  );
+
   // ── AI Analysis ───
   const aiAnalysisMutation = trpc.ai.analyzePerformance.useMutation();
   const [aiAnalysis, setAiAnalysis] = useState(null);
@@ -131,6 +137,38 @@ export default function DashboardPage() {
   const postScatterData = postPerfQ.data ?? EMPTY_POST_SCATTER;
   const postPerformanceTable = postPerfQ.data ?? EMPTY_POST_TABLE;
   const heatmapData = heatmapQ.data ?? EMPTY_HEATMAP;
+
+  // Benchmark reference values (top 10% crypto accounts)
+  // Fallback defaults from initial 17-account universe pull (2026-03-14)
+  // These auto-update when the weekly Python pipeline pushes fresh data to Redis
+  const BENCHMARK_DEFAULTS = {
+    engRate: 3.5,
+    medianEngRate: 1.8,
+    impressions: 45000,
+    medianImpressions: 12000,
+    bookmarks: 28,
+    medianBookmarks: 9,
+    distScore: 850,
+    medianDistScore: 320,
+    universeSize: 17,
+    generatedAt: '2026-03-14T00:00:00Z',
+  };
+
+  const bm = useMemo(() => {
+    const d = benchmarkQ.data;
+    return {
+      engRate: d?.top10PctEngRate ?? BENCHMARK_DEFAULTS.engRate,
+      medianEngRate: d?.medianEngRate ?? BENCHMARK_DEFAULTS.medianEngRate,
+      impressions: d?.top10PctImpressions ?? BENCHMARK_DEFAULTS.impressions,
+      medianImpressions: d?.medianImpressions ?? BENCHMARK_DEFAULTS.medianImpressions,
+      bookmarks: d?.top10PctBookmarks ?? BENCHMARK_DEFAULTS.bookmarks,
+      medianBookmarks: d?.medianBookmarks ?? BENCHMARK_DEFAULTS.medianBookmarks,
+      distScore: d?.top10PctDistScore ?? BENCHMARK_DEFAULTS.distScore,
+      medianDistScore: d?.medianDistScore ?? BENCHMARK_DEFAULTS.medianDistScore,
+      universeSize: d?.universeSize ?? BENCHMARK_DEFAULTS.universeSize,
+      generatedAt: d?.generatedAt ?? BENCHMARK_DEFAULTS.generatedAt,
+    };
+  }, [benchmarkQ.data]);
 
   const totals = useMemo(() => {
     return {
@@ -473,11 +511,48 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-8">
-          <MetricCard label="Total Impressions" value={totals.impressions > 1000 ? `${(totals.impressions / 1000).toFixed(1)}K` : totals.impressions} delta={dashboard.impressionsDelta != null ? +dashboard.impressionsDelta.toFixed(0) : undefined} deltaLabel={deltaLabel} />
-          <MetricCard label="Avg Eng. Rate" value={`${totals.engRate}%`} delta={dashboard.engagementRateDelta != null ? +dashboard.engagementRateDelta.toFixed(0) : undefined} deltaLabel={deltaLabel} />
-          <MetricCard label="Total Followers" value={totals.followers.toLocaleString()} delta={dashboard.followersDelta != null ? +dashboard.followersDelta.toFixed(1) : undefined} deltaLabel={deltaLabel} />
-          <MetricCard label="Engagements" value={(dashboard.engagements ?? 0).toLocaleString()} delta={dashboard.engagementsDelta != null ? +dashboard.engagementsDelta.toFixed(0) : undefined} deltaLabel={deltaLabel} />
-          <MetricCard label="Posts Tracked" value={totals.posts} />
+          <MetricCard
+            label="Total Impressions"
+            value={totals.impressions > 1000 ? `${(totals.impressions / 1000).toFixed(1)}K` : totals.impressions}
+            delta={dashboard.impressionsDelta != null ? +dashboard.impressionsDelta.toFixed(0) : undefined}
+            deltaLabel={deltaLabel}
+            benchmark={{
+              label: 'Top 10% /post',
+              value: bm.impressions > 1000 ? `${(bm.impressions / 1000).toFixed(1)}K` : Math.round(bm.impressions).toLocaleString(),
+              delta: totals.posts > 0 && bm.medianImpressions ? +((totals.impressions / totals.posts - bm.medianImpressions) / bm.medianImpressions * 100).toFixed(0) : undefined,
+            }}
+          />
+          <MetricCard
+            label="Avg Eng. Rate"
+            value={`${totals.engRate}%`}
+            delta={dashboard.engagementRateDelta != null ? +dashboard.engagementRateDelta.toFixed(0) : undefined}
+            deltaLabel={deltaLabel}
+            benchmark={{
+              label: 'Top 10% avg',
+              value: `${bm.engRate.toFixed(1)}%`,
+              delta: bm.medianEngRate ? +((totals.engRate - bm.medianEngRate) / bm.medianEngRate * 100).toFixed(0) : undefined,
+            }}
+          />
+          <MetricCard
+            label="Total Followers"
+            value={totals.followers.toLocaleString()}
+            delta={dashboard.followersDelta != null ? +dashboard.followersDelta.toFixed(1) : undefined}
+            deltaLabel={deltaLabel}
+          />
+          <MetricCard
+            label="Engagements"
+            value={(dashboard.engagements ?? 0).toLocaleString()}
+            delta={dashboard.engagementsDelta != null ? +dashboard.engagementsDelta.toFixed(0) : undefined}
+            deltaLabel={deltaLabel}
+            benchmark={{
+              label: 'Top 10% Dist. Score',
+              value: Math.round(bm.distScore).toLocaleString(),
+            }}
+          />
+          <MetricCard
+            label="Posts Tracked"
+            value={totals.posts}
+          />
         </div>
       )}
 

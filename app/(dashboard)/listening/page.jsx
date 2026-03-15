@@ -40,7 +40,7 @@ function formatFollowers(n) {
 
 export default function ListeningPage() {
   const chartColors = useChartColors();
-  const [subTab, setSubTab] = useState('sov');
+  const [subTab, setSubTab] = useState('feed');
   const [relevanceFilter, setRelevanceFilter] = useState('HIGH');
   const [selectedBrands, setSelectedBrands] = useState([]); // multi-select topic IDs
   const [platformFilter, setPlatformFilter] = useState('all'); // 'all' | 'X' | 'REDDIT'
@@ -79,10 +79,7 @@ export default function ListeningPage() {
   );
   const topicsQ = trpc.listening.topics.list.useQuery(undefined, { staleTime: 30_000 });
   const accountsQ = trpc.accounts.list.useQuery(undefined, { staleTime: 60_000 });
-  const sovQ = trpc.competitors.getSOV.useQuery(undefined, { staleTime: 60_000 });
   const sentimentQ = trpc.analytics.brandSentiment.useQuery(undefined, { staleTime: 30_000 });
-  const mentionMetricsQ = trpc.listening.mentionMetrics.useQuery(undefined, { staleTime: 30_000 });
-  const competitorActivityQ = trpc.competitors.activity.useQuery(undefined, { staleTime: 60_000 });
 
   // ── tRPC mutations ─────────────────────────────────────────
   const utils = trpc.useUtils();
@@ -170,8 +167,6 @@ export default function ListeningPage() {
   const listeningFeed = hitsQ.data?.items ?? [];
   const listeningTopics = topicsQ.data ?? [];
   const accounts = accountsQ.data ?? [];
-  const sovData = sovQ.data?.current ?? [];
-  const sovTimeData = sovQ.data?.overTime ?? [];
   const sentimentTrendData = sentimentQ.data?.overTime ?? [];
 
   // Toggle a brand in the multi-select filter
@@ -367,11 +362,9 @@ export default function ListeningPage() {
       {/* Sub-navigation */}
       <div className="flex items-center gap-2 mb-6 border-b border-border pb-3">
         {[
-          { key: 'sov', label: 'Share of Voice' },
           { key: 'feed', label: 'Listening Feed', badge: filteredFeed.length || undefined },
           { key: 'insights', label: 'AI Insights' },
           { key: 'topics', label: 'Topics', badge: listeningTopics.length || undefined },
-          { key: 'competitors', label: 'Competitors' },
         ].map((t) => (
           <TabButton key={t.key} active={subTab === t.key} onClick={() => setSubTab(t.key)} badge={t.badge}>
             {t.label}
@@ -1187,302 +1180,6 @@ export default function ListeningPage() {
         </div>
       )}
 
-      {/* ── SOV sub-tab ─── */}
-      {subTab === 'sov' && (
-        <div>
-          <SectionTitle subtitle="Your brand's share of the conversation vs. competitors">Share of Voice & Analytics</SectionTitle>
-
-          {/* Mention Metrics Summary */}
-          {mentionMetricsQ.isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-              {[1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-              <div className="bg-surface-card rounded-xl border border-border p-4">
-                <p className="text-xs text-content-muted mb-1">Total (30d)</p>
-                <p className="text-2xl font-bold text-content-primary">{mentionMetricsQ.data?.total30d || 0}</p>
-              </div>
-              <div className="bg-surface-card rounded-xl border border-border p-4">
-                <p className="text-xs text-content-muted mb-1">This Week (7d)</p>
-                <p className="text-2xl font-bold text-content-primary">{mentionMetricsQ.data?.total7d || 0}</p>
-              </div>
-              <div className="bg-surface-card rounded-xl border border-border p-4">
-                <p className="text-xs text-content-muted mb-1">Positive</p>
-                <p className="text-2xl font-bold text-green-600">{mentionMetricsQ.data?.bySentiment?.POSITIVE || 0}</p>
-              </div>
-              <div className="bg-surface-card rounded-xl border border-border p-4">
-                <p className="text-xs text-content-muted mb-1">Neutral</p>
-                <p className="text-2xl font-bold text-content-secondary">{mentionMetricsQ.data?.bySentiment?.NEUTRAL || 0}</p>
-              </div>
-              <div className="bg-surface-card rounded-xl border border-border p-4">
-                <p className="text-xs text-content-muted mb-1">Negative</p>
-                <p className="text-2xl font-bold text-red-600">{mentionMetricsQ.data?.bySentiment?.NEGATIVE || 0}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Topic Breakdown */}
-          {mentionMetricsQ.data?.byTopic && mentionMetricsQ.data.byTopic.length > 0 && (
-            <div className="bg-surface-card rounded-xl border border-border p-5 mb-8">
-              <h4 className="text-sm font-semibold text-content-primary mb-3">Mentions by Topic (7d)</h4>
-              <div className="space-y-2">
-                {mentionMetricsQ.data.byTopic.map((topic) => (
-                  <div key={topic.topicId} className="flex items-center justify-between py-2 border-b border-border-secondary last:border-0">
-                    <span className="text-sm text-content-secondary">{topic.topicName}</span>
-                    <span className="font-semibold text-content-primary">{topic.count}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Daily Trend */}
-          {mentionMetricsQ.data?.dailyTrend && mentionMetricsQ.data.dailyTrend.length > 0 && (
-            <div className="bg-surface-card rounded-xl border border-border p-5 mb-8">
-              <h4 className="text-sm font-semibold text-content-primary mb-3">Daily Mention Trend (14d)</h4>
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={mentionMetricsQ.data.dailyTrend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
-                  <Area type="monotone" dataKey="count" stroke="#3b82f6" fill="#93c5fd" name="Mentions" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-
-          {sovQ.isLoading ? (
-            <Skeleton className="h-[300px] w-full rounded-xl mb-8" />
-          ) : sovData.length === 0 ? (
-            <div className="bg-surface-card rounded-xl border border-border p-12 text-center">
-              <h3 className="text-sm font-semibold text-content-primary mb-1">No Share of Voice data yet</h3>
-              <p className="text-xs text-content-muted">Configure competitors to start tracking share of voice.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-              <div className="bg-surface-card rounded-xl border border-border p-5">
-                <h4 className="text-sm font-semibold text-content-primary mb-3">Current SOV</h4>
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie
-                      data={sovData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={80}
-                      dataKey="value"
-                      label={({ value }) => `${value}%`}
-                    >
-                      {sovData.map((entry, i) => (
-                        <Cell key={i} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="flex flex-wrap justify-center gap-3 mt-2">
-                  {sovData.map((s) => (
-                    <span key={s.name} className="flex items-center gap-1 text-xs text-content-secondary">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
-                      {s.name}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="lg:col-span-2 bg-surface-card rounded-xl border border-border p-5">
-                <h4 className="text-sm font-semibold text-content-primary mb-3">SOV Over Time</h4>
-                <ResponsiveContainer width="100%" height={220}>
-                  <AreaChart data={sovTimeData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                    <XAxis dataKey="week" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
-                    {sovData.map((entry, i) => (
-                      <Area key={entry.name} type="monotone" dataKey={entry.name} stackId="1" stroke={entry.color} fill={entry.color} fillOpacity={0.3} />
-                    ))}
-                    <Legend />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
-
-          {/* Competitor Activity — posting cadence + engagement */}
-          {competitorActivityQ.isLoading ? (
-            <Skeleton className="h-[200px] w-full rounded-xl mb-8" />
-          ) : competitorActivityQ.data?.length > 0 && (
-            <div className="bg-surface-card rounded-xl border border-border p-5 mb-8">
-              <h4 className="text-sm font-semibold text-content-primary mb-3">Competitor Activity (30d)</h4>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
-                      {['Competitor', 'Followers', 'Posts/Day', 'Avg Engagement', 'Mentions', 'Sentiment', 'SOV', 'Follower Growth'].map((h) => (
-                        <th key={h} className="text-left py-2 px-3 text-xs font-medium text-content-muted uppercase">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {competitorActivityQ.data.map((comp) => (
-                      <tr key={comp.id} className="border-b border-border-secondary hover:bg-surface-hover">
-                        <td className="py-3 px-3">
-                          <div>
-                            <span className="font-medium text-content-primary">{comp.name}</span>
-                            {comp.accounts.filter((a) => a.platform === 'X').map((a) => (
-                              <span key={a.username} className="text-xs text-content-faint ml-1">@{a.username}</span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="py-3 px-3 font-semibold">{comp.followersX > 0 ? formatFollowers(comp.followersX) : '—'}</td>
-                        <td className="py-3 px-3">
-                          <span className={comp.postsPerDay >= 3 ? 'text-green-600 font-medium' : comp.postsPerDay >= 1 ? 'text-content-primary' : 'text-content-faint'}>
-                            {comp.postsPerDay > 0 ? comp.postsPerDay : '—'}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3">
-                          {comp.avgEngagementRate > 0 ? (
-                            <span className={comp.avgEngagementRate >= 1 ? 'text-green-600 font-medium' : 'text-content-primary'}>
-                              {comp.avgEngagementRate.toFixed(2)}%
-                            </span>
-                          ) : '—'}
-                        </td>
-                        <td className="py-3 px-3">{comp.totalMentions > 0 ? comp.totalMentions : '—'}</td>
-                        <td className="py-3 px-3">
-                          {comp.avgSentimentPositivePct > 0 ? (
-                            <span className={comp.avgSentimentPositivePct > 65 ? 'text-green-600' : 'text-amber-600'}>
-                              {comp.avgSentimentPositivePct}% pos
-                            </span>
-                          ) : '—'}
-                        </td>
-                        <td className="py-3 px-3 font-semibold">{comp.shareOfVoicePct > 0 ? `${comp.shareOfVoicePct}%` : '—'}</td>
-                        <td className="py-3 px-3">
-                          {comp.followerGrowth !== 0 ? (
-                            <span className={comp.followerGrowth > 0 ? 'text-green-600 font-medium' : 'text-red-600'}>
-                              {comp.followerGrowth > 0 ? '+' : ''}{formatFollowers(comp.followerGrowth)}
-                            </span>
-                          ) : '—'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {competitorActivityQ.data[0]?.daysTracked === 0 && (
-                <p className="text-xs text-content-faint mt-3">No metrics collected yet. Run the competitor poll cron to start tracking.</p>
-              )}
-            </div>
-          )}
-
-          {/* Sentiment trend */}
-          {sentimentTrendData.length > 0 && (
-            <div className="bg-surface-card rounded-xl border border-border p-5">
-              <h4 className="text-sm font-semibold text-content-primary mb-3">Sentiment Trend (All Topics)</h4>
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={sentimentTrendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
-                  <Area type="monotone" dataKey="positive" stackId="1" stroke={COLORS.green} fill="#bbf7d0" name="Positive" />
-                  <Area type="monotone" dataKey="neutral" stackId="1" stroke={COLORS.gray} fill="#e5e7eb" name="Neutral" />
-                  <Area type="monotone" dataKey="negative" stackId="1" stroke={COLORS.red} fill="#fecaca" name="Negative" />
-                  <Legend />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── Competitors sub-tab ─── */}
-      {subTab === 'competitors' && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <SectionTitle subtitle="Track competitor accounts, keywords, and content performance">Competitor Monitoring</SectionTitle>
-            <button className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm rounded-lg hover:bg-gray-800">+ Add Competitor</button>
-          </div>
-
-          {sovData.length === 0 ? (
-            <div className="bg-surface-card rounded-xl border border-border p-12 text-center">
-              <h3 className="text-sm font-semibold text-content-primary mb-1">No competitors configured</h3>
-              <p className="text-xs text-content-muted">Add competitors to start tracking their activity and share of voice.</p>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                {sovData
-                  .filter((s) => s.name !== 'Unattributed' && s.name !== 'Highland Ventures')
-                  .map((comp, i) => (
-                    <div key={i} className="bg-surface-card rounded-xl border border-border p-5 hover:shadow-md transition-shadow cursor-pointer">
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="w-4 h-4 rounded-full" style={{ backgroundColor: comp.color }} />
-                        <h4 className="font-semibold text-content-primary">{comp.name}</h4>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3 text-sm">
-                        <div>
-                          <p className="text-content-muted text-xs">SOV</p>
-                          <p className="font-bold text-lg">{comp.value}%</p>
-                        </div>
-                        <div>
-                          <p className="text-content-muted text-xs">Mentions</p>
-                          <p className="font-bold text-lg">{comp.mentions}</p>
-                        </div>
-                        <div>
-                          <p className="text-content-muted text-xs">Sentiment</p>
-                          <p className="font-medium text-amber-600">{comp.sentiment}% pos</p>
-                        </div>
-                        <div>
-                          <p className="text-content-muted text-xs">Engagement</p>
-                          <p className="font-medium">{comp.avgEng}%</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-
-              {/* Competitive comparison table */}
-              <div className="bg-surface-card rounded-xl border border-border p-5">
-                <h4 className="text-sm font-semibold text-content-primary mb-3">Competitive Comparison</h4>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border">
-                      {['Brand', 'SOV', 'Mentions', 'Sentiment', 'Avg Engagement', 'Follower Growth'].map((h) => (
-                        <th key={h} className="text-left py-2 px-3 text-xs font-medium text-content-muted uppercase">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sovData.map((s, i) => (
-                      <tr key={i} className="border-b border-border-secondary hover:bg-surface-hover">
-                        <td className="py-3 px-3">
-                          <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }} />
-                            <span className={`font-medium ${i === 0 ? 'text-blue-700' : 'text-content-primary'}`}>{s.name}</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-3 font-bold text-lg">{s.value}%</td>
-                        <td className="py-3 px-3">{s.mentions}</td>
-                        <td className="py-3 px-3">
-                          {s.sentiment ? (
-                            <span className={s.sentiment > 65 ? 'text-green-600 font-medium' : 'text-amber-600'}>{s.sentiment}% pos</span>
-                          ) : (
-                            '—'
-                          )}
-                        </td>
-                        <td className="py-3 px-3">{s.avgEng ? `${s.avgEng}%` : '—'}</td>
-                        <td className="py-3 px-3">{s.growth ? <span className="text-green-600 font-medium">+{s.growth}</span> : '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
-        </div>
-      )}
     </div>
   );
 }

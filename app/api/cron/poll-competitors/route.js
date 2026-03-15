@@ -83,20 +83,20 @@ export async function GET(request) {
             postsCount += tweets.length;
 
             for (const tweet of tweets) {
-              const pm = tweet.public_metrics || tweet.metrics || {};
-              const eng =
-                (pm.like_count || pm.likes || 0) +
-                (pm.retweet_count || pm.retweets || 0) +
-                (pm.reply_count || pm.replies || 0) +
-                (pm.quote_count || pm.quotes || 0);
+              // TwitterAPI.io returns metrics at top level (likeCount, retweetCount, etc.)
+              const likes = tweet.likeCount || tweet.like_count || tweet.public_metrics?.like_count || 0;
+              const retweets = tweet.retweetCount || tweet.retweet_count || tweet.public_metrics?.retweet_count || 0;
+              const replies = tweet.replyCount || tweet.reply_count || tweet.public_metrics?.reply_count || 0;
+              const quotes = tweet.quoteCount || tweet.quote_count || tweet.public_metrics?.quote_count || 0;
+              const eng = likes + retweets + replies + quotes;
               totalEngagement += eng;
               tweetCount++;
 
               // Store individual post content + metrics
               const tweetText = tweet.text || tweet.full_text || '';
               const tweetId = tweet.id || tweet.id_str || '';
-              const postedAt = tweet.created_at ? new Date(tweet.created_at) : new Date();
-              const impressionsCount = pm.impression_count || pm.impressions || 0;
+              const postedAt = tweet.createdAt || tweet.created_at ? new Date(tweet.createdAt || tweet.created_at) : new Date();
+              const impressionsCount = tweet.viewCount || tweet.impressionCount || tweet.public_metrics?.impression_count || 0;
               const followersForRate = followersX || 1;
 
               if (tweetId && tweetText) {
@@ -108,10 +108,10 @@ export async function GET(request) {
                     },
                   },
                   update: {
-                    likes: pm.like_count || pm.likes || 0,
-                    retweets: pm.retweet_count || pm.retweets || 0,
-                    replies: pm.reply_count || pm.replies || 0,
-                    quotes: pm.quote_count || pm.quotes || 0,
+                    likes,
+                    retweets,
+                    replies,
+                    quotes,
                     impressions: impressionsCount,
                     engagementRate: followersForRate > 0 ? (eng / followersForRate) * 100 : 0,
                   },
@@ -123,10 +123,10 @@ export async function GET(request) {
                     contentType: 'POST',
                     authorUsername: acct.username,
                     postedAt,
-                    likes: pm.like_count || pm.likes || 0,
-                    retweets: pm.retweet_count || pm.retweets || 0,
-                    replies: pm.reply_count || pm.replies || 0,
-                    quotes: pm.quote_count || pm.quotes || 0,
+                    likes,
+                    retweets,
+                    replies,
+                    quotes,
                     impressions: impressionsCount,
                     engagementRate: followersForRate > 0 ? (eng / followersForRate) * 100 : 0,
                   },
@@ -207,6 +207,66 @@ export async function GET(request) {
       } catch (compError) {
         console.error(`Error processing competitor ${comp.name}:`, compError);
         results.errors.push({ competitor: comp.name, error: compError.message });
+      }
+    }
+
+    // ── Amplifier collection ────────────────────────────────
+    // For each competitor, fetch retweeters of their top 5 most-engaged posts
+    for (const comp of competitors) {
+      try {
+        const recentPosts = await prisma.competitorPost.findMany({
+          where: { competitorId: comp.id, postedAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
+          orderBy: { engagementRate: 'desc' },
+          take: 5,
+        });
+
+        for (const post of recentPosts) {
+          try {
+            const retweetersRes = await twitterApiIoRequest(apiKey, '/twitter/tweet/retweeters', {
+              tweetId: post.platformPostId,
+            });
+            const retweeters = retweetersRes?.data?.users || retweetersRes?.users || [];
+
+            for (const user of retweeters.slice(0, 20)) {
+              const username = user.username || user.screen_name || '';
+              if (!username) continue;
+
+              await prisma.competitorAmplifier.upsert({
+                where: {
+                  competitorId_platform_username: {
+                    competitorId: comp.id,
+                    platform: 'X',
+                    username,
+                  },
+                },
+                update: {
+                  interactionCount: { increment: 1 },
+                  lastSeenAt: new Date(),
+                  followersCount: user.followers_count || user.followersCount || 0,
+                  displayName: user.name || user.display_name || null,
+                  avatarUrl: user.profile_image_url || user.avatar || null,
+                  platformUserId: user.id ? String(user.id) : undefined,
+                },
+                create: {
+                  competitorId: comp.id,
+                  platform: 'X',
+                  username,
+                  platformUserId: user.id ? String(user.id) : null,
+                  displayName: user.name || user.display_name || null,
+                  avatarUrl: user.profile_image_url || user.avatar || null,
+                  followersCount: user.followers_count || user.followersCount || 0,
+                  amplificationType: 'RETWEET',
+                  interactionCount: 1,
+                },
+              });
+            }
+          } catch (retErr) {
+            // Non-fatal: skip this post's retweeters
+            console.warn(`  Retweeters fetch failed for post ${post.platformPostId}:`, retErr.message);
+          }
+        }
+      } catch (ampError) {
+        console.warn(`  Amplifier collection failed for ${comp.name}:`, ampError.message);
       }
     }
 
@@ -323,23 +383,32 @@ export async function GET(request) {
           };
         });
 
+        // Summarize Figure's post themes for content gap analysis
+        const figureContentSamples = figurePosts.slice(0, 15).map(p => (p.content || '').slice(0, 100));
+
         const aiContext = {
-          instruction: `Analyze competitor posting strategies and generate three JSON objects:
+          instruction: `Analyze competitor posting strategies and generate four JSON objects:
 1. "themes": array of { phrase (string), occurrences (int), avgEngRate (float), competitors (string[]) } — top 20 themes across all competitors
 2. "formats": array of { format (string), postCount (int), avgEngRate (float), topCompetitor (string) } — format breakdown
 3. "strategyCards": array of { competitorName (string), postingCadence (string like "2.3 posts/day"), topThemes (array of 3 strings), formatMix (string), engagementRate (string), followerCount (int), engagementBenchmark (string comparing to Figure's avg), followerBenchmark (string comparing to Figure's count), keyInsight (string, 1-2 sentences) }
+4. "contentGaps": object with two arrays:
+   - "gaps": array of { theme (string), competitors (string[]), avgEngRate (float), recommendation (string, 1 sentence action item) } — themes competitors cover that Figure does NOT (top 10)
+   - "strengths": array of { theme (string), figurePostCount (int), avgEngRate (float) } — themes Figure covers that competitors don't or cover less (top 10)
 
-Return a JSON object with keys: themes, formats, strategyCards.`,
+For contentGaps, compare Figure's content samples against competitor themes. Gaps are topics competitors post about with good engagement that Figure is missing. Strengths are topics Figure owns exclusively or dominates.
+
+Return a JSON object with keys: themes, formats, strategyCards, contentGaps.`,
           competitors: competitorSummaries,
           figure: {
             avgEngagementRate: figureAvgEngRate.toFixed(4),
             postsPerDay: figurePostsPerDay.toFixed(1),
             followersX: figureFollowers,
+            contentSamples: figureContentSamples,
           },
         };
 
         const aiResult = await generateInsight('competitor_strategy', aiContext, {
-          model: 'claude-3-5-haiku-20241022',
+          model: 'claude-haiku-4-5-20251001',
           maxTokens: 2048,
           systemPrompt: 'You are a competitive intelligence analyst for a social media team in the RWA/tokenization space. Analyze competitor posting strategies and compare to our (Figure) performance. Always respond with valid JSON matching the requested schema.',
         });
@@ -374,10 +443,19 @@ Return a JSON object with keys: themes, formats, strategyCards.`,
           },
         });
 
+        // Store content gaps result
+        await prisma.aIInsight.create({
+          data: {
+            insightType: 'COMPETITOR_STRATEGY',
+            content: { type: 'contentGaps', data: aiResult.contentGaps || { gaps: [], strengths: [] } },
+          },
+        });
+
         console.log('Competitor strategy AI analysis cached:', {
           themes: (aiResult.themes || []).length,
           formats: (aiResult.formats || []).length,
           strategyCards: (aiResult.strategyCards || []).length,
+          contentGaps: (aiResult.contentGaps?.gaps || []).length,
         });
       }
     } catch (aiError) {

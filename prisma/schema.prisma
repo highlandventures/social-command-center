@@ -420,10 +420,11 @@ model Competitor {
   createdById String
   createdAt   DateTime @default(now())
 
-  accounts CompetitorAccount[]
-  keywords CompetitorKeyword[]
-  metrics  CompetitorMetrics[]
-  posts    CompetitorPost[]
+  accounts   CompetitorAccount[]
+  keywords   CompetitorKeyword[]
+  metrics    CompetitorMetrics[]
+  posts      CompetitorPost[]
+  amplifiers CompetitorAmplifier[]
 
   @@map("competitors")
 }
@@ -494,6 +495,28 @@ model CompetitorPost {
   @@unique([competitorId, platformPostId])
   @@index([competitorId, postedAt])
   @@map("competitor_posts")
+}
+
+model CompetitorAmplifier {
+  id                     String   @id @default(cuid())
+  competitorId           String
+  platform               Platform
+  username               String
+  platformUserId         String?
+  displayName            String?
+  avatarUrl              String?
+  followersCount         Int      @default(0)
+  amplificationType      String   // comma-separated: "RETWEET,QUOTE,MENTION"
+  interactionCount       Int      @default(0)
+  engagementContribution Int      @default(0)
+  firstSeenAt            DateTime @default(now())
+  lastSeenAt             DateTime @default(now())
+
+  competitor Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+
+  @@unique([competitorId, platform, username])
+  @@index([competitorId, interactionCount])
+  @@map("competitor_amplifiers")
 }
 
 // ============================================================
@@ -695,16 +718,20 @@ enum ApprovalStatus {
 // ============================================================
 
 model Report {
-  id          String     @id @default(cuid())
-  title       String
-  reportType  ReportType
-  prompt      String? // NLP prompt used to generate
-  content     Json // Generated report data
-  aiPct       Float      @default(0) // Percentage AI-generated
-  createdById String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  downloads   Int        @default(0)
+  id              String       @id @default(cuid())
+  title           String
+  reportType      ReportType
+  prompt          String? // NLP prompt used to generate
+  content         Json // Generated report data
+  aiPct           Float        @default(0) // Percentage AI-generated
+  createdById     String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  downloads       Int          @default(0)
+  status          ReportStatus @default(READY)
+  chartUrls       Json? // Array of { id, label, imageUrl } objects
+  coveragePeriod  Json? // { start: string, end: string } ISO date range
+  benchmarkPeriod Json? // { start: string, end: string } or null
 
   @@map("reports")
 }
@@ -715,6 +742,12 @@ enum ReportType {
   COMPETITIVE_ANALYSIS
   KOL_REPORT
   CUSTOM
+}
+
+enum ReportStatus {
+  GENERATING
+  READY
+  FAILED
 }
 
 // ============================================================

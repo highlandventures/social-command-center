@@ -11,62 +11,108 @@ import { trpc } from '@/lib/trpc-client';
 import { MetricCard, SectionTitle, TabButton, PlatformBadge, Skeleton, useChartColors } from '@/components/ui';
 
 // ── Static roadmap data (internal planning, not from API) ───
-// Last updated: Mar 14, 2026 — Sprint 5 (Reddit + cost optimization)
+// Last updated: Mar 15, 2026 — v1.1 Report Center milestone
+const milestones = [
+  { key: 'v1.0-platform', label: 'v1.0 — Platform Build', status: 'shipped' },
+  { key: 'v1.0-intel', label: 'v1.0 — Content Intelligence', status: 'shipped' },
+  { key: 'v1.1', label: 'v1.1 — Report Center', status: 'in_progress' },
+];
+
 const roadmapItems = [
-  // Phase 1: Foundation — COMPLETE
-  { id: 1, phase: 'Phase 1', title: 'Project scaffolding + Prisma schema (30+ models)', status: 'deployed', deployed: 'Jan 15' },
-  { id: 2, phase: 'Phase 1', title: 'OAuth account connection (X via OAuth 2.0)', status: 'deployed', deployed: 'Jan 22' },
-  { id: 3, phase: 'Phase 1', title: 'Post composer + preview (single, thread, article)', status: 'deployed', deployed: 'Feb 5' },
-  { id: 4, phase: 'Phase 1', title: 'Scheduling + publish cron (every minute)', status: 'deployed', deployed: 'Feb 10' },
-  { id: 5, phase: 'Phase 1', title: 'Calendar view (month + week)', status: 'deployed', deployed: 'Feb 14' },
-  { id: 6, phase: 'Phase 1', title: 'RBAC + team invitations (Admin/Internal/Agency)', status: 'deployed', deployed: 'Feb 20' },
-  { id: 7, phase: 'Phase 1', title: 'Hybrid X adapter (Official writes, TwitterAPI.io reads)', status: 'deployed', deployed: 'Feb 24' },
-  { id: 8, phase: 'Phase 1', title: 'Admin panel + cost tracker + polling config', status: 'deployed', deployed: 'Feb 28' },
+  // ── v1.0 Platform Build ──────────────────────────────────────
 
-  // Phase 2: Intelligence Layer — COMPLETE
-  { id: 9, phase: 'Phase 2', title: 'Thread composer mutations + field wiring', status: 'deployed', deployed: 'Mar 5' },
-  { id: 10, phase: 'Phase 2', title: 'Metrics poller + batch tweet fetching (100/req)', status: 'deployed', deployed: 'Mar 5' },
-  { id: 11, phase: 'Phase 2', title: 'Dashboard with real mentions + period comparison', status: 'deployed', deployed: 'Mar 7' },
-  { id: 12, phase: 'Phase 2', title: 'Social listening + AI query generation', status: 'deployed', deployed: 'Mar 7' },
-  { id: 13, phase: 'Phase 2', title: 'KOL tracking + AI scoring (A–F, 4 factors)', status: 'deployed', deployed: 'Mar 7' },
-  { id: 14, phase: 'Phase 2', title: 'Competitor monitoring + share-of-voice', status: 'deployed', deployed: 'Mar 7' },
-  { id: 15, phase: 'Phase 2', title: 'AI reports (5 types) + dynamic renderer', status: 'deployed', deployed: 'Mar 9' },
-  { id: 16, phase: 'Phase 2', title: 'Conversational listening (clarifying questions)', status: 'deployed', deployed: 'Mar 9' },
+  // Sprint 1: Foundation — COMPLETE
+  { id: 1, milestone: 'v1.0-platform', phase: 'Foundation', title: 'Project scaffolding + Prisma schema (30+ models)', status: 'deployed', deployed: 'Jan 15' },
+  { id: 2, milestone: 'v1.0-platform', phase: 'Foundation', title: 'OAuth account connection (X via OAuth 2.0)', status: 'deployed', deployed: 'Jan 22' },
+  { id: 3, milestone: 'v1.0-platform', phase: 'Foundation', title: 'Post composer + preview (single, thread, article)', status: 'deployed', deployed: 'Feb 5' },
+  { id: 4, milestone: 'v1.0-platform', phase: 'Foundation', title: 'Scheduling + publish cron (every minute)', status: 'deployed', deployed: 'Feb 10' },
+  { id: 5, milestone: 'v1.0-platform', phase: 'Foundation', title: 'Calendar view (month + week)', status: 'deployed', deployed: 'Feb 14' },
+  { id: 6, milestone: 'v1.0-platform', phase: 'Foundation', title: 'RBAC + team invitations (Admin/Internal/Agency)', status: 'deployed', deployed: 'Feb 20' },
+  { id: 7, milestone: 'v1.0-platform', phase: 'Foundation', title: 'Hybrid X adapter (Official writes, TwitterAPI.io reads)', status: 'deployed', deployed: 'Feb 24' },
+  { id: 8, milestone: 'v1.0-platform', phase: 'Foundation', title: 'Admin panel + cost tracker + polling config', status: 'deployed', deployed: 'Feb 28' },
 
-  // Phase 3: Hardening & DX — COMPLETE
-  { id: 17, phase: 'Phase 3', title: 'Error boundary + toast notification system', status: 'deployed', deployed: 'Mar 9' },
-  { id: 18, phase: 'Phase 3', title: 'README + .env.example documentation', status: 'deployed', deployed: 'Mar 9' },
-  { id: 19, phase: 'Phase 3', title: 'Cron job failure alerting + observability', status: 'deployed', deployed: 'Mar 9' },
-  { id: 20, phase: 'Phase 3', title: 'Lib directory restructure (adapters/, etc.)', status: 'deployed', deployed: 'Mar 9' },
-  { id: 21, phase: 'Phase 3', title: 'PRD v1.0 documentation', status: 'deployed', deployed: 'Mar 9' },
+  // Sprint 2: Intelligence Layer — COMPLETE
+  { id: 9, milestone: 'v1.0-platform', phase: 'Intelligence', title: 'Thread composer mutations + field wiring', status: 'deployed', deployed: 'Mar 5' },
+  { id: 10, milestone: 'v1.0-platform', phase: 'Intelligence', title: 'Metrics poller + batch tweet fetching (100/req)', status: 'deployed', deployed: 'Mar 5' },
+  { id: 11, milestone: 'v1.0-platform', phase: 'Intelligence', title: 'Dashboard with real mentions + period comparison', status: 'deployed', deployed: 'Mar 7' },
+  { id: 12, milestone: 'v1.0-platform', phase: 'Intelligence', title: 'Social listening + AI query generation', status: 'deployed', deployed: 'Mar 7' },
+  { id: 13, milestone: 'v1.0-platform', phase: 'Intelligence', title: 'KOL tracking + AI scoring (A–F, 4 factors)', status: 'deployed', deployed: 'Mar 7' },
+  { id: 14, milestone: 'v1.0-platform', phase: 'Intelligence', title: 'Competitor monitoring + share-of-voice', status: 'deployed', deployed: 'Mar 7' },
+  { id: 15, milestone: 'v1.0-platform', phase: 'Intelligence', title: 'AI reports (5 types) + dynamic renderer', status: 'deployed', deployed: 'Mar 9' },
+  { id: 16, milestone: 'v1.0-platform', phase: 'Intelligence', title: 'Conversational listening (clarifying questions)', status: 'deployed', deployed: 'Mar 9' },
 
-  // Phase 4: Data Quality & Accuracy — COMPLETE
-  { id: 22, phase: 'Phase 4', title: 'Sentiment drivers, SOV, benchmark remediation', status: 'deployed', deployed: 'Mar 10' },
-  { id: 23, phase: 'Phase 4', title: 'Follower snapshots — backfill zeros + gap prevention', status: 'deployed', deployed: 'Mar 11' },
-  { id: 24, phase: 'Phase 4', title: 'Fix poll-metrics to snapshot all active accounts', status: 'deployed', deployed: 'Mar 11' },
-  { id: 25, phase: 'Phase 4', title: 'KOL profile pictures + competitor quality thresholds', status: 'deployed', deployed: 'Mar 12' },
-  { id: 26, phase: 'Phase 4', title: 'Listening accuracy — AI prompt, scoring, KOL gate', status: 'deployed', deployed: 'Mar 12' },
-  { id: 27, phase: 'Phase 4', title: 'Functional account switcher dropdown + filtering', status: 'deployed', deployed: 'Mar 13' },
-  { id: 28, phase: 'Phase 4', title: 'Sentiment trend uses original post timestamps', status: 'deployed', deployed: 'Mar 13' },
+  // Sprint 3: Hardening & DX — COMPLETE
+  { id: 17, milestone: 'v1.0-platform', phase: 'Hardening', title: 'Error boundary + toast notification system', status: 'deployed', deployed: 'Mar 9' },
+  { id: 18, milestone: 'v1.0-platform', phase: 'Hardening', title: 'README + .env.example documentation', status: 'deployed', deployed: 'Mar 9' },
+  { id: 19, milestone: 'v1.0-platform', phase: 'Hardening', title: 'Cron job failure alerting + observability', status: 'deployed', deployed: 'Mar 9' },
+  { id: 20, milestone: 'v1.0-platform', phase: 'Hardening', title: 'Lib directory restructure (adapters/, etc.)', status: 'deployed', deployed: 'Mar 9' },
+  { id: 21, milestone: 'v1.0-platform', phase: 'Hardening', title: 'PRD v1.0 documentation', status: 'deployed', deployed: 'Mar 9' },
 
-  // Phase 5: Reddit & Cost Optimization — IN PROGRESS
-  { id: 29, phase: 'Phase 5', title: 'SociaVault Reddit adapter + search normalization', status: 'deployed', deployed: 'Mar 13' },
-  { id: 30, phase: 'Phase 5', title: 'Figure subreddit monitoring (r/FigureTech, r/FigureMarkets, r/FIGR)', status: 'deployed', deployed: 'Mar 14' },
-  { id: 31, phase: 'Phase 5', title: 'Subreddit metrics tracking — subscribers, posts, engagement', status: 'deployed', deployed: 'Mar 14' },
-  { id: 32, phase: 'Phase 5', title: 'Reddit polling throttle (3x/day via Redis KV)', status: 'deployed', deployed: 'Mar 14' },
-  { id: 33, phase: 'Phase 5', title: 'Global Reddit search — 80% cost reduction', status: 'deployed', deployed: 'Mar 14' },
-  { id: 34, phase: 'Phase 5', title: 'Reddit Communities card on dashboard', status: 'deployed', deployed: 'Mar 14' },
-  { id: 35, phase: 'Phase 5', title: 'SociaVault cost logging in API tracker', status: 'deployed', deployed: 'Mar 14' },
-  { id: 36, phase: 'Phase 5', title: 'Infrastructure overview + updated cost tracker', status: 'deployed', deployed: 'Mar 14' },
-  { id: 37, phase: 'Phase 5', title: 'Account switcher stacking fix + dropdown z-index', status: 'deployed', deployed: 'Mar 14' },
-  { id: 38, phase: 'Phase 5', title: 'KOL AI scoring wired up (scoreAll + weekly cron)', status: 'deployed', deployed: 'Mar 14' },
-  { id: 39, phase: 'Phase 5', title: 'KOL metrics aggregation cron (engagement stats)', status: 'deployed', deployed: 'Mar 14' },
+  // Sprint 4: Data Quality & Accuracy — COMPLETE
+  { id: 22, milestone: 'v1.0-platform', phase: 'Data Quality', title: 'Sentiment drivers, SOV, benchmark remediation', status: 'deployed', deployed: 'Mar 10' },
+  { id: 23, milestone: 'v1.0-platform', phase: 'Data Quality', title: 'Follower snapshots — backfill zeros + gap prevention', status: 'deployed', deployed: 'Mar 11' },
+  { id: 24, milestone: 'v1.0-platform', phase: 'Data Quality', title: 'Fix poll-metrics to snapshot all active accounts', status: 'deployed', deployed: 'Mar 11' },
+  { id: 25, milestone: 'v1.0-platform', phase: 'Data Quality', title: 'KOL profile pictures + competitor quality thresholds', status: 'deployed', deployed: 'Mar 12' },
+  { id: 26, milestone: 'v1.0-platform', phase: 'Data Quality', title: 'Listening accuracy — AI prompt, scoring, KOL gate', status: 'deployed', deployed: 'Mar 12' },
+  { id: 27, milestone: 'v1.0-platform', phase: 'Data Quality', title: 'Functional account switcher dropdown + filtering', status: 'deployed', deployed: 'Mar 13' },
+  { id: 28, milestone: 'v1.0-platform', phase: 'Data Quality', title: 'Sentiment trend uses original post timestamps', status: 'deployed', deployed: 'Mar 13' },
 
-  // Phase 6: Planned — NOT STARTED
-  { id: 40, phase: 'Phase 6', title: 'Individual auth (SSO/email login, audit trail)', status: 'not_started', deployed: null },
-  { id: 41, phase: 'Phase 6', title: 'Image/media upload in posts', status: 'not_started', deployed: null },
-  { id: 42, phase: 'Phase 6', title: 'Mobile-responsive layout', status: 'not_started', deployed: null },
-  { id: 43, phase: 'Phase 6', title: 'LinkedIn integration + multi-platform publishing', status: 'not_started', deployed: null },
+  // Sprint 5: Reddit & Cost Optimization — COMPLETE
+  { id: 29, milestone: 'v1.0-platform', phase: 'Reddit & Cost', title: 'SociaVault Reddit adapter + search normalization', status: 'deployed', deployed: 'Mar 13' },
+  { id: 30, milestone: 'v1.0-platform', phase: 'Reddit & Cost', title: 'Figure subreddit monitoring (r/FigureTech, r/FigureMarkets, r/FIGR)', status: 'deployed', deployed: 'Mar 14' },
+  { id: 31, milestone: 'v1.0-platform', phase: 'Reddit & Cost', title: 'Subreddit metrics tracking — subscribers, posts, engagement', status: 'deployed', deployed: 'Mar 14' },
+  { id: 32, milestone: 'v1.0-platform', phase: 'Reddit & Cost', title: 'Reddit polling throttle (3x/day via Redis KV)', status: 'deployed', deployed: 'Mar 14' },
+  { id: 33, milestone: 'v1.0-platform', phase: 'Reddit & Cost', title: 'Global Reddit search — 80% cost reduction', status: 'deployed', deployed: 'Mar 14' },
+  { id: 34, milestone: 'v1.0-platform', phase: 'Reddit & Cost', title: 'Reddit Communities card on dashboard', status: 'deployed', deployed: 'Mar 14' },
+  { id: 35, milestone: 'v1.0-platform', phase: 'Reddit & Cost', title: 'SociaVault cost logging in API tracker', status: 'deployed', deployed: 'Mar 14' },
+  { id: 36, milestone: 'v1.0-platform', phase: 'Reddit & Cost', title: 'Infrastructure overview + updated cost tracker', status: 'deployed', deployed: 'Mar 14' },
+  { id: 37, milestone: 'v1.0-platform', phase: 'Reddit & Cost', title: 'Account switcher stacking fix + dropdown z-index', status: 'deployed', deployed: 'Mar 14' },
+  { id: 38, milestone: 'v1.0-platform', phase: 'Reddit & Cost', title: 'KOL AI scoring wired up (scoreAll + weekly cron)', status: 'deployed', deployed: 'Mar 14' },
+  { id: 39, milestone: 'v1.0-platform', phase: 'Reddit & Cost', title: 'KOL metrics aggregation cron (engagement stats)', status: 'deployed', deployed: 'Mar 14' },
+
+  // ── v1.0 Content Intelligence ────────────────────────────────
+
+  // Phase 1: Performance Intel — COMPLETE
+  { id: 40, milestone: 'v1.0-intel', phase: 'Performance Intel', title: 'performanceIntel tRPC router + tier grouping API', status: 'deployed', deployed: 'Mar 14' },
+  { id: 41, milestone: 'v1.0-intel', phase: 'Performance Intel', title: 'PerformanceIntelPanel — pattern callouts, sparklines, insight cards', status: 'deployed', deployed: 'Mar 14' },
+
+  // Phase 2: Competitor Intel — COMPLETE
+  { id: 42, milestone: 'v1.0-intel', phase: 'Competitor Intel', title: 'CompetitorPost schema, cron fetch, competitorIntel tRPC router', status: 'deployed', deployed: 'Mar 14' },
+  { id: 43, milestone: 'v1.0-intel', phase: 'Competitor Intel', title: 'CompetitorIntelPanel — themes, format analysis, strategy cards', status: 'deployed', deployed: 'Mar 14' },
+
+  // Phase 3: Audience Questions — COMPLETE
+  { id: 44, milestone: 'v1.0-intel', phase: 'Audience Questions', title: 'audienceQuestions tRPC router — intent classification + clustering', status: 'deployed', deployed: 'Mar 15' },
+  { id: 45, milestone: 'v1.0-intel', phase: 'Audience Questions', title: 'AudienceQuestionsPanel — topic clusters, opportunity scores', status: 'deployed', deployed: 'Mar 15' },
+
+  // Competitor Tab — COMPLETE
+  { id: 46, milestone: 'v1.0-intel', phase: 'Competitor Tab', title: 'Dedicated Competitor tab with 7 sub-tabs', status: 'deployed', deployed: 'Mar 15' },
+
+  // Phase 4: Content Co-Pilot — DEFERRED
+  { id: 47, milestone: 'v1.0-intel', phase: 'Content Co-Pilot', title: 'AI content suggestions, draft generation, tone matching', status: 'deferred', deployed: null },
+
+  // ── v1.1 Report Center ───────────────────────────────────────
+
+  // Phase 5: Report Engine + Charts — IN PROGRESS
+  { id: 48, milestone: 'v1.1', phase: 'Report Engine', title: 'Prisma schema extension + report content JSON schema', status: 'deployed', deployed: 'Mar 15' },
+  { id: 49, milestone: 'v1.1', phase: 'Report Engine', title: 'QuickChart.io chart renderer + Vercel Blob storage', status: 'deployed', deployed: 'Mar 15' },
+  { id: 50, milestone: 'v1.1', phase: 'Report Engine', title: 'Report engine orchestrator — KPIs, deltas, AI summary, sentiment', status: 'in_progress', deployed: null },
+  { id: 51, milestone: 'v1.1', phase: 'Report Engine', title: 'ReportViewer frontend — KPI cards, inline charts, detail page', status: 'not_started', deployed: null },
+
+  // Phase 6: Export + Distribution — NOT STARTED
+  { id: 52, milestone: 'v1.1', phase: 'Export & Distribute', title: 'PDF export with @react-pdf/renderer (KPIs, charts, summary)', status: 'not_started', deployed: null },
+  { id: 53, milestone: 'v1.1', phase: 'Export & Distribute', title: 'Email delivery with inline visual report + recipient config', status: 'not_started', deployed: null },
+  { id: 54, milestone: 'v1.1', phase: 'Export & Distribute', title: 'Delivery log — status, recipient, timestamp in report detail UI', status: 'not_started', deployed: null },
+
+  // Phase 7: Scheduling + Ad Hoc Reports — NOT STARTED
+  { id: 55, milestone: 'v1.1', phase: 'Scheduling & Ad Hoc', title: 'Report schedule CRUD — weekly/monthly/quarterly/yearly cadences', status: 'not_started', deployed: null },
+  { id: 56, milestone: 'v1.1', phase: 'Scheduling & Ad Hoc', title: 'Cron-based auto-generation via nextRunAt field', status: 'not_started', deployed: null },
+  { id: 57, milestone: 'v1.1', phase: 'Scheduling & Ad Hoc', title: 'Conversational AI report scoping — guided chat to define ad hoc reports', status: 'not_started', deployed: null },
+  { id: 58, milestone: 'v1.1', phase: 'Scheduling & Ad Hoc', title: 'Snapshot re-runs + manual re-trigger button', status: 'not_started', deployed: null },
+
+  // Phase 8: Benchmarking — NOT STARTED
+  { id: 59, milestone: 'v1.1', phase: 'Benchmarking', title: 'Period-over-period comparison (WoW, MoM, QoQ, YoY)', status: 'not_started', deployed: null },
+  { id: 60, milestone: 'v1.1', phase: 'Benchmarking', title: 'Named milestones — product launches, campaigns, events', status: 'not_started', deployed: null },
+  { id: 61, milestone: 'v1.1', phase: 'Benchmarking', title: 'Milestone benchmark comparisons with delta indicators', status: 'not_started', deployed: null },
 ];
 
 export default function AdminPage() {
@@ -158,11 +204,17 @@ function AdminContent() {
     deployed: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300',
     in_progress: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
     not_started: 'bg-surface-secondary text-content-secondary',
+    deferred: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
   };
   const statusLabels = {
     deployed: 'Deployed',
     in_progress: 'In Progress',
     not_started: 'Not Started',
+    deferred: 'Deferred',
+  };
+  const milestoneColors = {
+    shipped: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800',
+    in_progress: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',
   };
 
   const handleInvite = async (e) => {
@@ -726,8 +778,8 @@ function AdminContent() {
               label="In Progress"
               value={roadmapItems.filter((r) => r.status === 'in_progress').length}
             />
-            <MetricCard label="Current Phase" value="Phase 5" />
-            <MetricCard label="Accounts Connected" value={accounts.length} />
+            <MetricCard label="Current Milestone" value="v1.1" />
+            <MetricCard label="Current Phase" value="Report Engine" />
           </div>
 
           <div className="bg-surface-card rounded-xl border border-border p-5 mb-6">
@@ -745,72 +797,107 @@ function AdminContent() {
             </div>
           </div>
 
-          {['Phase 1', 'Phase 2', 'Phase 3', 'Phase 4', 'Phase 5', 'Phase 6'].map((phase) => {
-            const items = roadmapItems.filter((r) => r.phase === phase);
-            if (items.length === 0) return null;
-            const deployed = items.filter((r) => r.status === 'deployed').length;
-            const isCurrentPhase = items.some((r) => r.status === 'in_progress');
+          {milestones.map((ms) => {
+            const msItems = roadmapItems.filter((r) => r.milestone === ms.key);
+            if (msItems.length === 0) return null;
+            const msDeployed = msItems.filter((r) => r.status === 'deployed').length;
+            const phases = [...new Set(msItems.map((r) => r.phase))];
+
             return (
-              <div
-                key={phase}
-                className={`bg-surface-card rounded-xl border p-5 mb-4 ${
-                  isCurrentPhase ? 'border-blue-300 ring-1 ring-blue-100' : 'border-border'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <h4 className="font-semibold text-content-primary">{phase}</h4>
-                    {isCurrentPhase && (
-                      <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full font-medium">
-                        Current
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-sm text-content-muted">
-                    {deployed}/{items.length} deployed
+              <div key={ms.key} className="mb-8">
+                {/* Milestone header */}
+                <div className="flex items-center gap-3 mb-4">
+                  <h3 className="text-lg font-bold text-content-primary">{ms.label}</h3>
+                  <span className={`px-2.5 py-0.5 text-xs font-medium rounded-full border ${milestoneColors[ms.status]}`}>
+                    {ms.status === 'shipped' ? 'Shipped' : 'In Progress'}
+                  </span>
+                  <span className="text-sm text-content-muted ml-auto">
+                    {msDeployed}/{msItems.length} deployed
                   </span>
                 </div>
-                <div className="space-y-2">
-                  {items.map((item) => (
+
+                {phases.map((phase) => {
+                  const items = msItems.filter((r) => r.phase === phase);
+                  const deployed = items.filter((r) => r.status === 'deployed').length;
+                  const isCurrentPhase = items.some((r) => r.status === 'in_progress');
+                  const isDeferred = items.every((r) => r.status === 'deferred');
+                  return (
                     <div
-                      key={item.id}
-                      className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-surface-hover"
+                      key={phase}
+                      className={`bg-surface-card rounded-xl border p-5 mb-3 ${
+                        isCurrentPhase
+                          ? 'border-blue-300 dark:border-blue-700 ring-1 ring-blue-100 dark:ring-blue-900/50'
+                          : isDeferred
+                          ? 'border-yellow-200 dark:border-yellow-800 opacity-60'
+                          : 'border-border'
+                      }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <span
-                          className={`w-2 h-2 rounded-full ${
-                            item.status === 'deployed'
-                              ? 'bg-green-400'
-                              : item.status === 'in_progress'
-                              ? 'bg-blue-400 animate-pulse'
-                              : 'bg-gray-300'
-                          }`}
-                        />
-                        <span
-                          className={`text-sm ${
-                            item.status === 'deployed'
-                              ? 'text-content-muted'
-                              : 'text-content-primary font-medium'
-                          }`}
-                        >
-                          {item.title}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-semibold text-content-primary">{phase}</h4>
+                          {isCurrentPhase && (
+                            <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full font-medium">
+                              Current
+                            </span>
+                          )}
+                          {isDeferred && (
+                            <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 text-xs rounded-full font-medium">
+                              Deferred
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-sm text-content-muted">
+                          {deployed}/{items.length} deployed
                         </span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        {item.deployed && (
-                          <span className="text-xs text-content-faint">
-                            Shipped {item.deployed}
-                          </span>
-                        )}
-                        <span
-                          className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[item.status]}`}
-                        >
-                          {statusLabels[item.status]}
-                        </span>
+                      <div className="space-y-2">
+                        {items.map((item) => (
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-surface-hover"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span
+                                className={`w-2 h-2 rounded-full ${
+                                  item.status === 'deployed'
+                                    ? 'bg-green-400'
+                                    : item.status === 'in_progress'
+                                    ? 'bg-blue-400 animate-pulse'
+                                    : item.status === 'deferred'
+                                    ? 'bg-yellow-400'
+                                    : 'bg-gray-300'
+                                }`}
+                              />
+                              <span
+                                className={`text-sm ${
+                                  item.status === 'deployed'
+                                    ? 'text-content-muted'
+                                    : item.status === 'deferred'
+                                    ? 'text-content-muted italic'
+                                    : 'text-content-primary font-medium'
+                                }`}
+                              >
+                                {item.title}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              {item.deployed && (
+                                <span className="text-xs text-content-faint">
+                                  Shipped {item.deployed}
+                                </span>
+                              )}
+                              <span
+                                className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[item.status]}`}
+                              >
+                                {statusLabels[item.status]}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
             );
           })}
