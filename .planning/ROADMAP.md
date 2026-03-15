@@ -58,11 +58,11 @@ Plans:
   2. Questions are grouped into topic clusters (e.g., "tokenization", "staking", "Figure vs competitors") so the team sees themes, not a raw list
   3. Unanswered and recurring questions are highlighted as content opportunities the team has not yet addressed
   4. Each question cluster displays a content opportunity score based on question volume and associated engagement, so the team knows which topics to prioritize
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
+- [ ] 03-01-PLAN.md -- Backend: AUDIENCE_QUESTION InsightType, batch AI analysis in listening scanner, audienceQuestions tRPC router with clusters and questions procedures
+- [ ] 03-02-PLAN.md -- Frontend: AudienceQuestionsPanel component in composer sidebar with cluster cards, opportunity scores, and expandable questions
 
 ### Phase 4: Content Co-Pilot
 **Goal**: Team can co-create content with an AI agent that has full context on what works, what competitors do, and what the audience needs
@@ -89,5 +89,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 1. Performance Intel | 2/2 | ✅ Complete | 2026-03-14 |
 | 2. Competitor Intel | 2/2 | ✅ Complete | 2026-03-14 |
-| 3. Audience Questions | 0/0 | Not started | - |
+| 3. Audience Questions | 0/2 | In progress | - |
 | 4. Content Co-Pilot | 0/0 | Not started | - |
