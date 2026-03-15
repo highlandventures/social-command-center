@@ -16,10 +16,10 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Competitor Intel
 
-- [ ] **COMP-01**: System captures competitor post content (not just account-level metrics) from X (Reddit deferred to future phase)
-- [ ] **COMP-02**: AI extracts themes and topics competitors are posting about with frequency analysis
-- [ ] **COMP-03**: AI identifies content formats competitors use and which formats get highest engagement
-- [ ] **COMP-04**: Team can view a per-competitor strategy summary (posting cadence, top themes, engagement benchmarks vs ours)
+- [x] **COMP-01**: System captures competitor post content (not just account-level metrics) from X (Reddit deferred to future phase)
+- [x] **COMP-02**: AI extracts themes and topics competitors are posting about with frequency analysis
+- [x] **COMP-03**: AI identifies content formats competitors use and which formats get highest engagement
+- [x] **COMP-04**: Team can view a per-competitor strategy summary (posting cadence, top themes, engagement benchmarks vs ours)
 
 ### Audience Questions
 
@@ -73,10 +73,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PERF-02 | Phase 1 | Complete |
 | PERF-03 | Phase 1 | Complete |
 | PERF-04 | Phase 1 | Complete |
-| COMP-01 | Phase 2 | Pending |
-| COMP-02 | Phase 2 | Pending |
-| COMP-03 | Phase 2 | Pending |
-| COMP-04 | Phase 2 | Pending |
+| COMP-01 | Phase 2 | Complete |
+| COMP-02 | Phase 2 | Complete |
+| COMP-03 | Phase 2 | Complete |
+| COMP-04 | Phase 2 | Complete |
 | AUDQ-01 | Phase 3 | Pending |
 | AUDQ-02 | Phase 3 | Pending |
 | AUDQ-03 | Phase 3 | Pending |
