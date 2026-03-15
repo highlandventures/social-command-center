@@ -13,6 +13,14 @@ import {
   TabButton, Avatar, Skeleton,
 } from '@/components/ui';
 
+/** Format a date in UTC to avoid SSR/client timezone drift */
+function fmtDate(d) {
+  if (!d) return '';
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return '';
+  return `${dt.getUTCMonth() + 1}/${dt.getUTCDate()}/${dt.getUTCFullYear()}`;
+}
+
 // Transform API response to UI-friendly format
 function transformKOL(k) {
   const m = k.latestMetrics;
@@ -309,7 +317,7 @@ export default function KOLPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-medium text-blue-600">{typeLabel}</span>
-                      <span className="text-xs text-gray-400">{(act.postedAt || act.detectedAt) ? new Date(act.postedAt || act.detectedAt).toLocaleDateString() : ''}</span>
+                      <span className="text-xs text-gray-400">{fmtDate(act.postedAt || act.detectedAt)}</span>
                     </div>
                     <p className="text-sm text-gray-800">{act.content}</p>
                     <div className="flex gap-3 mt-1 text-xs text-gray-500">
@@ -546,7 +554,7 @@ export default function KOLPage() {
                         <PlatformBadge platform={act.platform} />
                         <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">{typeLabel}</span>
                       </div>
-                      <span className="text-xs text-gray-400">{(act.postedAt || act.detectedAt) ? new Date(act.postedAt || act.detectedAt).toLocaleDateString() : ''}</span>
+                      <span className="text-xs text-gray-400">{fmtDate(act.postedAt || act.detectedAt)}</span>
                     </div>
                     <p className="text-sm text-gray-800 leading-relaxed mb-2">{act.content}</p>
                     <div className="flex items-center gap-4 text-xs text-gray-500">
