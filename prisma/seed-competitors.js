@@ -435,9 +435,9 @@ const figureTopics = [
       // Only match the full phrase or qualified with Figure/FIGR context.
       {
         platform: 'X',
-        queryString: '("On-chain Public Equity" OR "OPEN network" OR "Blockchain Stock" OR ("OPEN" "FIGR") OR ("OPEN" "Provenance Blockchain")) lang:en',
-        negativeKeywords: ['open source', 'open letter', 'open door', 'open mic'],
-        rationale: 'OPEN network for blockchain-native equities. "OPEN" only paired with FIGR/Provenance to avoid matching common English "open".',
+        queryString: '("On-chain Public Equity" OR "Blockchain Stock" OR "blockchain-native equity") ("Figure" OR "FIGR" OR "Provenance" OR "tokenized equity") lang:en',
+        negativeKeywords: ['open source', 'open letter', 'ice open network', 'pi network', 'TON'],
+        rationale: 'OPEN network for blockchain-native equities. Requires Figure/FIGR/Provenance context. No bare "OPEN" or "OPEN network" — too many false positives.',
       },
 
       // Q7: Provenance Blockchain — full brand name + official account only

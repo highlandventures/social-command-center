@@ -39,10 +39,11 @@ function formatFollowers(n) {
 // ── Page Component ────────────────────────────────────────────
 
 export default function ListeningPage() {
-  const [subTab, setSubTab] = useState('feed');
+  const [subTab, setSubTab] = useState('sov');
   const [relevanceFilter, setRelevanceFilter] = useState('HIGH');
   const [selectedBrands, setSelectedBrands] = useState([]); // multi-select topic IDs
   const [platformFilter, setPlatformFilter] = useState('all'); // 'all' | 'X' | 'REDDIT'
+  const [feedTimeRange, setFeedTimeRange] = useState('7d'); // '24h' | '7d' | '30d' | '90d' | 'all'
 
   // New topic form state (AI-driven conversational flow)
   const [showNewTopic, setShowNewTopic] = useState(false);
@@ -69,6 +70,7 @@ export default function ListeningPage() {
     ...(selectedBrands.length > 0 ? { topicIds: selectedBrands } : {}),
     ...(platformFilter !== 'all' ? { platform: platformFilter } : {}),
     ...(relevanceFilter !== 'all' ? { relevance: relevanceFilter } : {}),
+    ...(feedTimeRange !== 'all' ? { timeRange: feedTimeRange } : {}),
   };
   const hitsQ = trpc.listening.hits.list.useQuery(
     Object.keys(hitsInput).length > 0 ? hitsInput : undefined,
@@ -363,10 +365,10 @@ export default function ListeningPage() {
       {/* Sub-navigation */}
       <div className="flex items-center gap-2 mb-6 border-b border-gray-200 pb-3">
         {[
+          { key: 'sov', label: 'Share of Voice' },
           { key: 'feed', label: 'Listening Feed', badge: filteredFeed.length || undefined },
           { key: 'insights', label: 'AI Insights' },
           { key: 'topics', label: 'Topics', badge: listeningTopics.length || undefined },
-          { key: 'sov', label: 'Share of Voice' },
           { key: 'competitors', label: 'Competitors' },
         ].map((t) => (
           <TabButton key={t.key} active={subTab === t.key} onClick={() => setSubTab(t.key)} badge={t.badge}>
@@ -379,8 +381,27 @@ export default function ListeningPage() {
       {subTab === 'feed' && (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-3">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-sm text-gray-500">Filter:</span>
+            <div className="flex items-center gap-2 mb-4 flex-wrap">
+              <span className="text-sm text-gray-500">Range:</span>
+              {[
+                { key: '24h', label: '24h' },
+                { key: '7d', label: '7d' },
+                { key: '30d', label: '30d' },
+                { key: '90d', label: '90d' },
+                { key: 'all', label: 'All' },
+              ].map((r) => (
+                <button
+                  key={r.key}
+                  onClick={() => setFeedTimeRange(r.key)}
+                  className={`px-2.5 py-1 text-xs rounded-lg font-medium ${
+                    feedTimeRange === r.key ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  {r.label}
+                </button>
+              ))}
+              <span className="text-gray-300 mx-1">|</span>
+              <span className="text-sm text-gray-500">Relevance:</span>
               {['all', 'HIGH', 'MEDIUM'].map((f) => (
                 <button
                   key={f}
