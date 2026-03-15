@@ -2,7 +2,7 @@
 phase: 4
 slug: content-co-pilot
 status: draft
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-03-15
 ---
@@ -17,18 +17,18 @@ created: 2026-03-15
 
 | Property | Value |
 |----------|-------|
-| **Framework** | jest 29.x (existing) + manual verification |
-| **Config file** | jest.config.js (if exists) or "none — Wave 0 installs" |
-| **Quick run command** | `npx jest --passWithNoTests` |
-| **Full suite command** | `npx jest --passWithNoTests` |
+| **Framework** | vitest 4.x |
+| **Config file** | vitest.config.js (created in Wave 0 / Plan 01) |
+| **Quick run command** | `npx vitest run --reporter=verbose` |
+| **Full suite command** | `npx vitest run --reporter=verbose` |
 | **Estimated runtime** | ~10 seconds |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Run `npx jest --passWithNoTests`
-- **After every plan wave:** Run `npx jest --passWithNoTests`
+- **After every task commit:** Run `npx vitest run --reporter=verbose`
+- **After every plan wave:** Run `npx vitest run --reporter=verbose`
 - **Before `/gsd:verify-work`:** Full suite must be green
 - **Max feedback latency:** 10 seconds
 
@@ -38,11 +38,12 @@ created: 2026-03-15
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 04-01-01 | 01 | 1 | CPLT-01 | checkpoint:human-verify | manual | N/A | ⬜ pending |
-| 04-01-02 | 01 | 1 | CPLT-02 | checkpoint:human-verify | manual | N/A | ⬜ pending |
-| 04-01-03 | 01 | 1 | CPLT-03 | checkpoint:human-verify | manual | N/A | ⬜ pending |
-| 04-02-01 | 02 | 2 | CPLT-04 | checkpoint:human-verify | manual | N/A | ⬜ pending |
-| 04-02-02 | 02 | 2 | CPLT-05 | checkpoint:human-verify | manual | N/A | ⬜ pending |
+| 04-01-01 | 01 | 1 | CPLT-02,03,05 | vitest (TDD) | `npx vitest run __tests__/lib/copilot/ --reporter=verbose` | ❌ W0 | ⬜ pending |
+| 04-02-01 | 02 | 2 | CPLT-01,04 | vitest (TDD) | `npx vitest run __tests__/lib/copilot/chat-route.test.js __tests__/lib/copilot/prediction.test.js --reporter=verbose` | ❌ W0 | ⬜ pending |
+| 04-02-02 | 02 | 2 | CPLT-01,02 | vitest (TDD) | `npx vitest run __tests__/lib/routers/copilot.test.js --reporter=verbose` | ❌ W0 | ⬜ pending |
+| 04-03-01 | 03 | 3 | CPLT-01,02,03,05 | file check | `node -e "..."` file existence + content checks | N/A | ⬜ pending |
+| 04-03-02 | 03 | 3 | CPLT-01 | grep check | `grep -c "CopilotPanel" ...` | N/A | ⬜ pending |
+| 04-03-03 | 03 | 3 | ALL | checkpoint:human-verify | `npm run build 2>&1 \| tail -5` | N/A | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -50,7 +51,16 @@ created: 2026-03-15
 
 ## Wave 0 Requirements
 
-Existing infrastructure covers all phase requirements. No new test framework setup needed.
+- [ ] `__tests__/lib/copilot/intel-context.test.js` — tests for condensed intel summary
+- [ ] `__tests__/lib/copilot/brand-voice.test.js` — tests for per-account voice examples
+- [ ] `__tests__/lib/copilot/system-prompt.test.js` — tests for system prompt assembly
+- [ ] `__tests__/lib/copilot/draft-detector.test.js` — tests for draft content detection
+- [ ] `__tests__/lib/copilot/chat-route.test.js` — tests for streaming chat endpoint
+- [ ] `__tests__/lib/copilot/prediction.test.js` — tests for performance prediction
+- [ ] `__tests__/lib/routers/copilot.test.js` — tests for copilot tRPC procedures
+- [ ] `vitest` + `@vitest/coverage-v8` — installed as dev dependencies
+
+*Wave 0 items are created as part of Plan 01 (TDD-first approach).*
 
 ---
 
@@ -69,11 +79,11 @@ Existing infrastructure covers all phase requirements. No new test framework set
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 10s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 10s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved 2026-03-15
