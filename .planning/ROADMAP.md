@@ -91,11 +91,12 @@ Plans:
   3. Reports display inline charts (engagement trend line, content type breakdown, sentiment distribution) rendered as images within the report body
   4. Reports show comparison deltas vs the previous equivalent period with directional trend arrows (up/down/flat)
   5. Report content is stored as structured JSON with both data arrays (for in-app rendering) and chart image URLs (for PDF and email), so all downstream channels render from a single source of truth
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 05-01: TBD
-- [ ] 05-02: TBD
+- [ ] 05-01: Foundation -- Prisma schema extension, QuickChart.io chart renderer, report content schema
+- [ ] 05-02: Report engine orchestrator -- KPIs, comparison deltas, AI summary, sentiment themes, tRPC wiring
+- [ ] 05-03: Frontend -- ReportViewer component, KPI cards, inline charts, report detail page
 
 ### Phase 6: Export + Distribution
 **Goal**: Team can export any report as a formatted PDF and distribute reports via email with full visual content inline
@@ -154,7 +155,7 @@ Phases execute in numeric order: 5 -> 5.1 -> 6 -> 6.1 -> 7 -> 8
 | 2. Competitor Intel | v1.0 | 2/2 | Complete | 2026-03-14 |
 | 3. Audience Questions | v1.0 | 2/2 | Complete | 2026-03-15 |
 | 4. Content Co-Pilot | v1.0 | 0/3 | Deferred | - |
-| 5. Report Engine + Charts | v1.1 | 0/? | Not started | - |
+| 5. Report Engine + Charts | v1.1 | 0/3 | Not started | - |
 | 6. Export + Distribution | v1.1 | 0/? | Not started | - |
 | 7. Scheduling + Ad Hoc Reports | v1.1 | 0/? | Not started | - |
 | 8. Benchmarking | v1.1 | 0/? | Not started | - |
