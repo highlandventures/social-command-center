@@ -426,6 +426,57 @@ function Toast({ toast, onClose }) {
 // EMPTY STATE — Reusable placeholder for pages with no data
 // ============================================================
 
+// ============================================================
+// KPI CARD — Displays a single KPI stat with optional delta
+// Used in ReportViewer for enriched report KPI row
+// ============================================================
+
+export function KPICard({ label, value, format, delta, direction, subValue }) {
+  const formatValue = (v, fmt) => {
+    if (v == null) return '—';
+    switch (fmt) {
+      case 'number': return typeof v === 'number' ? v.toLocaleString() : v;
+      case 'percent': return `${v}%`;
+      case 'delta': return `${v > 0 ? '+' : ''}${v}`;
+      case 'text': return v;
+      default: return typeof v === 'number' ? v.toLocaleString() : v;
+    }
+  };
+
+  return (
+    <div className="bg-white dark:bg-surface-card rounded-lg border border-border p-4">
+      <p className="text-xs text-gray-500 dark:text-content-muted uppercase tracking-wide mb-1">{label}</p>
+      <p className="text-2xl font-bold text-gray-900 dark:text-content-primary">{formatValue(value, format)}</p>
+      {delta != null && <DeltaArrow value={delta} direction={direction} />}
+      {subValue && <p className="text-xs text-gray-400 dark:text-content-faint mt-1">{subValue}</p>}
+    </div>
+  );
+}
+
+// ============================================================
+// DELTA ARROW — Colored directional indicator for comparisons
+// ============================================================
+
+export function DeltaArrow({ value, direction }) {
+  const dir = direction || (value > 0 ? 'up' : value < 0 ? 'down' : 'flat');
+  const styles = {
+    up: 'text-green-600',
+    down: 'text-red-500',
+    flat: 'text-gray-400 dark:text-content-faint',
+  };
+  const arrows = { up: '\u2191', down: '\u2193', flat: '\u2014' };
+
+  return (
+    <span className={`text-xs font-medium ${styles[dir] || styles.flat}`}>
+      {arrows[dir] || arrows.flat}{value != null ? ` ${Math.abs(value)}%` : ''}
+    </span>
+  );
+}
+
+// ============================================================
+// EMPTY STATE — Reusable placeholder for pages with no data
+// ============================================================
+
 export const EmptyState = ({ icon, title, description, action }) => (
   <div className="bg-surface-card rounded-xl border border-border p-12 text-center">
     {icon && <div className="text-4xl mb-3">{icon}</div>}
