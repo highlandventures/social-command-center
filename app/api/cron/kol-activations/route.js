@@ -47,6 +47,39 @@ function classifyActivation(hit) {
   return 'DIRECT_MENTION';
 }
 
+/**
+ * Extract profile metadata from TwitterAPI.io author data.
+ * Handles field name variations across API versions.
+ */
+function extractProfileMetadata(data) {
+  if (!data) return {};
+
+  const createdAtRaw = data.createdAt || data.created_at;
+  let accountCreatedAt = null;
+  if (createdAtRaw) {
+    const d = new Date(createdAtRaw);
+    if (!isNaN(d.getTime())) accountCreatedAt = d;
+  }
+
+  // Bio is in profile_bio.description (not top-level description which is often empty)
+  const bio = data.profile_bio?.description || data.description || data.bio || null;
+
+  // Website URL from profile_bio entities
+  const entityUrl = data.profile_bio?.entities?.url?.urls?.[0]?.expanded_url;
+  const websiteUrl = entityUrl || data.website || null;
+
+  return {
+    avatarUrl: data.profilePicture || data.profile_image_url || data.profileImageUrl || data.avatar || null,
+    baselineFollowers: data.followers || data.followersCount || data.public_metrics?.followers_count || data.follower_count || 0,
+    bio: bio || null,
+    location: data.location || null,
+    verified: data.isBlueVerified || data.verified || data.isVerified || false,
+    followingCount: data.following || data.followingCount || data.friends_count || data.public_metrics?.following_count || null,
+    accountCreatedAt,
+    websiteUrl: websiteUrl || null,
+  };
+}
+
 export async function GET(request) {
   if (!verifyCronAuth(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -194,33 +227,70 @@ export async function GET(request) {
         }
 
         // ── Enrich KOL profile metadata from search results ──
-        // TwitterAPI.io returns author data on each tweet — use it to backfill
-        // avatarUrl and baselineFollowers that the seed script doesn't provide.
-        if (kol.platform === 'X' && (!kol.avatarUrl || !kol.baselineFollowers)) {
-          try {
-            let authorAvatar = null;
-            let authorFollowers = 0;
+        // TwitterAPI.io returns author data on each tweet — use it to populate
+        // profile fields (bio, location, verified, followers, etc.)
+        const ENRICHMENT_STALE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+        const needsEnrichment = !kol.profileEnrichedAt ||
+          (Date.now() - new Date(kol.profileEnrichedAt).getTime()) > ENRICHMENT_STALE_MS;
 
-            if (rawHits.length > 0) {
-              // Extract from search results
-              const firstHit = rawHits[0];
-              authorAvatar = firstHit.author?.profilePicture || firstHit.author?.profile_image_url || firstHit.author?.avatar || null;
-              authorFollowers = firstHit.author?.followers || firstHit.author?.followersCount || firstHit.author?.public_metrics?.followers_count || 0;
+        if (kol.platform === 'X' && needsEnrichment) {
+          try {
+            let authorData = null;
+
+            if (rawHits.length > 0 && rawHits[0].author) {
+              authorData = rawHits[0].author;
             } else {
               // No activation hits — fetch profile directly as fallback
               const profile = await xAdapter.getUserProfile(kol.username);
-              const userData = profile?.data || profile;
-              authorAvatar = userData?.profilePicture || userData?.profile_image_url || userData?.avatar || null;
-              authorFollowers = userData?.followers || userData?.followersCount || userData?.public_metrics?.followers_count || userData?.follower_count || 0;
+              authorData = profile?.data || profile;
             }
 
-            const updates = {};
-            if (authorAvatar && !kol.avatarUrl) updates.avatarUrl = authorAvatar;
-            if (authorFollowers > 0 && (!kol.baselineFollowers || kol.baselineFollowers === 0)) updates.baselineFollowers = authorFollowers;
+            if (authorData) {
+              const updates = extractProfileMetadata(authorData);
+              updates.profileEnrichedAt = new Date();
 
-            if (Object.keys(updates).length > 0) {
-              await prisma.kOL.update({ where: { id: kol.id }, data: updates });
-              results.profilesEnriched++;
+              // Only set fields that have meaningful values
+              const cleanUpdates = {};
+              for (const [key, val] of Object.entries(updates)) {
+                if (val !== null && val !== undefined && val !== '' && val !== 0) {
+                  cleanUpdates[key] = val;
+                }
+              }
+              // Always set profileEnrichedAt and baselineFollowers (even if same)
+              cleanUpdates.profileEnrichedAt = updates.profileEnrichedAt;
+              if (updates.baselineFollowers > 0) cleanUpdates.baselineFollowers = updates.baselineFollowers;
+
+              if (Object.keys(cleanUpdates).length > 0) {
+                await prisma.kOL.update({ where: { id: kol.id }, data: cleanUpdates });
+                results.profilesEnriched++;
+              }
+            }
+
+            // ── AI Profile Summary (rate-limited: max 5 per cron run) ──
+            if (results.summariesGenerated === undefined) results.summariesGenerated = 0;
+            const summaryStale = !kol.profileSummary || !kol.profileSummaryUpdatedAt ||
+              (Date.now() - new Date(kol.profileSummaryUpdatedAt).getTime()) > ENRICHMENT_STALE_MS;
+            if (summaryStale && results.summariesGenerated < 5) {
+              try {
+                const { generateProfileSummary } = await import('@/lib/ai/kol-profile-summary');
+                const recentActivations = await prisma.kOLActivation.findMany({
+                  where: { kolId: kol.id },
+                  orderBy: { detectedAt: 'desc' },
+                  take: 10,
+                });
+                const mergedKol = { ...kol, ...(authorData ? extractProfileMetadata(authorData) : {}) };
+                const summaryResult = await generateProfileSummary(mergedKol, recentActivations);
+                await prisma.kOL.update({
+                  where: { id: kol.id },
+                  data: {
+                    profileSummary: JSON.stringify(summaryResult),
+                    profileSummaryUpdatedAt: new Date(),
+                  },
+                });
+                results.summariesGenerated++;
+              } catch (summaryErr) {
+                console.warn(`Profile summary generation failed for @${kol.username}:`, summaryErr.message);
+              }
             }
           } catch (enrichErr) {
             console.warn(`Profile enrichment failed for @${kol.username}:`, enrichErr.message);

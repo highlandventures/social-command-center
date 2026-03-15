@@ -507,6 +507,15 @@ model KOL {
   username             String
   platformUserId       String?
   avatarUrl            String?
+  bio                  String?
+  location             String?
+  verified             Boolean          @default(false)
+  followingCount       Int?
+  accountCreatedAt     DateTime?
+  websiteUrl           String?
+  profileSummary       String?          // AI-generated JSON narrative
+  profileSummaryUpdatedAt DateTime?
+  profileEnrichedAt    DateTime?        // Last API enrichment timestamp
   relationshipType     RelationshipType
   cohortId             String?
   compensationMonthly  Float?

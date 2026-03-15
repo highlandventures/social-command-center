@@ -10,7 +10,7 @@ import { trpc } from '@/lib/trpc-client';
 import {
   COLORS, PlatformBadge, ScoreBadge, TrendArrow,
   MetricCard, MetricCardSkeleton, SectionTitle,
-  TabButton, Avatar, Skeleton,
+  TabButton, Avatar, Skeleton, useChartColors,
 } from '@/components/ui';
 
 /** Format a date in UTC to avoid SSR/client timezone drift */
@@ -34,11 +34,20 @@ function transformKOL(k) {
   const engRate = k.engagementRate ?? m?.engagementRateBrand ?? k.baselineEngRate ?? 0;
   const impressionsRaw = k.totalImpressions ?? m?.totalImpressionsEst ?? 0;
 
+  const fmtCurrency = (v) => v >= 1000 ? `$${(v / 1000).toFixed(1)}K` : `$${Math.round(v)}`;
+
   return {
     ...k,
     handle: `@${k.username}`,
     avatar: initials,
     avatarUrl: k.avatarUrl || null,
+    bio: k.bio || null,
+    location: k.location || null,
+    verified: k.verified || false,
+    followingCount: k.followingCount || null,
+    accountCreatedAt: k.accountCreatedAt || null,
+    websiteUrl: k.websiteUrl || null,
+    profileSummary: k.profileSummary || null,
     followers: followers >= 1000 ? `${(followers / 1000).toFixed(1)}K` : followers,
     followersRaw: followers,
     rawType: k.relationshipType || 'ORGANIC_ADVOCATE',
@@ -46,13 +55,25 @@ function transformKOL(k) {
     activations,
     avgEng: engRate.toFixed(1),
     impressions: impressionsRaw >= 1000 ? `${(impressionsRaw / 1000).toFixed(1)}K` : impressionsRaw,
+    impressionsRaw,
     sentiment: sentimentRaw !== null ? String(Math.round(sentimentRaw)) : null,
     score: k.aiScore || '—',
     scoreLabel: scoreLabels[k.aiScore] || 'Unscored',
     correlation: m?.followerGrowthCorrelation ?? 0,
     comp: k.compensationMonthly ? `$${k.compensationMonthly.toLocaleString()}/mo` : '—',
+    compRaw: k.compensationMonthly || 0,
     trend: null,
     cohortName: k.cohort?.name || 'Uncategorized',
+    // ROI metrics
+    totalSpend: k.totalSpend || 0,
+    totalSpendFmt: k.totalSpend ? fmtCurrency(k.totalSpend) : '—',
+    costPerEngagement: k.costPerEngagement,
+    cpm: k.cpm,
+    estimatedMediaValue: k.estimatedMediaValue || 0,
+    emvFmt: k.estimatedMediaValue ? fmtCurrency(k.estimatedMediaValue) : '$0',
+    roi: k.roi,
+    roiFmt: k.roi ? `${k.roi.toFixed(1)}x` : null,
+    totalEngagement: k.totalEngagement || 0,
   };
 }
 
@@ -94,6 +115,7 @@ const EMPTY_KOL_FORM = {
 };
 
 export default function KOLPage() {
+  const chartColors = useChartColors();
   const [subTab, setSubTab] = useState('roster');
   const [selectedKOL, setSelectedKOL] = useState(null);
   const [typeFilter, setTypeFilter] = useState('ALL');
@@ -120,6 +142,11 @@ export default function KOLPage() {
     onSuccess: () => kolsQ.refetch(),
   });
   const deactivateMutation = trpc.kol.deactivate.useMutation({
+    onSuccess: () => kolsQ.refetch(),
+  });
+
+  // ── Profile enrichment ──────────────────────────────────
+  const enrichMutation = trpc.kol.enrichProfile.useMutation({
     onSuccess: () => kolsQ.refetch(),
   });
 
@@ -157,50 +184,139 @@ export default function KOLPage() {
 
     return (
       <div>
-        <button onClick={() => setSelectedKOL(null)} className="text-sm text-blue-600 hover:text-blue-800 mb-4 flex items-center gap-1">
+        <button onClick={() => setSelectedKOL(null)} className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-300 mb-4 flex items-center gap-1">
           {'\u2190'} Back to roster
         </button>
 
         {/* KOL header */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+        <div className="bg-surface-card rounded-xl border border-border p-6 mb-6">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
               <Avatar initials={kol.avatar} src={kol.avatarUrl} platform={kol.platform} size="lg" />
               <div>
-                <h2 className="text-xl font-bold text-gray-900">{kol.name}</h2>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-sm text-gray-500">{kol.handle}</span>
-                  <PlatformBadge platform={kol.platform} />
-                  <span className="text-sm text-gray-400">&middot;</span>
-                  <span className="text-sm text-gray-500">{kol.followers} followers</span>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-bold text-content-primary">{kol.name}</h2>
+                  {kol.verified && <span className="text-blue-500" title="Verified">&#10004;</span>}
                 </div>
-                <div className="flex items-center gap-3 mt-2">
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${TYPE_COLORS[kol.rawType] || 'bg-gray-100 text-gray-600'}`}>{kol.type}</span>
-                  <span className="px-2 py-0.5 bg-blue-50 rounded text-xs text-blue-600">{kol.cohortName}</span>
-                  {kol.comp !== '—' && <span className="text-xs text-gray-500">Comp: {kol.comp}</span>}
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <span className="text-sm text-content-muted">{kol.handle}</span>
+                  <PlatformBadge platform={kol.platform} />
+                  <span className="text-sm text-content-faint">&middot;</span>
+                  <span className="text-sm text-content-muted">{kol.followers} followers</span>
+                  {kol.followingCount && (
+                    <>
+                      <span className="text-sm text-content-faint">&middot;</span>
+                      <span className="text-sm text-content-muted">{kol.followingCount >= 1000 ? `${(kol.followingCount / 1000).toFixed(1)}K` : kol.followingCount} following</span>
+                    </>
+                  )}
+                </div>
+                <div className="flex items-center gap-3 mt-2 flex-wrap">
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${TYPE_COLORS[kol.rawType] || 'bg-surface-secondary text-content-secondary'}`}>{kol.type}</span>
+                  <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 rounded text-xs text-blue-600">{kol.cohortName}</span>
+                  {kol.comp !== '—' && <span className="text-xs text-content-muted">Comp: {kol.comp}</span>}
+                  {kol.location && <span className="text-xs text-content-faint">&#128205; {kol.location}</span>}
+                  {kol.accountCreatedAt && <span className="text-xs text-content-faint">Joined {new Date(kol.accountCreatedAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>}
+                  {kol.websiteUrl && (
+                    <a href={kol.websiteUrl.startsWith('http') ? kol.websiteUrl : `https://${kol.websiteUrl}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline" onClick={(e) => e.stopPropagation()}>
+                      &#128279; {kol.websiteUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
             <div className="text-right">
               <ScoreBadge score={kol.score} />
-              <p className="text-sm text-gray-500 mt-1">{kol.scoreLabel}</p>
+              <p className="text-sm text-content-muted mt-1">{kol.scoreLabel}</p>
               <TrendArrow trend={kol.trend} />
             </div>
           </div>
         </div>
 
+        {/* Profile & Bio */}
+        {(kol.bio || kol.profileSummary) && (
+          <div className="bg-surface-card rounded-xl border border-border p-5 mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-semibold text-content-muted uppercase">Profile</p>
+              <button
+                onClick={() => enrichMutation.mutate({ kolId: kol.id })}
+                disabled={enrichMutation.isLoading}
+                className="px-2.5 py-1 bg-surface-secondary text-content-secondary text-[10px] rounded-md font-medium hover:bg-surface-tertiary disabled:opacity-50"
+              >
+                {enrichMutation.isLoading ? 'Refreshing...' : 'Refresh Profile'}
+              </button>
+            </div>
+            {kol.bio && (
+              <p className="text-sm text-content-primary mb-3">{kol.bio}</p>
+            )}
+            {kol.profileSummary && (
+              <div className="border-t border-border-secondary pt-3">
+                <p className="text-xs font-semibold text-content-muted uppercase mb-1">AI Summary</p>
+                <p className="text-sm text-content-secondary leading-relaxed">{kol.profileSummary.summary}</p>
+                {kol.profileSummary.audienceProfile && (
+                  <p className="text-sm text-content-secondary mt-2"><strong>Audience:</strong> {kol.profileSummary.audienceProfile}</p>
+                )}
+                {kol.profileSummary.brandRelevance && (
+                  <p className="text-sm text-content-secondary mt-1"><strong>Brand relevance:</strong> {kol.profileSummary.brandRelevance}</p>
+                )}
+                {kol.profileSummary.keyTopics?.length > 0 && (
+                  <div className="flex gap-1.5 mt-2 flex-wrap">
+                    {kol.profileSummary.keyTopics.map((t) => (
+                      <span key={t} className="px-2 py-0.5 bg-surface-secondary rounded text-xs text-content-secondary">{t}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* KOL metrics */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-          <MetricCard label="Activations (30d)" value={kol.activations} delta={15} />
-          <MetricCard label="Avg Engagement" value={`${kol.avgEng}%`} delta={8} />
-          <MetricCard label="Est. Impressions" value={kol.impressions} delta={12} />
-          <MetricCard label="Sentiment" value={`${kol.sentiment}% pos`} delta={3} />
-          <MetricCard label="Follower Correlation" value={(kol.correlation ?? 0).toFixed(2)} />
-          <MetricCard label="Cost/Engagement" value={kol.comp !== '—' ? '$0.42' : 'N/A'} />
+          <MetricCard label="Activations" value={kol.activations} />
+          <MetricCard label="Avg Engagement" value={`${kol.avgEng}%`} />
+          <MetricCard label="Est. Impressions" value={kol.impressions} />
+          <MetricCard label="Sentiment" value={kol.sentiment !== null ? `${kol.sentiment}% pos` : '—'} />
+          <MetricCard label="Est. Media Value" value={kol.emvFmt} />
+          <MetricCard label="Cost/Engagement" value={kol.costPerEngagement != null ? `$${kol.costPerEngagement.toFixed(2)}` : 'N/A'} />
         </div>
 
+        {/* ROI Analysis (for paid KOLs) */}
+        {kol.compRaw > 0 && (
+          <div className="bg-surface-card rounded-xl border border-border p-5 mb-6">
+            <p className="text-xs font-semibold text-content-muted uppercase mb-3">ROI Analysis</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-xs text-content-faint">Total Spend</p>
+                <p className="text-lg font-bold text-content-primary">{kol.totalSpendFmt}</p>
+              </div>
+              <div>
+                <p className="text-xs text-content-faint">Est. Media Value</p>
+                <p className="text-lg font-bold text-content-primary">{kol.emvFmt}</p>
+              </div>
+              <div>
+                <p className="text-xs text-content-faint">CPM</p>
+                <p className="text-lg font-bold text-content-primary">{kol.cpm != null ? `$${kol.cpm.toFixed(2)}` : '—'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-content-faint">ROI</p>
+                <p className={`text-lg font-bold ${kol.roi >= 2 ? 'text-green-600' : kol.roi >= 1 ? 'text-amber-600' : 'text-red-500'}`}>
+                  {kol.roiFmt || '—'}
+                </p>
+                {kol.roi != null && (
+                  <p className="text-[10px] text-content-faint">{kol.roi >= 2 ? 'Strong return' : kol.roi >= 1 ? 'Breaking even' : 'Below target'}</p>
+                )}
+              </div>
+            </div>
+            <div className="mt-3 pt-3 border-t border-border-secondary flex gap-6 text-xs text-content-muted">
+              <span>Total engagements: {kol.totalEngagement.toLocaleString()}</span>
+              <span>Total impressions: {(kol.impressionsRaw || 0).toLocaleString()}</span>
+              <span>Comp: {kol.comp}</span>
+            </div>
+          </div>
+        )}
+
         {/* AI Analysis */}
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5 mb-6">
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800/40 rounded-xl p-5 mb-6">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">AI</div>
             <div className="flex-1">
@@ -225,14 +341,14 @@ export default function KOLPage() {
               ) : scorecard ? (
                 <div className="space-y-3">
                   {scorecard.summary && (
-                    <p className="text-sm text-gray-800 leading-relaxed">{scorecard.summary}</p>
+                    <p className="text-sm text-content-primary leading-relaxed">{scorecard.summary}</p>
                   )}
                   {scorecard.highlights?.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-green-800 mb-1">Highlights</p>
+                      <p className="text-xs font-semibold text-green-800 dark:text-green-300 mb-1">Highlights</p>
                       <ul className="space-y-0.5">
                         {scorecard.highlights.map((h, i) => (
-                          <li key={i} className="text-sm text-gray-700 flex items-start gap-1.5">
+                          <li key={i} className="text-sm text-content-secondary flex items-start gap-1.5">
                             <span className="text-green-500 mt-0.5">+</span> {h}
                           </li>
                         ))}
@@ -241,10 +357,10 @@ export default function KOLPage() {
                   )}
                   {scorecard.concerns?.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-red-800 mb-1">Concerns</p>
+                      <p className="text-xs font-semibold text-red-800 dark:text-red-300 mb-1">Concerns</p>
                       <ul className="space-y-0.5">
                         {scorecard.concerns.map((c, i) => (
-                          <li key={i} className="text-sm text-gray-700 flex items-start gap-1.5">
+                          <li key={i} className="text-sm text-content-secondary flex items-start gap-1.5">
                             <span className="text-red-500 mt-0.5">-</span> {c}
                           </li>
                         ))}
@@ -253,10 +369,10 @@ export default function KOLPage() {
                   )}
                   {scorecard.recommendations?.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-blue-800 mb-1">Recommendations</p>
+                      <p className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-1">Recommendations</p>
                       <ul className="space-y-0.5">
                         {scorecard.recommendations.map((r, i) => (
-                          <li key={i} className="text-sm text-gray-700 flex items-start gap-1.5">
+                          <li key={i} className="text-sm text-content-secondary flex items-start gap-1.5">
                             <span className="text-blue-500 mt-0.5">&rarr;</span> {typeof r === 'string' ? r : r.recommendation || r.action}
                           </li>
                         ))}
@@ -264,11 +380,11 @@ export default function KOLPage() {
                     </div>
                   )}
                   {scorecard.costEfficiency && (
-                    <p className="text-xs text-gray-500">Cost efficiency: {typeof scorecard.costEfficiency === 'string' ? scorecard.costEfficiency : scorecard.costEfficiency.rating || JSON.stringify(scorecard.costEfficiency)}</p>
+                    <p className="text-xs text-content-muted">Cost efficiency: {typeof scorecard.costEfficiency === 'string' ? scorecard.costEfficiency : scorecard.costEfficiency.rating || JSON.stringify(scorecard.costEfficiency)}</p>
                   )}
                 </div>
               ) : (
-                <div className="text-sm text-gray-800 leading-relaxed">
+                <div className="text-sm text-content-primary leading-relaxed">
                   <p><strong>Score: {kol.score} ({kol.scoreLabel}).</strong> {kol.name.split(' ')[0]} has {kol.activations} activations this period averaging {kol.avgEng}% engagement. Click &quot;Generate Full Report&quot; for a detailed AI-powered analysis.</p>
                 </div>
               )}
@@ -277,34 +393,34 @@ export default function KOLPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-surface-card rounded-xl border border-border p-5">
             <SectionTitle>Activation Performance Over Time</SectionTitle>
             {kolPerformanceData.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-12">No weekly metrics yet. Data aggregates daily at 5 AM UTC.</p>
+              <p className="text-sm text-content-faint text-center py-12">No weekly metrics yet. Data aggregates daily at 5 AM UTC.</p>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={kolPerformanceData.map(d => ({ ...d, week: new Date(d.weekStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }))}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                   <XAxis dataKey="week" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
+                  <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
                   <Bar dataKey="activationsCount" fill={COLORS.blue} radius={[4, 4, 0, 0]} name="Activations" />
                 </BarChart>
               </ResponsiveContainer>
             )}
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-surface-card rounded-xl border border-border p-5">
             <SectionTitle>Estimated Impressions Over Time</SectionTitle>
             {kolPerformanceData.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-12">No weekly metrics yet.</p>
+              <p className="text-sm text-content-faint text-center py-12">No weekly metrics yet.</p>
             ) : (
               <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={kolPerformanceData.map(d => ({ ...d, week: new Date(d.weekStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }))}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                   <XAxis dataKey="week" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
+                  <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
                   <Line type="monotone" dataKey="totalImpressionsEst" stroke={COLORS.purple} strokeWidth={2} dot={false} name="Est. Impressions" />
                 </LineChart>
               </ResponsiveContainer>
@@ -313,11 +429,11 @@ export default function KOLPage() {
         </div>
 
         {/* Activation timeline */}
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="bg-surface-card rounded-xl border border-border p-5">
           <SectionTitle>Activation Timeline</SectionTitle>
           <div className="space-y-3">
             {kolActivations.length === 0 && (
-              <p className="text-sm text-gray-400 text-center py-6">No activations detected yet. The cron job checks every 30 minutes.</p>
+              <p className="text-sm text-content-faint text-center py-6">No activations detected yet. The cron job checks every 30 minutes.</p>
             )}
             {kolActivations.map((act) => {
               const m = act.metricsAtDetection || {};
@@ -325,15 +441,15 @@ export default function KOLPage() {
               const impressions = m.impressions || ((m.upvotes || 0) + (m.comments || 0)) * 10;
               const typeLabel = (act.activationType || 'MENTION').replace(/_/g, ' ');
               return (
-                <div key={act.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50">
+                <div key={act.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-surface-hover">
                   <div className="w-2 h-2 rounded-full bg-blue-400 mt-2 flex-shrink-0" />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-medium text-blue-600">{typeLabel}</span>
-                      <span className="text-xs text-gray-400">{fmtDate(act.postedAt || act.detectedAt)}</span>
+                      <span className="text-xs text-content-faint">{fmtDate(act.postedAt || act.detectedAt)}</span>
                     </div>
-                    <p className="text-sm text-gray-800">{act.content}</p>
-                    <div className="flex gap-3 mt-1 text-xs text-gray-500">
+                    <p className="text-sm text-content-primary">{act.content}</p>
+                    <div className="flex gap-3 mt-1 text-xs text-content-muted">
                       <span>{engagements} engagements</span>
                       <span>{impressions} impressions</span>
                       {act.sourceUrl && <a href={act.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">View</a>}
@@ -351,7 +467,7 @@ export default function KOLPage() {
   // ── Main roster view ──────────────────────────────────────
   return (
     <div>
-      <div className="flex items-center gap-2 mb-6 border-b border-gray-200 pb-3">
+      <div className="flex items-center gap-2 mb-6 border-b border-border pb-3">
         {[
           { key: 'roster', label: 'KOL Roster' },
           { key: 'activations', label: 'Recent Activations' },
@@ -362,7 +478,7 @@ export default function KOLPage() {
           </TabButton>
         ))}
         <div className="flex-1" />
-        <button onClick={() => setShowAddModal(true)} className="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-800">+ Add KOL</button>
+        <button onClick={() => setShowAddModal(true)} className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm rounded-lg hover:bg-gray-800">+ Add KOL</button>
       </div>
 
       {subTab === 'roster' && (
@@ -390,8 +506,8 @@ export default function KOLPage() {
                 onClick={() => setTypeFilter(key)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                   typeFilter === key
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
+                    : 'bg-surface-secondary text-content-secondary hover:bg-surface-tertiary'
                 }`}
               >
                 {label} {key !== 'ALL' && typeCounts[key] ? `(${typeCounts[key]})` : key === 'ALL' ? `(${allKols.length})` : ''}
@@ -418,28 +534,28 @@ export default function KOLPage() {
                     : '0.0';
 
                   return (
-                    <div key={sectionType} className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+                    <div key={sectionType} className="bg-surface-card rounded-xl border border-border overflow-x-auto">
                       {/* Section header */}
-                      <div className={`px-5 py-3 border-b border-gray-100 flex items-center justify-between`}>
+                      <div className={`px-5 py-3 border-b border-border-secondary flex items-center justify-between`}>
                         <div className="flex items-center gap-3">
                           <span className="text-lg">{TYPE_ICONS[sectionType]}</span>
                           <div>
-                            <h3 className="text-sm font-semibold text-gray-900">{TYPE_LABELS[sectionType]}</h3>
-                            <p className="text-xs text-gray-500">{TYPE_DESCRIPTIONS[sectionType]}</p>
+                            <h3 className="text-sm font-semibold text-content-primary">{TYPE_LABELS[sectionType]}</h3>
+                            <p className="text-xs text-content-muted">{TYPE_DESCRIPTIONS[sectionType]}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
-                          <span><strong className="text-gray-900">{sectionKols.length}</strong> KOLs</span>
-                          <span><strong className="text-gray-900">{sectionActivations}</strong> activations</span>
-                          <span><strong className="text-gray-900">{sectionAvgEng}%</strong> avg eng.</span>
+                        <div className="flex items-center gap-4 text-xs text-content-muted">
+                          <span><strong className="text-content-primary">{sectionKols.length}</strong> KOLs</span>
+                          <span><strong className="text-content-primary">{sectionActivations}</strong> activations</span>
+                          <span><strong className="text-content-primary">{sectionAvgEng}%</strong> avg eng.</span>
                         </div>
                       </div>
                       {/* Section table */}
                       <table className="w-full text-sm min-w-[900px]">
                         <thead>
-                          <tr className="border-b border-gray-100 bg-gray-50/50">
-                            {['KOL', 'Platform', 'Followers', 'Activations', 'Avg Eng.', 'Impressions', 'Sentiment', 'Actions'].map((h) => (
-                              <th key={h} className="text-left py-2 px-3 text-[10px] font-medium text-gray-400 uppercase tracking-wider">{h}</th>
+                          <tr className="border-b border-border-secondary bg-surface-page/50">
+                            {['KOL', 'Platform', 'Followers', 'Activations', 'Avg Eng.', 'Impressions', 'Sentiment', 'ROI', 'Actions'].map((h) => (
+                              <th key={h} className="text-left py-2 px-3 text-[10px] font-medium text-content-faint uppercase tracking-wider">{h}</th>
                             ))}
                           </tr>
                         </thead>
@@ -448,31 +564,40 @@ export default function KOLPage() {
                             <tr
                               key={kol.id}
                               onClick={() => setSelectedKOL(kol.id)}
-                              className="border-b border-gray-50 hover:bg-blue-50 cursor-pointer transition-colors"
+                              className="border-b border-border-secondary hover:bg-surface-hover cursor-pointer transition-colors"
                             >
                               <td className="py-2.5 px-3">
                                 <div className="flex items-center gap-2.5">
                                   <Avatar initials={kol.avatar} src={kol.avatarUrl} platform={kol.platform} size="sm" />
                                   <div>
-                                    <p className="font-medium text-gray-900 text-sm">{kol.name}</p>
-                                    <p className="text-xs text-gray-400">{kol.handle}</p>
+                                    <p className="font-medium text-content-primary text-sm">{kol.name}</p>
+                                    <p className="text-xs text-content-faint">{kol.handle}</p>
                                   </div>
                                 </div>
                               </td>
                               <td className="py-2.5 px-3"><PlatformBadge platform={kol.platform} /></td>
-                              <td className="py-2.5 px-3 text-gray-700">{kol.followers}</td>
+                              <td className="py-2.5 px-3 text-content-secondary">{kol.followers}</td>
                               <td className="py-2.5 px-3 font-medium">{kol.activations}</td>
                               <td className="py-2.5 px-3">
-                                <span className={`font-medium ${parseFloat(kol.avgEng) > 4 ? 'text-green-600' : parseFloat(kol.avgEng) > 2 ? 'text-gray-900' : 'text-red-500'}`}>
+                                <span className={`font-medium ${parseFloat(kol.avgEng) > 4 ? 'text-green-600' : parseFloat(kol.avgEng) > 2 ? 'text-content-primary' : 'text-red-500'}`}>
                                   {kol.avgEng}%
                                 </span>
                               </td>
-                              <td className="py-2.5 px-3 text-gray-700">{kol.impressions}</td>
+                              <td className="py-2.5 px-3 text-content-secondary">{kol.impressions}</td>
                               <td className="py-2.5 px-3">
                                 {kol.sentiment !== null ? (
                                   <span className={parseInt(kol.sentiment) > 60 ? 'text-green-600' : parseInt(kol.sentiment) > 30 ? 'text-amber-600' : 'text-red-500'}>{kol.sentiment}% pos</span>
                                 ) : (
-                                  <span className="text-gray-300">—</span>
+                                  <span className="text-content-faint">—</span>
+                                )}
+                              </td>
+                              <td className="py-2.5 px-3">
+                                {kol.roiFmt ? (
+                                  <span className={`font-medium ${kol.roi >= 2 ? 'text-green-600' : kol.roi >= 1 ? 'text-amber-600' : 'text-red-500'}`}>{kol.roiFmt}</span>
+                                ) : kol.compRaw > 0 ? (
+                                  <span className="text-content-faint">—</span>
+                                ) : (
+                                  <span className="text-xs text-green-600 bg-green-50 dark:bg-green-900/30 px-1.5 py-0.5 rounded">Free</span>
                                 )}
                               </td>
                               <td className="py-2.5 px-3">
@@ -484,7 +609,7 @@ export default function KOLPage() {
                                       e.stopPropagation();
                                       updateMutation.mutate({ kolId: kol.id, relationshipType: e.target.value });
                                     }}
-                                    className="text-xs border border-gray-200 rounded px-1.5 py-1 bg-white text-gray-700 cursor-pointer hover:border-gray-400"
+                                    className="text-xs border border-border rounded px-1.5 py-1 bg-surface-card text-content-secondary cursor-pointer hover:border-gray-400"
                                   >
                                     {SECTION_ORDER.map((t) => (
                                       <option key={t} value={t}>{TYPE_LABELS[t]?.replace(/s$/, '')}</option>
@@ -538,12 +663,12 @@ export default function KOLPage() {
               (scoreCounts['D'] || 0) + (scoreCounts['F'] || 0) > allKols.length / 3 ? 'Needs Attention' : 'Fair';
 
             return (
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5 mt-6">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800/40 rounded-xl p-5 mt-6">
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">AI</div>
                   <div>
                     <p className="text-sm font-semibold text-blue-900 mb-2">Monthly KOL Portfolio Review &mdash; {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
-                    <div className="text-sm text-gray-800 leading-relaxed space-y-2">
+                    <div className="text-sm text-content-primary leading-relaxed space-y-2">
                       <p><strong>Portfolio health: {healthLabel}.</strong> {allKols.length} active KOLs across {Object.keys(typeCounts).length} segments. {scoreBreakdown || `${unscoredCount} KOLs not yet scored.`}</p>
                       {topByActivations && topByActivations.activations > 0 && (
                         <p><strong>Top performer:</strong> @{topByActivations.username} leads with {topByActivations.activations} activations and {topByActivations.avgEng}% avg engagement{topByActivations.score !== '—' ? ` (${topByActivations.score}-rated)` : ''}.</p>
@@ -570,10 +695,10 @@ export default function KOLPage() {
           {recentActivationsQ.isLoading ? (
             <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}</div>
           ) : !recentActivationsQ.data?.length ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+            <div className="bg-surface-card rounded-xl border border-border p-12 text-center">
               <p className="text-3xl mb-3">{'\uD83D\uDCE1'}</p>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">No activations yet</h3>
-              <p className="text-sm text-gray-500">The KOL activation scanner runs every 30 minutes, searching for brand mentions from tracked KOLs.</p>
+              <h3 className="text-lg font-semibold text-content-primary mb-1">No activations yet</h3>
+              <p className="text-sm text-content-muted">The KOL activation scanner runs every 30 minutes, searching for brand mentions from tracked KOLs.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -583,19 +708,19 @@ export default function KOLPage() {
                 const impressions = m.impressions || ((m.upvotes || 0) + (m.comments || 0)) * 10;
                 const typeLabel = (act.activationType || 'MENTION').replace(/_/g, ' ');
                 return (
-                  <div key={act.id} className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow">
+                  <div key={act.id} className="bg-surface-card rounded-xl border border-border p-4 hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <Avatar initials={act.kol?.name?.split(' ').map(w => w[0]).join('').slice(0, 2) || '?'} src={act.kol?.avatarUrl} platform={act.kol?.platform || act.platform} size="sm" />
-                        <span className="font-semibold text-gray-900 text-sm">{act.kol?.name || 'Unknown'}</span>
-                        <span className="text-xs text-gray-400">@{act.kol?.username}</span>
+                        <span className="font-semibold text-content-primary text-sm">{act.kol?.name || 'Unknown'}</span>
+                        <span className="text-xs text-content-faint">@{act.kol?.username}</span>
                         <PlatformBadge platform={act.platform} />
-                        <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">{typeLabel}</span>
+                        <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-700 rounded text-xs font-medium">{typeLabel}</span>
                       </div>
-                      <span className="text-xs text-gray-400">{fmtDate(act.postedAt || act.detectedAt)}</span>
+                      <span className="text-xs text-content-faint">{fmtDate(act.postedAt || act.detectedAt)}</span>
                     </div>
-                    <p className="text-sm text-gray-800 leading-relaxed mb-2">{act.content}</p>
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <p className="text-sm text-content-primary leading-relaxed mb-2">{act.content}</p>
+                    <div className="flex items-center gap-4 text-xs text-content-muted">
                       <span>{engagements} engagements</span>
                       <span>{impressions} impressions</span>
                       {act.sourceUrl && <a href={act.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">View post</a>}
@@ -614,35 +739,35 @@ export default function KOLPage() {
           {discoverQ.isLoading ? (
             <div className="space-y-4">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-40 w-full rounded-xl" />)}</div>
           ) : !discoveries.length ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+            <div className="bg-surface-card rounded-xl border border-border p-12 text-center">
               <p className="text-3xl mb-3">{'\uD83D\uDD0D'}</p>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">No candidates yet</h3>
-              <p className="text-sm text-gray-500">AI Discovery analyzes your listening feed to find potential KOLs. Candidates appear after they show up 2+ times in your monitored conversations.</p>
+              <h3 className="text-lg font-semibold text-content-primary mb-1">No candidates yet</h3>
+              <p className="text-sm text-content-muted">AI Discovery analyzes your listening feed to find potential KOLs. Candidates appear after they show up 2+ times in your monitored conversations.</p>
             </div>
           ) : (
             <div className="space-y-4">
               {discoveries.map((sug, i) => {
                 const formattedFollowers = sug.followers >= 1000 ? `${(sug.followers / 1000).toFixed(1)}K` : sug.followers;
                 return (
-                  <div key={i} className="bg-white rounded-xl border border-gray-200 p-5">
+                  <div key={i} className="bg-surface-card rounded-xl border border-border p-5">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <PlatformBadge platform={sug.platform} />
-                          <span className="font-semibold text-gray-900">{sug.username}</span>
-                          <span className="text-sm text-gray-400">{formattedFollowers} {sug.platform === 'REDDIT' ? 'karma' : 'followers'}</span>
+                          <span className="font-semibold text-content-primary">{sug.username}</span>
+                          <span className="text-sm text-content-faint">{formattedFollowers} {sug.platform === 'REDDIT' ? 'karma' : 'followers'}</span>
                         </div>
-                        <p className="text-sm text-gray-700 mb-2">
+                        <p className="text-sm text-content-secondary mb-2">
                           Appeared <strong>{sug.appearances} times</strong> in your listening feed over the past month.
                           Average {sug.avgEngagement} engagements per post. Sentiment: {sug.sentimentPct}% positive.
                           {sug.topics.length > 0 && <> Topics: {sug.topics.join(', ')}.</>}
                         </p>
                         {sug.sampleContent && (
-                          <p className="text-xs text-gray-500 italic mb-2 line-clamp-2">&ldquo;{sug.sampleContent}&rdquo;</p>
+                          <p className="text-xs text-content-muted italic mb-2 line-clamp-2">&ldquo;{sug.sampleContent}&rdquo;</p>
                         )}
-                        <div className="flex items-start gap-2 bg-blue-50 rounded-lg p-3 mt-2">
+                        <div className="flex items-start gap-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 mt-2">
                           <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 mt-0.5">AI</div>
-                          <p className="text-xs text-blue-800">
+                          <p className="text-xs text-blue-800 dark:text-blue-300">
                             {sug.avgScore > 0.6
                               ? `Strong candidate. High engagement (score: ${sug.avgScore}) with ${sug.appearances} organic mentions suggests authentic interest in your ecosystem. Consider reaching out for a partnership.`
                               : sug.avgScore > 0.3
@@ -657,9 +782,9 @@ export default function KOLPage() {
                             setAddForm({ ...EMPTY_KOL_FORM, name: sug.username, username: sug.username.replace(/^@/, ''), platform: sug.platform, baselineFollowers: String(sug.followers || '') });
                             setShowAddModal(true);
                           }}
-                          className="px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-800 whitespace-nowrap"
+                          className="px-3 py-1.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg hover:bg-gray-800 whitespace-nowrap"
                         >Add as KOL</button>
-                        <button className="px-3 py-1.5 bg-gray-100 text-gray-600 text-xs rounded-lg hover:bg-gray-200 whitespace-nowrap">Dismiss</button>
+                        <button className="px-3 py-1.5 bg-surface-secondary text-content-secondary text-xs rounded-lg hover:bg-surface-tertiary whitespace-nowrap">Dismiss</button>
                       </div>
                     </div>
                   </div>
@@ -673,8 +798,8 @@ export default function KOLPage() {
       {/* Add KOL Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowAddModal(false)}>
-          <div className="bg-white rounded-xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Add New KOL</h2>
+          <div className="bg-surface-card rounded-xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-content-primary mb-4">Add New KOL</h2>
             <form onSubmit={(e) => {
               e.preventDefault();
               createMutation.mutate({
@@ -689,29 +814,29 @@ export default function KOLPage() {
             }} className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Name</label>
+                  <label className="block text-xs font-medium text-content-secondary mb-1">Name</label>
                   <input type="text" required value={addForm.name} onChange={(e) => setAddForm(f => ({ ...f, name: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Display name" />
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Display name" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Username</label>
+                  <label className="block text-xs font-medium text-content-secondary mb-1">Username</label>
                   <input type="text" required value={addForm.username} onChange={(e) => setAddForm(f => ({ ...f, username: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="@handle" />
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="@handle" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Platform</label>
+                  <label className="block text-xs font-medium text-content-secondary mb-1">Platform</label>
                   <select value={addForm.platform} onChange={(e) => setAddForm(f => ({ ...f, platform: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-surface-card">
                     <option value="X">X (Twitter)</option>
                     <option value="REDDIT">Reddit</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
+                  <label className="block text-xs font-medium text-content-secondary mb-1">Type</label>
                   <select value={addForm.relationshipType} onChange={(e) => setAddForm(f => ({ ...f, relationshipType: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-surface-card">
                     {Object.entries(TYPE_LABELS).filter(([k]) => k !== 'ALL').map(([k, v]) => (
                       <option key={k} value={k}>{v.replace(/s$/, '')}</option>
                     ))}
@@ -719,9 +844,9 @@ export default function KOLPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Cohort</label>
+                <label className="block text-xs font-medium text-content-secondary mb-1">Cohort</label>
                 <select value={addForm.cohortId} onChange={(e) => setAddForm(f => ({ ...f, cohortId: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white">
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-surface-card">
                   <option value="">No cohort</option>
                   {(cohortsQ.data || []).map((c) => (
                     <option key={c.id} value={c.id}>{c.name}</option>
@@ -730,14 +855,14 @@ export default function KOLPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Compensation ($/mo)</label>
+                  <label className="block text-xs font-medium text-content-secondary mb-1">Compensation ($/mo)</label>
                   <input type="number" value={addForm.compensationMonthly} onChange={(e) => setAddForm(f => ({ ...f, compensationMonthly: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="0" />
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm" placeholder="0" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Followers</label>
+                  <label className="block text-xs font-medium text-content-secondary mb-1">Followers</label>
                   <input type="number" value={addForm.baselineFollowers} onChange={(e) => setAddForm(f => ({ ...f, baselineFollowers: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" placeholder="0" />
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm" placeholder="0" />
                 </div>
               </div>
               {createMutation.error && (
@@ -745,9 +870,9 @@ export default function KOLPage() {
               )}
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={() => { setShowAddModal(false); setAddForm(EMPTY_KOL_FORM); }}
-                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Cancel</button>
+                  className="px-4 py-2 text-sm text-content-secondary hover:text-content-primary">Cancel</button>
                 <button type="submit" disabled={createMutation.isLoading}
-                  className="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-800 disabled:opacity-50">
+                  className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm rounded-lg hover:bg-gray-800 disabled:opacity-50">
                   {createMutation.isLoading ? 'Adding...' : 'Add KOL'}
                 </button>
               </div>
