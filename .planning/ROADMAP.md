@@ -28,11 +28,11 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Team can see pattern callouts identifying which topics, formats (thread vs post vs article), and posting times correlate with high performance
   3. Team can see a sparkline next to each post showing its engagement trajectory over time
   4. Insight cards in the sidebar display reusable takeaways (e.g., "Threads about RWA outperform single posts by 3.2x") that persist across composer sessions
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+- [ ] 01-01-PLAN.md -- Backend API: performanceIntel tRPC router with tier ranking, pattern analysis, sparkline data, and AI insight card generation
+- [ ] 01-02-PLAN.md -- Frontend UI: PerformanceIntelPanel component in composer sidebar with tiered posts, patterns, sparklines, and insight cards
 
 ### Phase 2: Competitor Intel
 **Goal**: Team can understand competitor content strategies -- what they post about, which formats work for them, and how we compare
@@ -87,7 +87,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Performance Intel | 0/0 | Not started | - |
+| 1. Performance Intel | 0/2 | Planning complete | - |
 | 2. Competitor Intel | 0/0 | Not started | - |
 | 3. Audience Questions | 0/0 | Not started | - |
 | 4. Content Co-Pilot | 0/0 | Not started | - |
