@@ -501,33 +501,33 @@ model CompetitorPost {
 // ============================================================
 
 model KOL {
-  id                   String           @id @default(cuid())
-  name                 String
-  platform             Platform
-  username             String
-  platformUserId       String?
-  avatarUrl            String?
-  bio                  String?
-  location             String?
-  verified             Boolean          @default(false)
-  followingCount       Int?
-  accountCreatedAt     DateTime?
-  websiteUrl           String?
-  profileSummary       String?          // AI-generated JSON narrative
+  id                      String           @id @default(cuid())
+  name                    String
+  platform                Platform
+  username                String
+  platformUserId          String?
+  avatarUrl               String?
+  bio                     String?
+  location                String?
+  verified                Boolean          @default(false)
+  followingCount          Int?
+  accountCreatedAt        DateTime?
+  websiteUrl              String?
+  profileSummary          String? // AI-generated JSON narrative
   profileSummaryUpdatedAt DateTime?
-  profileEnrichedAt    DateTime?        // Last API enrichment timestamp
-  relationshipType     RelationshipType
-  cohortId             String?
-  compensationMonthly  Float?
-  campaignDeliverables Json?
-  baselineFollowers    Int?
-  baselineEngRate      Float?
-  aiScore              String? // A-F
-  aiScoreRationale     String?
-  aiScoreUpdatedAt     DateTime?
-  addedBy              String
-  createdAt            DateTime         @default(now())
-  active               Boolean          @default(true)
+  profileEnrichedAt       DateTime? // Last API enrichment timestamp
+  relationshipType        RelationshipType
+  cohortId                String?
+  compensationMonthly     Float?
+  campaignDeliverables    Json?
+  baselineFollowers       Int?
+  baselineEngRate         Float?
+  aiScore                 String? // A-F
+  aiScoreRationale        String?
+  aiScoreUpdatedAt        DateTime?
+  addedBy                 String
+  createdAt               DateTime         @default(now())
+  active                  Boolean          @default(true)
 
   cohort      KOLCohort?      @relation(fields: [cohortId], references: [id])
   activations KOLActivation[]
@@ -660,6 +660,7 @@ enum InsightType {
   CONTENT_SUGGESTION
   PERFORMANCE_PATTERN
   COMPETITOR_STRATEGY
+  AUDIENCE_QUESTION
 }
 
 // ============================================================
