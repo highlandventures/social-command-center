@@ -733,7 +733,22 @@ model Report {
   coveragePeriod  Json? // { start: string, end: string } ISO date range
   benchmarkPeriod Json? // { start: string, end: string } or null
 
+  deliveries ReportDelivery[]
+
   @@map("reports")
+}
+
+model ReportDelivery {
+  id         String   @id @default(cuid())
+  reportId   String
+  channel    String   // 'EMAIL' or 'PDF_DOWNLOAD'
+  recipients Json     @default("[]") // JSON array of email strings
+  status     String   // 'SENT' or 'FAILED'
+  error      String?
+  createdAt  DateTime @default(now())
+  report     Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@map("report_deliveries")
 }
 
 enum ReportType {

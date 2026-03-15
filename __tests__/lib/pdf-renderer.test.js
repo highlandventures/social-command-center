@@ -14,7 +14,7 @@ vi.mock('@react-pdf/renderer', () => ({
 
 describe('pdf-renderer', () => {
   it('generates PDF buffer', async () => {
-    const { renderReportPDF } = await import('../../lib/pdf-renderer.js');
+    const { renderReportPDF } = await import('../../lib/pdf-renderer.jsx');
     const mockReport = {
       id: 'test-1',
       title: 'Test Report',
@@ -34,13 +34,13 @@ describe('pdf-renderer', () => {
   });
 
   it('includes all sections', async () => {
-    const { ReportPDF } = await import('../../lib/pdf-renderer.js');
+    const { ReportPDF } = await import('../../lib/pdf-renderer.jsx');
     expect(ReportPDF).toBeDefined();
     expect(typeof ReportPDF).toBe('function');
   });
 
   it('prefetches chart images gracefully', async () => {
-    const { prefetchChartImages } = await import('../../lib/pdf-renderer.js');
+    const { prefetchChartImages } = await import('../../lib/pdf-renderer.jsx');
     expect(prefetchChartImages).toBeDefined();
     // With empty charts, should return empty object
     const result = await prefetchChartImages([]);
