@@ -47,8 +47,6 @@ const TYPE_LABELS = {
   RETAIL_ANALYST: 'Retail Analysts',
   PAID_PARTNER: 'Paid Partners',
   ORGANIC_ADVOCATE: 'Organic Advocates',
-  ADVISOR: 'Advisors',
-  PORTFOLIO_FOUNDER: 'Portfolio Founders',
 };
 
 const TYPE_COLORS = {
@@ -56,8 +54,6 @@ const TYPE_COLORS = {
   RETAIL_ANALYST: 'bg-cyan-100 text-cyan-700',
   PAID_PARTNER: 'bg-purple-100 text-purple-700',
   ORGANIC_ADVOCATE: 'bg-green-100 text-green-700',
-  ADVISOR: 'bg-amber-100 text-amber-700',
-  PORTFOLIO_FOUNDER: 'bg-blue-100 text-blue-700',
 };
 
 const TYPE_ICONS = {
@@ -65,8 +61,6 @@ const TYPE_ICONS = {
   RETAIL_ANALYST: '\uD83D\uDCC8',
   PAID_PARTNER: '\uD83E\uDD1D',
   ORGANIC_ADVOCATE: '\uD83C\uDF31',
-  ADVISOR: '\uD83C\uDFAF',
-  PORTFOLIO_FOUNDER: '\uD83D\uDCBC',
 };
 
 const TYPE_DESCRIPTIONS = {
@@ -74,12 +68,10 @@ const TYPE_DESCRIPTIONS = {
   RETAIL_ANALYST: 'Independent analysts and researchers who cover FIGR',
   PAID_PARTNER: 'Contracted KOLs with paid partnerships',
   ORGANIC_ADVOCATE: 'Community members who organically promote the brand',
-  ADVISOR: 'Strategic advisors with industry influence',
-  PORTFOLIO_FOUNDER: 'Founders of portfolio companies',
 };
 
 // Display order for sections — execs first
-const SECTION_ORDER = ['COMPANY_EXEC', 'RETAIL_ANALYST', 'PAID_PARTNER', 'ORGANIC_ADVOCATE', 'ADVISOR', 'PORTFOLIO_FOUNDER'];
+const SECTION_ORDER = ['COMPANY_EXEC', 'RETAIL_ANALYST', 'PAID_PARTNER', 'ORGANIC_ADVOCATE'];
 
 const EMPTY_KOL_FORM = {
   name: '', username: '', platform: 'X', relationshipType: 'ORGANIC_ADVOCATE',
@@ -317,7 +309,7 @@ export default function KOLPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-medium text-blue-600">{typeLabel}</span>
-                      <span className="text-xs text-gray-400">{act.detectedAt ? new Date(act.detectedAt).toLocaleDateString() : ''}</span>
+                      <span className="text-xs text-gray-400">{(act.postedAt || act.detectedAt) ? new Date(act.postedAt || act.detectedAt).toLocaleDateString() : ''}</span>
                     </div>
                     <p className="text-sm text-gray-800">{act.content}</p>
                     <div className="flex gap-3 mt-1 text-xs text-gray-500">
@@ -554,7 +546,7 @@ export default function KOLPage() {
                         <PlatformBadge platform={act.platform} />
                         <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs font-medium">{typeLabel}</span>
                       </div>
-                      <span className="text-xs text-gray-400">{act.detectedAt ? new Date(act.detectedAt).toLocaleDateString() : ''}</span>
+                      <span className="text-xs text-gray-400">{(act.postedAt || act.detectedAt) ? new Date(act.postedAt || act.detectedAt).toLocaleDateString() : ''}</span>
                     </div>
                     <p className="text-sm text-gray-800 leading-relaxed mb-2">{act.content}</p>
                     <div className="flex items-center gap-4 text-xs text-gray-500">

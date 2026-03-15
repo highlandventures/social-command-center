@@ -16,6 +16,21 @@ import { API_COSTS } from '@/lib/api-costs';
 export const dynamic = 'force-dynamic';
 
 /**
+ * Simple keyword-based sentiment for KOL activations.
+ */
+const POSITIVE_SIGNALS = /🔥|🚀|bullish|excited|congrats|love|great|awesome|amazing|milestone|game.?changer|killer|moon|let'?s go|lfg|gm|onward|upward|\+\d+%/i;
+const NEGATIVE_SIGNALS = /bearish|scam|dump|rug|concerned|disappointed|worried|overvalued|fud|sell|warning|avoid|crash|decline/i;
+
+function classifySentiment(content) {
+  if (!content) return null;
+  const pos = POSITIVE_SIGNALS.test(content);
+  const neg = NEGATIVE_SIGNALS.test(content);
+  if (pos && !neg) return 'POSITIVE';
+  if (neg && !pos) return 'NEGATIVE';
+  return 'NEUTRAL';
+}
+
+/**
  * Determine the activation type based on the raw hit data.
  */
 function classifyActivation(hit) {
@@ -143,6 +158,17 @@ export async function GET(request) {
 
             const activationType = classifyActivation(hit);
 
+            // Extract actual post date (TwitterAPI.io: "Sat Mar 14 23:55:43 +0000 2026", Reddit: created_utc epoch)
+            let postedAt = null;
+            if (hit.createdAt) {
+              postedAt = new Date(hit.createdAt);
+            } else if (hit.created_at) {
+              postedAt = new Date(hit.created_at);
+            } else if (hit.created_utc) {
+              postedAt = new Date(hit.created_utc * 1000);
+            }
+            if (postedAt && isNaN(postedAt.getTime())) postedAt = null;
+
             await prisma.kOLActivation.create({
               data: {
                 kolId: kol.id,
@@ -151,6 +177,8 @@ export async function GET(request) {
                 platformPostId: String(platformPostId),
                 content: String(content),
                 sourceUrl,
+                postedAt,
+                sentiment: classifySentiment(content),
                 detectionMethod: 'cron_search',
                 metricsAtDetection,
               },

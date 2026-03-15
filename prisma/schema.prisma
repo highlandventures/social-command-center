@@ -529,9 +529,11 @@ model KOLActivation {
   platformPostId      String?
   content             String?
   sourceUrl           String?
+  postedAt            DateTime?
   detectedAt          DateTime        @default(now())
   detectionMethod     String?
   campaignId          String?
+  sentiment           Sentiment?
   metricsAtDetection  Json?
   metricsAt24h        Json?
   metricsAt48h        Json?
