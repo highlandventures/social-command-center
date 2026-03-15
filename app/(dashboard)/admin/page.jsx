@@ -615,7 +615,7 @@ function AdminContent() {
                 {
                   name: 'SociaVault',
                   icon: '🔍',
-                  color: 'border-orange-200 bg-orange-50',
+                  color: 'border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/40',
                   plan: 'Starter — $29 / 6,000 credits',
                   usage: '~42 credits/day (throttled 3x/day + global search)',
                   projected: '~$6/mo (pack lasts ~5 months)',
@@ -624,7 +624,7 @@ function AdminContent() {
                 {
                   name: 'TwitterAPI.io',
                   icon: '🐦',
-                  color: 'border-blue-200 bg-blue-50',
+                  color: 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/40',
                   plan: 'Pay-as-you-go — $0.15/1K requests',
                   usage: `${(byProvider.twitterapi_io?.callCount || 0).toLocaleString()} calls (last 30d)`,
                   projected: `$${((byProvider.twitterapi_io?.totalCost || 0)).toFixed(2)}/mo`,
@@ -642,7 +642,7 @@ function AdminContent() {
                 {
                   name: 'Claude AI (Anthropic)',
                   icon: '🧠',
-                  color: 'border-purple-200 bg-purple-50',
+                  color: 'border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-950/40',
                   plan: 'Haiku 3.5 — $0.25/MTok in, $1.25/MTok out',
                   usage: `${(byProvider.claude?.callCount || 0).toLocaleString()} calls (last 30d)`,
                   projected: `$${((byProvider.claude?.totalCost || 0)).toFixed(2)}/mo`,
@@ -660,7 +660,7 @@ function AdminContent() {
                 {
                   name: 'Neon (PostgreSQL)',
                   icon: '🐘',
-                  color: 'border-green-200 bg-green-50',
+                  color: 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/40',
                   plan: 'Free tier',
                   usage: '30+ tables, connection pooling',
                   projected: '$0/mo',
@@ -669,7 +669,7 @@ function AdminContent() {
                 {
                   name: 'Upstash (Redis KV)',
                   icon: '⚡',
-                  color: 'border-red-200 bg-red-50',
+                  color: 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/40',
                   plan: 'Free tier — 10K commands/day',
                   usage: 'Rate limiting, poll throttle, cron locking',
                   projected: '$0/mo',
