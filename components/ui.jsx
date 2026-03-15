@@ -443,10 +443,11 @@ export function KPICard({ label, value, format, delta, direction, subValue }) {
     }
   };
 
+  const isText = format === 'text';
   return (
     <div className="bg-white dark:bg-surface-card rounded-lg border border-border p-4">
       <p className="text-xs text-gray-500 dark:text-content-muted uppercase tracking-wide mb-1">{label}</p>
-      <p className="text-2xl font-bold text-gray-900 dark:text-content-primary">{formatValue(value, format)}</p>
+      <p className={`font-bold text-gray-900 dark:text-content-primary ${isText ? 'text-sm leading-snug line-clamp-3' : 'text-2xl'}`}>{formatValue(value, format)}</p>
       {delta != null && <DeltaArrow value={delta} direction={direction} />}
       {subValue && <p className="text-xs text-gray-400 dark:text-content-faint mt-1">{subValue}</p>}
     </div>

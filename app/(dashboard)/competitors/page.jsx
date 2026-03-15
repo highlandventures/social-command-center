@@ -497,7 +497,7 @@ function ShareOfVoiceTab() {
         <EmptyState
           icon="📊"
           title="No Share of Voice data yet"
-          description="Configure competitors to start tracking share of voice."
+          description="Create competitor records in Admin and set up active listening topics to compute Share of Voice across your brand and competitors."
         />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

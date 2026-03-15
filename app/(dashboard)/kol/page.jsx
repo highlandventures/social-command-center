@@ -123,18 +123,18 @@ export default function KOLPage() {
   const [addForm, setAddForm] = useState(EMPTY_KOL_FORM);
 
   // ── tRPC queries ──────────────────────────────────────────
-  const kolsQ = trpc.kol.list.useQuery(undefined, { staleTime: 30_000 });
+  const kolsQ = trpc.kol.list.useQuery(undefined, { staleTime: 30_000, keepPreviousData: true });
   const activationsQ = trpc.kol.getActivations.useQuery(
     { kolId: selectedKOL },
-    { staleTime: 30_000, enabled: !!selectedKOL }
+    { staleTime: 30_000, keepPreviousData: true, enabled: !!selectedKOL }
   );
   const metricsHistoryQ = trpc.kol.getMetricsHistory.useQuery(
     { kolId: selectedKOL },
-    { staleTime: 60_000, enabled: !!selectedKOL }
+    { staleTime: 60_000, keepPreviousData: true, enabled: !!selectedKOL }
   );
-  const discoverQ = trpc.kol.discoverCandidates.useQuery(undefined, { staleTime: 60_000 });
-  const recentActivationsQ = trpc.kol.recentActivations.useQuery(undefined, { staleTime: 30_000 });
-  const cohortsQ = trpc.kol.getCohorts.useQuery(undefined, { staleTime: 60_000 });
+  const discoverQ = trpc.kol.discoverCandidates.useQuery(undefined, { staleTime: 60_000, keepPreviousData: true });
+  const recentActivationsQ = trpc.kol.recentActivations.useQuery(undefined, { staleTime: 30_000, keepPreviousData: true });
+  const cohortsQ = trpc.kol.getCohorts.useQuery(undefined, { staleTime: 60_000, keepPreviousData: true });
   const createMutation = trpc.kol.create.useMutation({
     onSuccess: () => { kolsQ.refetch(); setShowAddModal(false); setAddForm(EMPTY_KOL_FORM); },
   });
@@ -187,6 +187,17 @@ export default function KOLPage() {
         <button onClick={() => setSelectedKOL(null)} className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-300 mb-4 flex items-center gap-1">
           {'\u2190'} Back to roster
         </button>
+
+        {activationsQ.isError && (
+          <div className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300">
+            Failed to load activations. {activationsQ.error?.message || 'Please try again.'}
+          </div>
+        )}
+        {metricsHistoryQ.isError && (
+          <div className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300">
+            Failed to load metrics history. {metricsHistoryQ.error?.message || 'Please try again.'}
+          </div>
+        )}
 
         {/* KOL header */}
         <div className="bg-surface-card rounded-xl border border-border p-6 mb-6">
@@ -480,6 +491,27 @@ export default function KOLPage() {
         <div className="flex-1" />
         <button onClick={() => setShowAddModal(true)} className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm rounded-lg hover:bg-gray-800">+ Add KOL</button>
       </div>
+
+      {kolsQ.isError && (
+        <div className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300">
+          Failed to load KOL roster. {kolsQ.error?.message || 'Please try again.'}
+        </div>
+      )}
+      {recentActivationsQ.isError && subTab === 'activations' && (
+        <div className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300">
+          Failed to load recent activations. {recentActivationsQ.error?.message || 'Please try again.'}
+        </div>
+      )}
+      {discoverQ.isError && subTab === 'discover' && (
+        <div className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300">
+          Failed to load AI discovery candidates. {discoverQ.error?.message || 'Please try again.'}
+        </div>
+      )}
+      {cohortsQ.isError && (
+        <div className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300">
+          Failed to load cohorts. {cohortsQ.error?.message || 'Please try again.'}
+        </div>
+      )}
 
       {subTab === 'roster' && (
         <div>

@@ -357,6 +357,11 @@ export default function ReportsPage() {
 
           {/* Benchmark chart */}
           <div className="bg-surface-card rounded-xl border border-border p-5 mb-6">
+            {benchmarkData.length === 0 && !benchmarksQ.isLoading && (
+              <div className="mb-3 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-700 dark:text-amber-300">
+                Showing historical data from your tracked posts. More data points will appear as posts are published and metrics are collected.
+              </div>
+            )}
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-sm font-semibold text-content-primary">
                 {selectedBenchmark === 'engRate'
@@ -449,52 +454,59 @@ export default function ReportsPage() {
             })()}
           </div>
 
-          {/* Period comparison */}
-          <div className="bg-surface-card rounded-xl border border-border p-5">
-            <SectionTitle subtitle="Compare any two time periods to measure progress">Period Comparison</SectionTitle>
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
-                <div className="flex items-center justify-between mb-3">
-                  <h5 className="text-xs font-bold text-blue-900 uppercase">Q1 2026 (Current)</h5>
-                  <span className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">In Progress</span>
-                </div>
-                <div className="space-y-2">
-                  {[
-                    { label: 'Avg Eng. Rate', value: '4.2%' },
-                    { label: 'Total Followers', value: '16,390' },
-                    { label: 'Avg Monthly Impressions', value: '24.3K' },
-                    { label: 'Avg Brand Sentiment', value: '72.1' },
-                    { label: 'Content Published', value: '42 posts' },
-                  ].map((m, i) => (
-                    <div key={i} className="flex items-center justify-between text-sm">
-                      <span className="text-blue-700">{m.label}</span>
-                      <span className="font-semibold text-blue-900 dark:text-blue-300">{m.value}</span>
+          {/* Period comparison — computed from benchmark data */}
+          {benchmarkData.length >= 2 && (() => {
+            const latest = benchmarkData[benchmarkData.length - 1] || {};
+            const mid = benchmarkData[Math.floor(benchmarkData.length / 2)] || {};
+            const fmt = (v, suffix = '') => v != null ? (v >= 1000 ? `${(v / 1000).toFixed(1)}K` : `${Number(v).toFixed(1)}`) + suffix : '—';
+            return (
+              <div className="bg-surface-card rounded-xl border border-border p-5">
+                <SectionTitle subtitle="Compare recent vs earlier period from tracked data">Period Comparison</SectionTitle>
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
+                    <div className="flex items-center justify-between mb-3">
+                      <h5 className="text-xs font-bold text-blue-900 dark:text-blue-200 uppercase">Recent ({latest.month || 'Latest'})</h5>
+                      <span className="text-[10px] px-2 py-0.5 bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 rounded-full">Current</span>
                     </div>
-                  ))}
+                    <div className="space-y-2">
+                      {[
+                        { label: 'Avg Eng. Rate', value: latest.engRate != null ? `${latest.engRate.toFixed(1)}%` : '—' },
+                        { label: 'Total Followers', value: fmt(latest.followers) },
+                        { label: 'Monthly Impressions', value: fmt(latest.impressions) },
+                        { label: 'Brand Sentiment', value: latest.sentiment != null ? `${latest.sentiment}` : '—' },
+                        { label: 'Posts Published', value: `${latest.postCount ?? 0} posts` },
+                      ].map((m, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm">
+                          <span className="text-blue-700 dark:text-blue-300">{m.label}</span>
+                          <span className="font-semibold text-blue-900 dark:text-blue-100">{m.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="p-4 bg-surface-page rounded-lg border border-border">
+                    <div className="flex items-center justify-between mb-3">
+                      <h5 className="text-xs font-bold text-content-secondary uppercase">Earlier ({mid.month || 'Midpoint'})</h5>
+                      <span className="text-[10px] px-2 py-0.5 bg-surface-tertiary text-content-secondary rounded-full">Baseline</span>
+                    </div>
+                    <div className="space-y-2">
+                      {[
+                        { label: 'Avg Eng. Rate', value: mid.engRate != null ? `${mid.engRate.toFixed(1)}%` : '—' },
+                        { label: 'Total Followers', value: fmt(mid.followers) },
+                        { label: 'Monthly Impressions', value: fmt(mid.impressions) },
+                        { label: 'Brand Sentiment', value: mid.sentiment != null ? `${mid.sentiment}` : '—' },
+                        { label: 'Posts Published', value: `${mid.postCount ?? 0} posts` },
+                      ].map((m, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm">
+                          <span className="text-content-secondary">{m.label}</span>
+                          <span className="font-semibold text-content-primary">{m.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="p-4 bg-surface-page rounded-lg border border-border">
-                <div className="flex items-center justify-between mb-3">
-                  <h5 className="text-xs font-bold text-content-secondary uppercase">Q4 2025 (Previous)</h5>
-                  <span className="text-[10px] px-2 py-0.5 bg-surface-tertiary text-content-secondary rounded-full">Completed</span>
-                </div>
-                <div className="space-y-2">
-                  {[
-                    { label: 'Avg Eng. Rate', value: '3.1%' },
-                    { label: 'Total Followers', value: '11,200' },
-                    { label: 'Avg Monthly Impressions', value: '14.8K' },
-                    { label: 'Avg Brand Sentiment', value: '62.4' },
-                    { label: 'Content Published', value: '35 posts' },
-                  ].map((m, i) => (
-                    <div key={i} className="flex items-center justify-between text-sm">
-                      <span className="text-content-secondary">{m.label}</span>
-                      <span className="font-semibold text-content-primary">{m.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+            );
+          })()}
         </div>
       )}
     </div>

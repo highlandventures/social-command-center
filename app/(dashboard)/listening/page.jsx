@@ -75,9 +75,9 @@ export default function ListeningPage() {
   };
   const hitsQ = trpc.listening.hits.list.useQuery(
     Object.keys(hitsInput).length > 0 ? hitsInput : undefined,
-    { staleTime: 15_000 },
+    { staleTime: 15_000, keepPreviousData: true },
   );
-  const topicsQ = trpc.listening.topics.list.useQuery(undefined, { staleTime: 30_000 });
+  const topicsQ = trpc.listening.topics.list.useQuery(undefined, { staleTime: 30_000, keepPreviousData: true });
   const accountsQ = trpc.accounts.list.useQuery(undefined, { staleTime: 60_000 });
   const sentimentQ = trpc.analytics.brandSentiment.useQuery(undefined, { staleTime: 30_000 });
 
@@ -359,6 +359,28 @@ export default function ListeningPage() {
         )}
       </div>
 
+      {/* Error banners */}
+      {hitsQ.isError && (
+        <div className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300">
+          Failed to load listening feed. {hitsQ.error?.message || 'Please try again.'}
+        </div>
+      )}
+      {topicsQ.isError && (
+        <div className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300">
+          Failed to load topics. {topicsQ.error?.message || 'Please try again.'}
+        </div>
+      )}
+      {sentimentQ.isError && (
+        <div className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300">
+          Failed to load sentiment data. {sentimentQ.error?.message || 'Please try again.'}
+        </div>
+      )}
+      {accountsQ.isError && (
+        <div className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300">
+          Failed to load accounts. {accountsQ.error?.message || 'Please try again.'}
+        </div>
+      )}
+
       {/* Sub-navigation */}
       <div className="flex items-center gap-2 mb-6 border-b border-border pb-3">
         {[
@@ -425,6 +447,12 @@ export default function ListeningPage() {
                 </button>
               </div>
             </div>
+
+            {triggerScanMutation.isError && (
+              <div className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300">
+                Scan failed. {triggerScanMutation.error?.message || 'Please try again.'}
+              </div>
+            )}
 
             {hitsQ.isLoading ? (
               <div className="space-y-3">

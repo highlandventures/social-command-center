@@ -76,37 +76,37 @@ export default function DashboardPage() {
   // ── tRPC queries ──────────────────────────────────────────
   const dashboardQ = trpc.analytics.dashboard.useQuery(
     queryInput,
-    { staleTime: 30_000 }
+    { staleTime: 30_000, keepPreviousData: true }
   );
 
   const accountBreakdownQ = trpc.analytics.accountBreakdown.useQuery(
     queryInput,
-    { staleTime: 30_000 }
+    { staleTime: 30_000, keepPreviousData: true }
   );
 
   const engagementTrendQ = trpc.analytics.engagementTrend.useQuery(
     queryInput,
-    { staleTime: 30_000 }
+    { staleTime: 30_000, keepPreviousData: true }
   );
 
   const followerGrowthQ = trpc.analytics.followerGrowth.useQuery(
     queryInput,
-    { staleTime: 30_000 }
+    { staleTime: 30_000, keepPreviousData: true }
   );
 
   const sentimentQ = trpc.analytics.brandSentiment.useQuery(
     queryInput,
-    { staleTime: 30_000 }
+    { staleTime: 30_000, keepPreviousData: true }
   );
 
   const heatmapQ = trpc.analytics.heatmap.useQuery(
     queryInput,
-    { staleTime: 60_000 }
+    { staleTime: 60_000, keepPreviousData: true }
   );
 
   const postPerfQ = trpc.analytics.postPerformance.useQuery(
     queryInput,
-    { staleTime: 30_000 }
+    { staleTime: 30_000, keepPreviousData: true }
   );
 
   const subredditMetricsQ = trpc.listening.subredditMetrics.useQuery(
@@ -185,6 +185,7 @@ export default function DashboardPage() {
   }, [dashboard, accounts]);
 
   const isLoading = dashboardQ.isLoading || accountBreakdownQ.isLoading;
+  const hasError = dashboardQ.isError || accountBreakdownQ.isError;
 
   // Dynamic delta label based on selected date range
   const deltaLabel = dateRange === '7d' ? 'WoW' : dateRange === '30d' ? 'MoM' : dateRange === '90d' ? 'QoQ' : 'PoP';
@@ -490,6 +491,13 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {/* Error banner */}
+      {hasError && (
+        <div className="mb-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-700 dark:text-red-300">
+          Failed to load dashboard data. {dashboardQ.error?.message || accountBreakdownQ.error?.message || 'Please try again.'}
+        </div>
+      )}
+
       {/* Aggregate summary cards */}
       {isLoading ? (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-8">
@@ -519,7 +527,7 @@ export default function DashboardPage() {
             benchmark={{
               label: 'Top 10% /post',
               value: bm.impressions > 1000 ? `${(bm.impressions / 1000).toFixed(1)}K` : Math.round(bm.impressions).toLocaleString(),
-              delta: totals.posts > 0 && bm.medianImpressions ? +((totals.impressions / totals.posts - bm.medianImpressions) / bm.medianImpressions * 100).toFixed(0) : undefined,
+              delta: totals.posts > 0 && bm.impressions ? +((totals.impressions / totals.posts - bm.impressions) / bm.impressions * 100).toFixed(0) : undefined,
             }}
           />
           <MetricCard
@@ -530,7 +538,7 @@ export default function DashboardPage() {
             benchmark={{
               label: 'Top 10% avg',
               value: `${bm.engRate.toFixed(1)}%`,
-              delta: bm.medianEngRate ? +((totals.engRate - bm.medianEngRate) / bm.medianEngRate * 100).toFixed(0) : undefined,
+              delta: bm.engRate ? +((totals.engRate - bm.engRate) / bm.engRate * 100).toFixed(0) : undefined,
             }}
           />
           <MetricCard
@@ -756,17 +764,24 @@ export default function DashboardPage() {
             {/* Sentiment over time chart */}
             <div className="lg:col-span-2">
               <div className="text-xs font-medium text-content-muted uppercase tracking-wider mb-2">Sentiment Trend ({rangeLabel(dateRange, customStart, customEnd)})</div>
-              <ResponsiveContainer width="100%" height={200}>
-                <AreaChart data={brandSentimentOverTime}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                  <XAxis dataKey="date" tick={{ fontSize: 10 }} interval={xInterval} />
-                  <YAxis tick={{ fontSize: 10 }} />
-                  <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
-                  <Area type="monotone" dataKey="positive" stackId="1" stroke={chartColors.green} fill={chartColors.fillGreen} name="Positive %" />
-                  <Area type="monotone" dataKey="neutral" stackId="1" stroke={chartColors.gray} fill={chartColors.fillGray} name="Neutral %" />
-                  <Area type="monotone" dataKey="negative" stackId="1" stroke={chartColors.red} fill={chartColors.fillRed} name="Negative %" />
-                </AreaChart>
-              </ResponsiveContainer>
+              {brandSentimentOverTime.length < 2 ? (
+                <div className="h-[200px] flex flex-col items-center justify-center text-content-faint">
+                  <p className="text-sm font-medium text-content-muted">Collecting sentiment data...</p>
+                  <p className="text-xs text-content-faint mt-1">Trend charts appear once 2+ data points are available.</p>
+                </div>
+              ) : (
+                <ResponsiveContainer width="100%" height={200}>
+                  <AreaChart data={brandSentimentOverTime}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+                    <XAxis dataKey="date" tick={{ fontSize: 10 }} interval={xInterval} />
+                    <YAxis tick={{ fontSize: 10 }} />
+                    <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
+                    <Area type="monotone" dataKey="positive" stackId="1" stroke={chartColors.green} fill={chartColors.fillGreen} name="Positive %" />
+                    <Area type="monotone" dataKey="neutral" stackId="1" stroke={chartColors.gray} fill={chartColors.fillGray} name="Neutral %" />
+                    <Area type="monotone" dataKey="negative" stackId="1" stroke={chartColors.red} fill={chartColors.fillRed} name="Negative %" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
         )}
@@ -774,6 +789,12 @@ export default function DashboardPage() {
         {/* Sentiment Drivers */}
         <div className="mt-4 border-t border-border-secondary pt-4">
           <div className="text-xs font-medium text-content-muted uppercase tracking-wider mb-3">Sentiment Drivers — Trending Phrases</div>
+          {brandSentimentDrivers.length === 0 ? (
+            <div className="py-6 text-center">
+              <p className="text-sm text-content-muted">Not enough conversation data to detect themes yet.</p>
+              <p className="text-xs text-content-faint mt-1">Drivers appear when recurring phrases are found across 3+ listening hits.</p>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             {brandSentimentDrivers.map((d) => (
               <div key={d.theme} className="p-3 rounded-lg border border-border-secondary bg-surface-page hover:bg-surface-card transition-colors">
@@ -803,6 +824,7 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
+          )}
         </div>
       </div>
 
@@ -812,6 +834,11 @@ export default function DashboardPage() {
           <SectionTitle>Engagement Trend (All Accounts)</SectionTitle>
           {engagementTrendQ.isLoading ? (
             <Skeleton className="h-[200px] w-full" />
+          ) : engagementData.length < 2 ? (
+            <div className="h-[200px] flex flex-col items-center justify-center text-content-faint">
+              <p className="text-sm font-medium text-content-muted">Collecting engagement data...</p>
+              <p className="text-xs text-content-faint mt-1">Charts appear once 2+ data points are available.</p>
+            </div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={engagementData}>
