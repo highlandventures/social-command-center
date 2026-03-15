@@ -74,11 +74,12 @@ Plans:
   3. Co-pilot writes in the brand voice learned from top-performing published posts, and the team can tell the difference from generic AI output
   4. Team can ask the co-pilot to predict how a draft will perform and receive an engagement estimate before publishing
   5. Team can click a button to insert co-pilot drafted content directly into the active composer editor
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
+- [ ] 04-01-PLAN.md -- Foundation: Prisma schema (CopilotThread/CopilotMessage), lib/copilot modules (intel-context, brand-voice, system-prompt, draft-detector), dependencies, tests
+- [ ] 04-02-PLAN.md -- Backend API: Streaming chat route (/api/copilot/chat) with auth + persistence + cost logging, copilot tRPC router for thread CRUD and suggestion chips
+- [ ] 04-03-PLAN.md -- Frontend UI: CopilotPanel with streaming chat, suggestion chips, draft insertion, prediction cards, wired into composer replacing AI Ideas tab
 
 ## Progress
 
@@ -90,4 +91,4 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 1. Performance Intel | 2/2 | ✅ Complete | 2026-03-14 |
 | 2. Competitor Intel | 2/2 | ✅ Complete | 2026-03-14 |
 | 3. Audience Questions | 2/2 | Complete   | 2026-03-15 |
-| 4. Content Co-Pilot | 0/0 | Not started | - |
+| 4. Content Co-Pilot | 0/3 | Planning complete | - |
