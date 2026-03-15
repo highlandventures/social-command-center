@@ -89,5 +89,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 1. Performance Intel | 2/2 | ✅ Complete | 2026-03-14 |
 | 2. Competitor Intel | 2/2 | ✅ Complete | 2026-03-14 |
-| 3. Audience Questions | 0/2 | In progress | - |
+| 3. Audience Questions | 1/2 | In Progress|  |
 | 4. Content Co-Pilot | 0/0 | Not started | - |

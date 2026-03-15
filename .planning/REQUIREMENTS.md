@@ -23,10 +23,10 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Audience Questions
 
-- [ ] **AUDQ-01**: System extracts questions from listening hits (filtering intent = "question" from mentions, replies, comments)
-- [ ] **AUDQ-02**: Questions are clustered by topic (e.g., "tokenization questions", "staking questions", "Figure vs competitor")
-- [ ] **AUDQ-03**: Unanswered/recurring questions are surfaced as content opportunities
-- [ ] **AUDQ-04**: Each question cluster has a content opportunity score based on volume and engagement
+- [x] **AUDQ-01**: System extracts questions from listening hits (filtering intent = "question" from mentions, replies, comments)
+- [x] **AUDQ-02**: Questions are clustered by topic (e.g., "tokenization questions", "staking questions", "Figure vs competitor")
+- [x] **AUDQ-03**: Unanswered/recurring questions are surfaced as content opportunities
+- [x] **AUDQ-04**: Each question cluster has a content opportunity score based on volume and engagement
 
 ### Content Co-Pilot
 
@@ -77,10 +77,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COMP-02 | Phase 2 | Complete |
 | COMP-03 | Phase 2 | Complete |
 | COMP-04 | Phase 2 | Complete |
-| AUDQ-01 | Phase 3 | Pending |
-| AUDQ-02 | Phase 3 | Pending |
-| AUDQ-03 | Phase 3 | Pending |
-| AUDQ-04 | Phase 3 | Pending |
+| AUDQ-01 | Phase 3 | Complete |
+| AUDQ-02 | Phase 3 | Complete |
+| AUDQ-03 | Phase 3 | Complete |
+| AUDQ-04 | Phase 3 | Complete |
 | CPLT-01 | Phase 4 | Pending |
 | CPLT-02 | Phase 4 | Pending |
 | CPLT-03 | Phase 4 | Pending |
