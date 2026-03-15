@@ -16,7 +16,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Competitor Intel
 
-- [ ] **COMP-01**: System captures competitor post content (not just account-level metrics) from X and Reddit
+- [ ] **COMP-01**: System captures competitor post content (not just account-level metrics) from X (Reddit deferred to future phase)
 - [ ] **COMP-02**: AI extracts themes and topics competitors are posting about with frequency analysis
 - [ ] **COMP-03**: AI identifies content formats competitors use and which formats get highest engagement
 - [ ] **COMP-04**: Team can view a per-competitor strategy summary (posting cadence, top themes, engagement benchmarks vs ours)

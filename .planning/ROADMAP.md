@@ -39,7 +39,7 @@ Plans:
 **Depends on**: Phase 1 (composer sidebar pattern established; competitor post content capture pipeline needed)
 **Requirements**: COMP-01, COMP-02, COMP-03, COMP-04
 **Success Criteria** (what must be TRUE):
-  1. System is capturing competitor post content (text, format, engagement) from X and Reddit on an automated schedule, stored alongside existing CompetitorMetrics
+  1. System is capturing competitor post content (text, format, engagement) from X on an automated schedule, stored alongside existing CompetitorMetrics (Reddit deferred)
   2. Team can open a competitor intel panel in the composer and see AI-extracted themes with frequency counts showing what competitors talk about most
   3. Team can see which content formats competitors use and which formats drive their highest engagement
   4. Team can view a per-competitor strategy card showing posting cadence, top themes, and engagement benchmarks compared to our accounts
