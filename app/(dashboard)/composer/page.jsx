@@ -27,7 +27,10 @@ export default function ComposerPage() {
     "Signal 3: Customer conversations > TAM slides.\n\nShow us 5 real customer conversations with quotes. That's worth more than any McKinsey market sizing.\n\nThe founders who close us fastest always lead with customer evidence, not market size.",
     "Signal 4: Hiring taste.\n\nWho are the first 3-5 people they'd hire? How specific can they get? Do they know these people by name?\n\nGreat founders have been mentally building their team for months before they even start fundraising.",
   ]);
-  const [scheduleDate, setScheduleDate] = useState('2026-03-05');
+  const [scheduleDate, setScheduleDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
   const [scheduleTime, setScheduleTime] = useState('09:15');
   const [sidebarTab, setSidebarTab] = useState('drafts');
 
@@ -180,9 +183,9 @@ export default function ComposerPage() {
   return (
     <div className="flex flex-col" style={{ height: 'calc(100vh - 160px)', minHeight: '600px' }}>
       {/* Top toolbar */}
-      <div className="flex flex-wrap items-center gap-2 mb-4 pb-3 border-b border-gray-200">
+      <div className="flex flex-wrap items-center gap-2 mb-4 pb-3 border-b border-border">
         <div className="flex items-center gap-2 mr-auto flex-wrap">
-          <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5">
+          <div className="flex items-center gap-0.5 bg-surface-secondary rounded-lg p-0.5">
             {[
               { key: 'X', label: '\u{1D54F}' },
               { key: 'REDDIT', label: 'Reddit' },
@@ -195,8 +198,8 @@ export default function ComposerPage() {
                 }}
                 className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   selectedPlatform === p.key
-                    ? 'bg-white shadow-sm text-gray-900'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'bg-surface-card shadow-sm text-content-primary'
+                    : 'text-content-muted hover:text-content-secondary'
                 }`}
               >
                 {p.label}
@@ -206,7 +209,7 @@ export default function ComposerPage() {
           <select
             value={selectedAccount}
             onChange={(e) => setSelectedAccount(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white"
+            className="text-sm border border-border rounded-lg px-2.5 py-1.5 bg-surface-card"
           >
             {platformAccounts.map((a) => (
                 <option key={a.id} value={a.username}>
@@ -215,7 +218,7 @@ export default function ComposerPage() {
               ))}
           </select>
           {selectedPlatform === 'X' && (
-            <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5">
+            <div className="flex items-center gap-0.5 bg-surface-secondary rounded-lg p-0.5">
               {[
                 { key: 'single', label: 'Post' },
                 { key: 'thread', label: `Thread (${activeTweets.length})` },
@@ -226,8 +229,8 @@ export default function ComposerPage() {
                   onClick={() => setPostMode(m.key)}
                   className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
                     postMode === m.key
-                      ? 'bg-white shadow-sm text-gray-900'
-                      : 'text-gray-500 hover:text-gray-700'
+                      ? 'bg-surface-card shadow-sm text-content-primary'
+                      : 'text-content-muted hover:text-content-secondary'
                   }`}
                 >
                   {m.key === 'thread' ? '\uD83E\uDDF5 ' : m.key === 'article' ? '\uD83D\uDCDD ' : ''}
@@ -237,7 +240,7 @@ export default function ComposerPage() {
             </div>
           )}
           {postMode === 'article' && (
-            <span className="text-[10px] px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full font-medium">
+            <span className="text-[10px] px-2 py-0.5 bg-amber-50 dark:bg-amber-900/30 text-amber-700 rounded-full font-medium">
               Premium+ required
             </span>
           )}
@@ -246,22 +249,23 @@ export default function ComposerPage() {
           <button
             onClick={handleSaveDraft}
             disabled={createMutation.isLoading}
-            className="px-2.5 py-1.5 text-xs text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50"
+            className="px-2.5 py-1.5 text-xs text-content-secondary border border-border rounded-lg hover:bg-surface-hover"
           >
             {createMutation.isLoading ? 'Saving...' : 'Save Draft'}
           </button>
-          <div className="flex items-center gap-1 bg-gray-100 rounded-lg px-2.5 py-1.5">
+          <div className="flex items-center gap-1.5 bg-surface-secondary rounded-lg px-2.5 py-1.5">
             <input
               type="date"
               value={scheduleDate}
               onChange={(e) => setScheduleDate(e.target.value)}
-              className="text-xs bg-transparent border-none outline-none w-[110px]"
+              className="text-xs bg-transparent border-none outline-none w-[130px] cursor-pointer"
             />
+            <span className="text-content-faint text-xs">|</span>
             <input
               type="time"
               value={scheduleTime}
               onChange={(e) => setScheduleTime(e.target.value)}
-              className="text-xs bg-transparent border-none outline-none w-[65px]"
+              className="text-xs bg-transparent border-none outline-none w-[85px] cursor-pointer"
             />
           </div>
           <button
@@ -273,7 +277,7 @@ export default function ComposerPage() {
           <button
             onClick={handlePublishNow}
             disabled={publishMutation.isLoading}
-            className="px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg hover:bg-gray-800 font-medium"
+            className="px-3 py-1.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 font-medium"
           >
             {publishMutation.isLoading ? 'Publishing...' : 'Publish Now'}
           </button>
@@ -287,25 +291,25 @@ export default function ComposerPage() {
       >
         {/* COLUMN 1: Editor */}
         <div className="flex flex-col min-h-0">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Compose</h3>
+          <h3 className="text-xs font-semibold text-content-faint uppercase tracking-wider mb-2">Compose</h3>
           <div className="flex-1 min-h-0 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
             {/* Thread editor */}
             {postMode === 'thread' && selectedPlatform === 'X' && (
               <div className="space-y-2.5">
                 {tweets.map((tweet, i) => (
-                  <div key={i} className="bg-white rounded-xl border border-gray-200 p-3 group">
+                  <div key={i} className="bg-surface-card rounded-xl border border-border p-3 group">
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-gray-400 font-medium">
+                        <span className="text-[10px] text-content-faint font-medium">
                           {i + 1}/{tweets.length}
                         </span>
                         {i === 0 && (
-                          <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded font-medium">
+                          <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 rounded font-medium">
                             Hook
                           </span>
                         )}
                         {i === tweets.length - 1 && tweets.length > 1 && (
-                          <span className="text-[10px] px-1.5 py-0.5 bg-green-50 text-green-600 rounded font-medium">
+                          <span className="text-[10px] px-1.5 py-0.5 bg-green-50 dark:bg-green-900/30 text-green-600 rounded font-medium">
                             CTA
                           </span>
                         )}
@@ -329,7 +333,7 @@ export default function ComposerPage() {
                         t[i] = e.target.value;
                         setTweets(t);
                       }}
-                      className="w-full text-[13px] text-gray-800 border-none outline-none resize-none leading-relaxed"
+                      className="w-full text-[13px] text-content-primary border-none outline-none resize-none leading-relaxed"
                       style={{ minHeight: Math.max(60, Math.min(140, tweet.length / 2)) + 'px' }}
                       placeholder={
                         i === 0
@@ -344,17 +348,17 @@ export default function ComposerPage() {
                         +{tweet.length - 280} over limit
                       </div>
                     )}
-                    <div className="flex items-center gap-1.5 mt-1.5 pt-1.5 border-t border-gray-100">
-                      <button className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded hover:bg-gray-50">
+                    <div className="flex items-center gap-1.5 mt-1.5 pt-1.5 border-t border-border-secondary">
+                      <button className="text-[10px] text-content-faint hover:text-content-secondary px-1.5 py-0.5 rounded hover:bg-surface-hover">
                         {'\uD83D\uDCF7'}
                       </button>
-                      <button className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded hover:bg-gray-50">
+                      <button className="text-[10px] text-content-faint hover:text-content-secondary px-1.5 py-0.5 rounded hover:bg-surface-hover">
                         {'\uD83D\uDD17'}
                       </button>
                       <button
                         onClick={handleAiOptimize}
                         disabled={aiLoading}
-                        className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded hover:bg-gray-50 disabled:opacity-50"
+                        className="text-[10px] text-content-faint hover:text-content-secondary px-1.5 py-0.5 rounded hover:bg-surface-hover disabled:opacity-50"
                       >
                         {aiLoading ? '...' : '\u2728 AI'}
                       </button>
@@ -372,7 +376,7 @@ export default function ComposerPage() {
                 ))}
                 <button
                   onClick={() => setTweets([...tweets, ''])}
-                  className="w-full py-2 border-2 border-dashed border-gray-200 rounded-xl text-xs text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors"
+                  className="w-full py-2 border-2 border-dashed border-border rounded-xl text-xs text-content-faint hover:border-blue-300 hover:text-blue-500 transition-colors"
                 >
                   + Add tweet
                 </button>
@@ -381,33 +385,33 @@ export default function ComposerPage() {
 
             {/* Article editor */}
             {postMode === 'article' && selectedPlatform === 'X' && (
-              <div className="bg-white rounded-xl border border-gray-200 p-4 flex flex-col h-full">
+              <div className="bg-surface-card rounded-xl border border-border p-4 flex flex-col h-full">
                 <input
                   value={articleTitle}
                   onChange={(e) => setArticleTitle(e.target.value)}
-                  className="w-full text-lg font-bold text-gray-900 border-none outline-none mb-1 placeholder-gray-300"
+                  className="w-full text-lg font-bold text-content-primary border-none outline-none mb-1 placeholder-gray-300"
                   placeholder="Article title..."
                 />
-                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-gray-100">
-                  <span className="text-[10px] text-gray-400">
+                <div className="flex items-center gap-2 mb-3 pb-2 border-b border-border-secondary">
+                  <span className="text-[10px] text-content-faint">
                     {articleBody.length.toLocaleString()}/25,000
                   </span>
                   <span className="text-[10px] text-gray-300">|</span>
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-[10px] text-content-faint">
                     ~{Math.ceil(articleBody.split(/\s+/).length / 200)} min read
                   </span>
                   <div className="flex-1" />
-                  <button className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded hover:bg-gray-50">
+                  <button className="text-[10px] text-content-faint hover:text-content-secondary px-1.5 py-0.5 rounded hover:bg-surface-hover">
                     {'\uD83D\uDCF7'} Cover image
                   </button>
-                  <button className="text-[10px] text-gray-400 hover:text-gray-600 px-1.5 py-0.5 rounded hover:bg-gray-50">
+                  <button className="text-[10px] text-content-faint hover:text-content-secondary px-1.5 py-0.5 rounded hover:bg-surface-hover">
                     B I H1 H2
                   </button>
                 </div>
                 <textarea
                   value={articleBody}
                   onChange={(e) => setArticleBody(e.target.value)}
-                  className="w-full flex-1 text-[13px] text-gray-800 border-none outline-none resize-none leading-relaxed min-h-[300px]"
+                  className="w-full flex-1 text-[13px] text-content-primary border-none outline-none resize-none leading-relaxed min-h-[300px]"
                   placeholder="Write your article... Markdown supported (## headings, **bold**, *italic*, lists)"
                 />
               </div>
@@ -415,13 +419,13 @@ export default function ComposerPage() {
 
             {/* Single post (X or Reddit) */}
             {(postMode === 'single' || selectedPlatform === 'REDDIT') && (
-              <div className="bg-white rounded-xl border border-gray-200 p-3 flex flex-col h-full">
+              <div className="bg-surface-card rounded-xl border border-border p-3 flex flex-col h-full">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] text-gray-400 font-medium">
+                  <span className="text-[10px] text-content-faint font-medium">
                     {selectedPlatform === 'REDDIT' ? 'Post body (Markdown)' : 'Post'}
                   </span>
                   {selectedPlatform === 'X' && (
-                    <span className="text-[10px] text-gray-400">{tweets[0]?.length || 0}/280</span>
+                    <span className="text-[10px] text-content-faint">{tweets[0]?.length || 0}/280</span>
                   )}
                 </div>
                 {selectedPlatform === 'REDDIT' && (
@@ -429,7 +433,7 @@ export default function ComposerPage() {
                     <select
                       value={redditSubreddit}
                       onChange={(e) => setRedditSubreddit(e.target.value)}
-                      className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white"
+                      className="text-xs border border-border rounded-lg px-2 py-1 bg-surface-card"
                     >
                       <option value="">Select subreddit...</option>
                       <option value="r/FigureTech">r/FigureTech</option>
@@ -444,12 +448,12 @@ export default function ComposerPage() {
                       value={redditTitle}
                       onChange={(e) => setRedditTitle(e.target.value)}
                       placeholder="Post title..."
-                      className="flex-1 min-w-[100px] text-xs border border-gray-200 rounded-lg px-2 py-1"
+                      className="flex-1 min-w-[100px] text-xs border border-border rounded-lg px-2 py-1"
                     />
                     <select
                       value={redditPostType}
                       onChange={(e) => setRedditPostType(e.target.value)}
-                      className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white"
+                      className="text-xs border border-border rounded-lg px-2 py-1 bg-surface-card"
                     >
                       <option>Text</option>
                       <option>Link</option>
@@ -461,7 +465,7 @@ export default function ComposerPage() {
                 <textarea
                   value={tweets[0]}
                   onChange={(e) => setTweets([e.target.value])}
-                  className="w-full flex-1 text-[13px] text-gray-800 border-none outline-none resize-none leading-relaxed min-h-[200px]"
+                  className="w-full flex-1 text-[13px] text-content-primary border-none outline-none resize-none leading-relaxed min-h-[200px]"
                   placeholder={selectedPlatform === 'REDDIT' ? 'Write your post (Markdown)...' : "What's happening?"}
                 />
               </div>
@@ -531,8 +535,8 @@ export default function ComposerPage() {
                   </div>
                 </div>
               </div>
-              <div className="bg-green-50 border border-green-200 rounded-xl p-2.5">
-                <p className="text-[11px] text-green-800">
+              <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 rounded-xl p-2.5">
+                <p className="text-[11px] text-green-800 dark:text-green-300">
                   <strong>Best slot:</strong> Tue 9:15am (8.2% eng). You're set for Wed (5.1%).{' '}
                   <button className="text-green-700 underline font-medium">Switch?</button>
                 </p>
@@ -543,12 +547,12 @@ export default function ComposerPage() {
 
         {/* COLUMN 2: Live Preview */}
         <div className="flex flex-col min-h-0">
-          <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Live Preview</h3>
+          <h3 className="text-xs font-semibold text-content-faint uppercase tracking-wider mb-2">Live Preview</h3>
           <div className="flex-1 min-h-0 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
             {selectedPlatform === 'X' && postMode === 'article' ? (
               /* X Article preview */
               <div
-                className="rounded-2xl border border-gray-200 overflow-hidden"
+                className="rounded-2xl border border-border overflow-hidden"
                 style={{
                   background: '#000',
                   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
@@ -620,7 +624,7 @@ export default function ComposerPage() {
             ) : selectedPlatform === 'X' ? (
               /* X Post / Thread preview */
               <div
-                className="rounded-2xl border border-gray-200 overflow-hidden"
+                className="rounded-2xl border border-border overflow-hidden"
                 style={{
                   background: '#000',
                   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
@@ -703,7 +707,7 @@ export default function ComposerPage() {
                     <svg viewBox="0 0 24 24" className="w-3 h-3 fill-blue-400">
                       <path d="M8.75 21V3h2v18h-2zM18 21V8.5h2V21h-2zM4 21v-5.5h2V21H4z" />
                     </svg>
-                    <span className="text-[10px] text-gray-400 font-medium">
+                    <span className="text-[10px] text-content-faint font-medium">
                       {prediction ? 'AI Predicted' : 'Predicted'}
                     </span>
                     <div className="flex-1" />
@@ -725,7 +729,7 @@ export default function ComposerPage() {
                           { label: 'Confidence', value: prediction.confidence || '—', good: false },
                         ].map((p, k) => (
                           <div key={k} className="text-center">
-                            <div className={`text-[11px] font-semibold ${p.good ? 'text-green-400' : 'text-gray-400'}`}>
+                            <div className={`text-[11px] font-semibold ${p.good ? 'text-green-400' : 'text-content-faint'}`}>
                               {typeof p.value === 'number' ? p.value.toLocaleString() : p.value}
                             </div>
                             <div className="text-[9px] text-gray-600">{p.label}</div>
@@ -745,7 +749,7 @@ export default function ComposerPage() {
                         { label: 'Clicks', value: isThread ? '~120-200' : '~40-80', good: false },
                       ].map((p, k) => (
                         <div key={k} className="text-center">
-                          <div className={`text-[11px] font-semibold ${p.good ? 'text-green-400' : 'text-gray-400'}`}>
+                          <div className={`text-[11px] font-semibold ${p.good ? 'text-green-400' : 'text-content-faint'}`}>
                             {p.value}
                           </div>
                           <div className="text-[9px] text-gray-600">{p.label}</div>
@@ -758,7 +762,7 @@ export default function ComposerPage() {
             ) : (
               /* Reddit preview */
               <div
-                className="rounded-2xl border border-gray-200 overflow-hidden"
+                className="rounded-2xl border border-border overflow-hidden"
                 style={{
                   background: '#1a1a1b',
                   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
@@ -867,8 +871,8 @@ export default function ComposerPage() {
         </div>
 
         {/* COLUMN 3: Sidebar - Drafts & Queue */}
-        <div className="flex flex-col min-h-0 border-l border-gray-200 pl-4">
-          <div className="flex items-center gap-0.5 mb-2 bg-gray-100 rounded-lg p-0.5">
+        <div className="flex flex-col min-h-0 border-l border-border pl-4">
+          <div className="flex items-center gap-0.5 mb-2 bg-surface-secondary rounded-lg p-0.5">
             {[
               { key: 'drafts', label: 'Drafts', count: drafts.length },
               { key: 'queue', label: 'Queue', count: scheduledPosts.length },
@@ -882,7 +886,7 @@ export default function ComposerPage() {
                   if (t.key === 'ideas') setShowIdeas(true);
                 }}
                 className={`flex-1 px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
-                  sidebarTab === t.key ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'
+                  sidebarTab === t.key ? 'bg-surface-card shadow-sm text-content-primary' : 'text-content-muted'
                 }`}
               >
                 {t.label}{t.count != null ? ` (${t.count})` : ''}
@@ -900,7 +904,7 @@ export default function ComposerPage() {
             ) : sidebarTab === 'intel' ? (
               <div className="space-y-4">
                 <PerformanceIntelPanel />
-                <div className="border-t border-gray-200 pt-3" />
+                <div className="border-t border-border pt-3" />
                 <CompetitorIntelPanel />
               </div>
             ) : sidebarTab === 'drafts' ? (
@@ -908,17 +912,17 @@ export default function ComposerPage() {
                 {drafts.map((d) => (
                   <div
                     key={d.id}
-                    className="p-2.5 bg-white rounded-lg border border-gray-100 hover:bg-blue-50 cursor-pointer transition-colors group"
+                    className="p-2.5 bg-surface-card rounded-lg border border-border-secondary hover:bg-surface-hover cursor-pointer transition-colors group"
                   >
                     <div className="flex items-center gap-1.5 mb-1">
                       <PlatformBadge platform={d.platform} />
                       {d.type === 'thread' && (
                         <span className="text-[10px] text-blue-600 font-medium">{d.tweets} tweets</span>
                       )}
-                      <span className="text-[10px] text-gray-400 ml-auto">{d.created}</span>
+                      <span className="text-[10px] text-content-faint ml-auto">{d.created}</span>
                     </div>
                     <p
-                      className="text-[11px] text-gray-700 leading-snug line-clamp-2"
+                      className="text-[11px] text-content-secondary leading-snug line-clamp-2"
                       style={{
                         display: '-webkit-box',
                         WebkitLineClamp: 2,
@@ -941,16 +945,16 @@ export default function ComposerPage() {
                 {scheduledPosts.map((p) => (
                   <div
                     key={p.id}
-                    className="p-2.5 bg-white rounded-lg border border-gray-100 hover:bg-blue-50 cursor-pointer transition-colors group"
+                    className="p-2.5 bg-surface-card rounded-lg border border-border-secondary hover:bg-surface-hover cursor-pointer transition-colors group"
                   >
                     <div className="flex items-center gap-1.5 mb-1">
                       <PlatformBadge platform={p.platform} />
-                      {p.type === 'thread' && (
-                        <span className="text-[10px] text-blue-600 font-medium">{p.tweets} tweets</span>
+                      {p.contentType === 'THREAD' && (
+                        <span className="text-[10px] text-blue-600 font-medium">Thread</span>
                       )}
                     </div>
                     <p
-                      className="text-[11px] text-gray-700 leading-snug line-clamp-2"
+                      className="text-[11px] text-content-secondary leading-snug line-clamp-2"
                       style={{
                         display: '-webkit-box',
                         WebkitLineClamp: 2,
@@ -961,8 +965,8 @@ export default function ComposerPage() {
                       {p.content}
                     </p>
                     <div className="flex items-center justify-between mt-1.5">
-                      <span className="text-[10px] text-gray-500 flex items-center gap-1">
-                        <span>{'\uD83D\uDD50'}</span> {p.scheduledFor}
+                      <span className="text-[10px] text-content-muted flex items-center gap-1">
+                        <span>{'\uD83D\uDD50'}</span> {p.scheduledFor ? new Date(p.scheduledFor).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}
                       </span>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button className="text-[10px] text-blue-600 font-medium">Edit</button>
@@ -979,7 +983,7 @@ export default function ComposerPage() {
                   <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white text-[8px] font-bold flex-shrink-0">
                     AI
                   </div>
-                  <span className="text-[10px] font-semibold text-gray-600">Content ideas from trends</span>
+                  <span className="text-[10px] font-semibold text-content-secondary">Content ideas from trends</span>
                 </div>
                 {ideasQuery.isLoading ? (
                   <div className="space-y-2">
@@ -1005,16 +1009,16 @@ export default function ComposerPage() {
                       <div className="flex items-center gap-1.5 mb-1">
                         {idea.platform && <PlatformBadge platform={idea.platform} />}
                         {idea.type && (
-                          <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-medium">
+                          <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded font-medium">
                             {idea.type}
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-gray-800 leading-snug font-medium mb-0.5">
+                      <p className="text-[11px] text-content-primary leading-snug font-medium mb-0.5">
                         {idea.title || idea.topic || 'Content Idea'}
                       </p>
                       <p
-                        className="text-[10px] text-gray-600 leading-relaxed"
+                        className="text-[10px] text-content-secondary leading-relaxed"
                         style={{
                           display: '-webkit-box',
                           WebkitLineClamp: 3,
@@ -1032,7 +1036,7 @@ export default function ComposerPage() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-[11px] text-gray-500">No ideas yet. AI will analyze your listening data and post history to suggest content.</p>
+                  <p className="text-[11px] text-content-muted">No ideas yet. AI will analyze your listening data and post history to suggest content.</p>
                 )}
               </div>
             )}

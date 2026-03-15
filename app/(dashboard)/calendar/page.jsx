@@ -78,7 +78,7 @@ export default function CalendarPage() {
   const postColors = {
     scheduled: 'bg-blue-100 border-blue-200 text-blue-800',
     published: 'bg-green-100 border-green-200 text-green-800',
-    ghost: 'bg-gray-50 border-dashed border-gray-300 text-gray-500',
+    ghost: 'bg-surface-page border-dashed border-gray-300 text-content-muted',
   };
   const platformDot = { x: 'bg-gray-800', reddit: 'bg-orange-500' };
 
@@ -86,10 +86,10 @@ export default function CalendarPage() {
     <div>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <h2 className="text-lg font-bold text-gray-900">{monthName}</h2>
+          <h2 className="text-lg font-bold text-content-primary">{monthName}</h2>
           <div className="flex items-center gap-1">
-            <button onClick={goToPrevMonth} className="p-1 text-gray-400 hover:text-gray-600">{'\u2190'}</button>
-            <button onClick={goToNextMonth} className="p-1 text-gray-400 hover:text-gray-600">{'\u2192'}</button>
+            <button onClick={goToPrevMonth} className="p-1 text-content-faint hover:text-content-secondary">{'\u2190'}</button>
+            <button onClick={goToNextMonth} className="p-1 text-content-faint hover:text-content-secondary">{'\u2192'}</button>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -99,14 +99,14 @@ export default function CalendarPage() {
               onClick={() => setView(v)}
               className={`px-3 py-1.5 text-xs font-medium rounded-lg capitalize ${
                 view === v
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
+                  : 'bg-surface-secondary text-content-secondary hover:bg-surface-tertiary'
               }`}
             >
               {v}
             </button>
           ))}
-          <div className="flex items-center gap-2 ml-3 text-xs text-gray-500">
+          <div className="flex items-center gap-2 ml-3 text-xs text-content-muted">
             <span className="flex items-center gap-1">
               <span className="w-2.5 h-2.5 rounded bg-blue-200 border border-blue-300" />
               Scheduled
@@ -116,7 +116,7 @@ export default function CalendarPage() {
               Published
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded bg-gray-100 border border-dashed border-gray-300" />
+              <span className="w-2.5 h-2.5 rounded bg-surface-secondary border border-dashed border-gray-300" />
               AI Suggestion
             </span>
           </div>
@@ -128,11 +128,11 @@ export default function CalendarPage() {
       ) : (
         <>
           {view === 'month' && (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="bg-surface-card rounded-xl border border-border overflow-hidden">
               {/* Day headers */}
-              <div className="grid grid-cols-7 border-b border-gray-200">
+              <div className="grid grid-cols-7 border-b border-border">
                 {daysOfWeek.map((d) => (
-                  <div key={d} className="py-2 text-center text-xs font-medium text-gray-500 uppercase">
+                  <div key={d} className="py-2 text-center text-xs font-medium text-content-muted uppercase">
                     {d}
                   </div>
                 ))}
@@ -141,13 +141,13 @@ export default function CalendarPage() {
               <div className="grid grid-cols-7">
                 {/* Padding for days before March 1 */}
                 {Array.from({ length: startPadCount }, (_, i) => (
-                  <div key={`pad-${i}`} className="min-h-[100px] border-b border-r border-gray-100 bg-gray-50/50" />
+                  <div key={`pad-${i}`} className="min-h-[100px] border-b border-r border-border-secondary bg-surface-page/50" />
                 ))}
                 {calendarDays.map((day) => (
                   <div
                     key={day.day}
-                    className={`min-h-[100px] border-b border-r border-gray-100 p-1.5 ${
-                      day.isToday ? 'bg-blue-50/50' : 'hover:bg-gray-50'
+                    className={`min-h-[100px] border-b border-r border-border-secondary p-1.5 ${
+                      day.isToday ? 'bg-blue-50/50' : 'hover:bg-surface-hover'
                     } transition-colors`}
                   >
                     <div className="flex items-center justify-between mb-1">
@@ -155,7 +155,7 @@ export default function CalendarPage() {
                         className={`text-xs font-medium ${
                           day.isToday
                             ? 'bg-blue-600 text-white w-5 h-5 rounded-full flex items-center justify-center'
-                            : 'text-gray-500'
+                            : 'text-content-muted'
                         }`}
                       >
                         {day.day}
@@ -186,7 +186,7 @@ export default function CalendarPage() {
                 ))}
                 {/* Padding for remaining cells */}
                 {Array.from({ length: (7 - ((startPadCount + daysInMonth) % 7)) % 7 }, (_, i) => (
-                  <div key={`pad-end-${i}`} className="min-h-[100px] border-b border-r border-gray-100 bg-gray-50/50" />
+                  <div key={`pad-end-${i}`} className="min-h-[100px] border-b border-r border-border-secondary bg-surface-page/50" />
                 ))}
               </div>
             </div>
@@ -205,8 +205,8 @@ export default function CalendarPage() {
             });
             const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             return (
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <p className="text-sm text-gray-500 mb-4">Week of {fmt(weekDays[0])} — {fmt(weekDays[6])}, {weekDays[0].getFullYear()}</p>
+            <div className="bg-surface-card rounded-xl border border-border p-4">
+              <p className="text-sm text-content-muted mb-4">Week of {fmt(weekDays[0])} — {fmt(weekDays[6])}, {weekDays[0].getFullYear()}</p>
               <div className="grid grid-cols-7 gap-3">
                 {weekDays.map((wd, i) => {
                   const dayNum = wd.getDate();
@@ -218,10 +218,10 @@ export default function CalendarPage() {
                     <div
                       key={i}
                       className={`rounded-lg border p-3 min-h-[200px] ${
-                        isToday ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200'
+                        isToday ? 'border-blue-300 bg-blue-50/30' : 'border-border'
                       }`}
                     >
-                      <p className={`text-xs font-medium mb-2 ${isToday ? 'text-blue-700' : 'text-gray-500'}`}>
+                      <p className={`text-xs font-medium mb-2 ${isToday ? 'text-blue-700' : 'text-content-muted'}`}>
                         {label} {isToday && '(Today)'}
                       </p>
                       <div className="space-y-2">
@@ -234,7 +234,7 @@ export default function CalendarPage() {
                               </span>
                             </div>
                             <p className="text-xs leading-snug">{post.label}</p>
-                            <p className="text-[10px] text-gray-400 mt-1">{post.time}</p>
+                            <p className="text-[10px] text-content-faint mt-1">{post.time}</p>
                           </div>
                         ))}
                       </div>
@@ -247,12 +247,12 @@ export default function CalendarPage() {
           })()}
 
           {view === 'list' && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className="bg-surface-card rounded-xl border border-border p-5">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200">
+                  <tr className="border-b border-border">
                     {['Content', 'Platform', 'Account', 'Type', 'Scheduled For', 'Status'].map((h) => (
-                      <th key={h} className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">
+                      <th key={h} className="text-left py-2 px-3 text-xs font-medium text-content-muted uppercase">
                         {h}
                       </th>
                     ))}
@@ -260,21 +260,21 @@ export default function CalendarPage() {
                 </thead>
                 <tbody>
                   {scheduledPosts.map((p) => (
-                    <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer">
-                      <td className="py-3 px-3 font-medium text-gray-900 max-w-sm truncate">{p.content}</td>
+                    <tr key={p.id} className="border-b border-border-secondary hover:bg-surface-hover cursor-pointer">
+                      <td className="py-3 px-3 font-medium text-content-primary max-w-sm truncate">{p.content}</td>
                       <td className="py-3 px-3">
                         <PlatformBadge platform={p.platform} />
                       </td>
-                      <td className="py-3 px-3 text-gray-600">{p.account}</td>
+                      <td className="py-3 px-3 text-content-secondary">{p.account}</td>
                       <td className="py-3 px-3">
-                        <span className="text-xs font-medium text-gray-600">
+                        <span className="text-xs font-medium text-content-secondary">
                           {p.type}
                           {(p.tweets ?? 0) > 1 ? ` (${p.tweets})` : ''}
                         </span>
                       </td>
-                      <td className="py-3 px-3 text-gray-600">{p.scheduledFor}</td>
+                      <td className="py-3 px-3 text-content-secondary">{p.scheduledFor}</td>
                       <td className="py-3 px-3">
-                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
                           Scheduled
                         </span>
                       </td>
@@ -289,15 +289,15 @@ export default function CalendarPage() {
 
       {/* Bottom: upcoming + AI suggestions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <h4 className="text-sm font-semibold text-gray-900 mb-3">Upcoming (Next 7 Days)</h4>
+        <div className="bg-surface-card rounded-xl border border-border p-5">
+          <h4 className="text-sm font-semibold text-content-primary mb-3">Upcoming (Next 7 Days)</h4>
           {scheduledPosts.map((p) => (
-            <div key={p.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+            <div key={p.id} className="flex items-center justify-between py-2 border-b border-border-secondary last:border-0">
               <div className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${platformDot[p.platform] || 'bg-gray-400'}`} />
-                <span className="text-sm text-gray-800 truncate max-w-xs">{p.content}</span>
+                <span className="text-sm text-content-primary truncate max-w-xs">{p.content}</span>
               </div>
-              <span className="text-xs text-gray-400 whitespace-nowrap">{p.scheduledFor}</span>
+              <span className="text-xs text-content-faint whitespace-nowrap">{p.scheduledFor}</span>
             </div>
           ))}
         </div>
@@ -309,24 +309,24 @@ export default function CalendarPage() {
             <h4 className="text-sm font-semibold text-blue-900">Content Suggestions for This Week</h4>
           </div>
           <div className="space-y-3">
-            <div className="bg-white/70 rounded-lg p-3 border border-blue-100">
+            <div className="bg-white/70 dark:bg-white/10 rounded-lg p-3 border border-blue-100">
               <div className="flex items-center gap-2 mb-1">
                 <PlatformBadge platform="x" />
                 <span className="text-xs font-medium text-blue-800">Thread &middot; Tuesday 9:15am</span>
                 <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">OPPORTUNITY</span>
               </div>
-              <p className="text-xs text-gray-800">
+              <p className="text-xs text-content-primary">
                 How AI is transforming LP reporting — first mover opportunity, rising theme in listening
               </p>
               <button className="text-xs text-blue-600 font-medium mt-1 hover:text-blue-800">Start Draft →</button>
             </div>
-            <div className="bg-white/70 rounded-lg p-3 border border-blue-100">
+            <div className="bg-white/70 dark:bg-white/10 rounded-lg p-3 border border-blue-100">
               <div className="flex items-center gap-2 mb-1">
                 <PlatformBadge platform="reddit" />
                 <span className="text-xs font-medium text-blue-800">Text Post &middot; Thursday 10:00am</span>
                 <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">REINFORCE</span>
               </div>
-              <p className="text-xs text-gray-800">
+              <p className="text-xs text-content-primary">
                 Curate founder testimonials about AI sourcing — positive theme rising in r/venturecapital
               </p>
               <button className="text-xs text-blue-600 font-medium mt-1 hover:text-blue-800">Start Draft →</button>

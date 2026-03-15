@@ -9,7 +9,7 @@ import {
 import { trpc } from '@/lib/trpc-client';
 import {
   COLORS, PlatformBadge, RelevanceBadge, SentimentDot,
-  TabButton, SectionTitle, Skeleton,
+  TabButton, SectionTitle, Skeleton, useChartColors,
 } from '@/components/ui';
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -39,6 +39,7 @@ function formatFollowers(n) {
 // ── Page Component ────────────────────────────────────────────
 
 export default function ListeningPage() {
+  const chartColors = useChartColors();
   const [subTab, setSubTab] = useState('sov');
   const [relevanceFilter, setRelevanceFilter] = useState('HIGH');
   const [selectedBrands, setSelectedBrands] = useState([]); // multi-select topic IDs
@@ -294,11 +295,11 @@ export default function ListeningPage() {
   return (
     <div>
       {/* Filter bar: Platform + Brand multi-select */}
-      <div className="flex flex-wrap items-center gap-3 mb-4 bg-white rounded-xl border border-gray-200 px-4 py-2.5">
+      <div className="flex flex-wrap items-center gap-3 mb-4 bg-surface-card rounded-xl border border-border px-4 py-2.5">
         {/* Platform filter */}
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-medium text-gray-500">Platform:</span>
-          <div className="flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5">
+          <span className="text-xs font-medium text-content-muted">Platform:</span>
+          <div className="flex items-center gap-0.5 bg-surface-secondary rounded-lg p-0.5">
             {[
               { key: 'all', label: 'All' },
               { key: 'X', label: 'X' },
@@ -308,7 +309,7 @@ export default function ListeningPage() {
                 key={p.key}
                 onClick={() => setPlatformFilter(p.key)}
                 className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
-                  platformFilter === p.key ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                  platformFilter === p.key ? 'bg-surface-card shadow-sm text-content-primary' : 'text-content-muted hover:text-content-secondary'
                 }`}
               >
                 {p.label}
@@ -317,13 +318,13 @@ export default function ListeningPage() {
           </div>
         </div>
 
-        <div className="w-px h-5 bg-gray-200" />
+        <div className="w-px h-5 bg-surface-tertiary" />
 
         {/* Brand multi-select */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-xs font-medium text-gray-500">Brands:</span>
+          <span className="text-xs font-medium text-content-muted">Brands:</span>
           {listeningTopics.length === 0 ? (
-            <span className="text-xs text-gray-400 italic">No topics yet</span>
+            <span className="text-xs text-content-faint italic">No topics yet</span>
           ) : (
             <>
               {listeningTopics.map((t) => {
@@ -335,7 +336,7 @@ export default function ListeningPage() {
                     className={`px-2.5 py-1 text-xs font-medium rounded-full transition-colors border ${
                       isSelected
                         ? 'bg-blue-600 text-white border-blue-600'
-                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                        : 'bg-surface-card text-content-secondary border-border hover:border-gray-400'
                     }`}
                   >
                     {t.name}
@@ -356,7 +357,7 @@ export default function ListeningPage() {
 
         {/* Active filter summary */}
         {(selectedBrands.length > 0 || platformFilter !== 'all') && (
-          <div className="ml-auto text-xs text-gray-400">
+          <div className="ml-auto text-xs text-content-faint">
             Filtering: {platformFilter !== 'all' ? platformFilter : 'All platforms'}
             {selectedBrands.length > 0 && ` · ${selectedBrands.length} brand${selectedBrands.length > 1 ? 's' : ''}`}
           </div>
@@ -364,7 +365,7 @@ export default function ListeningPage() {
       </div>
 
       {/* Sub-navigation */}
-      <div className="flex items-center gap-2 mb-6 border-b border-gray-200 pb-3">
+      <div className="flex items-center gap-2 mb-6 border-b border-border pb-3">
         {[
           { key: 'sov', label: 'Share of Voice' },
           { key: 'feed', label: 'Listening Feed', badge: filteredFeed.length || undefined },
@@ -383,7 +384,7 @@ export default function ListeningPage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-3">
             <div className="flex items-center gap-2 mb-4 flex-wrap">
-              <span className="text-sm text-gray-500">Range:</span>
+              <span className="text-sm text-content-muted">Range:</span>
               {[
                 { key: '24h', label: '24h' },
                 { key: '7d', label: '7d' },
@@ -395,20 +396,20 @@ export default function ListeningPage() {
                   key={r.key}
                   onClick={() => setFeedTimeRange(r.key)}
                   className={`px-2.5 py-1 text-xs rounded-lg font-medium ${
-                    feedTimeRange === r.key ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    feedTimeRange === r.key ? 'bg-blue-600 text-white' : 'bg-surface-secondary text-content-secondary hover:bg-surface-tertiary'
                   }`}
                 >
                   {r.label}
                 </button>
               ))}
               <span className="text-gray-300 mx-1">|</span>
-              <span className="text-sm text-gray-500">Relevance:</span>
+              <span className="text-sm text-content-muted">Relevance:</span>
               {['all', 'HIGH', 'MEDIUM'].map((f) => (
                 <button
                   key={f}
                   onClick={() => setRelevanceFilter(f)}
                   className={`px-2.5 py-1 text-xs rounded-lg font-medium ${
-                    relevanceFilter === f ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    relevanceFilter === f ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900' : 'bg-surface-secondary text-content-secondary hover:bg-surface-tertiary'
                   }`}
                 >
                   {f === 'all' ? 'All' : f}
@@ -437,17 +438,17 @@ export default function ListeningPage() {
                 {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-32 w-full rounded-xl" />)}
               </div>
             ) : filteredFeed.length === 0 ? (
-              <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-                <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+              <div className="bg-surface-card rounded-xl border border-border p-12 text-center">
+                <div className="w-12 h-12 rounded-full bg-surface-secondary flex items-center justify-center mx-auto mb-3">
                   <span className="text-2xl">👂</span>
                 </div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-1">No listening hits yet</h3>
-                <p className="text-xs text-gray-500 mb-4">
+                <h3 className="text-sm font-semibold text-content-primary mb-1">No listening hits yet</h3>
+                <p className="text-xs text-content-muted mb-4">
                   Create a topic in the Topics tab, then click &quot;Scan Now&quot; to search for matching content.
                 </p>
                 <button
                   onClick={() => setSubTab('topics')}
-                  className="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-800"
+                  className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm rounded-lg hover:bg-gray-800"
                 >
                   Go to Topics
                 </button>
@@ -457,31 +458,31 @@ export default function ListeningPage() {
                 {filteredFeed.map((hit) => (
                   <div
                     key={hit.id}
-                    className={`bg-white rounded-xl border p-4 hover:shadow-md transition-shadow ${
-                      hit.relevance === 'HIGH' ? 'border-green-200 bg-green-50/30' : 'border-gray-200'
+                    className={`bg-surface-card rounded-xl border p-4 hover:shadow-md transition-shadow ${
+                      hit.relevance === 'HIGH' ? 'border-green-200 bg-green-50/30 dark:bg-green-900/30' : 'border-border'
                     }`}
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <PlatformBadge platform={hit.platform} />
-                        <span className="font-semibold text-gray-900 text-sm">
+                        <span className="font-semibold text-content-primary text-sm">
                           {hit.platform === 'x' ? `@${hit.author}` : `u/${hit.author}`}
                         </span>
-                        <span className="text-xs text-gray-400">{formatFollowers(hit.followers)}</span>
+                        <span className="text-xs text-content-faint">{formatFollowers(hit.followers)}</span>
                         {hit.subreddit && <span className="text-xs text-orange-600 font-medium">{hit.subreddit}</span>}
                       </div>
                       <div className="flex items-center gap-2">
                         <RelevanceBadge level={hit.relevance} />
                         <SentimentDot sentiment={hit.sentiment?.toLowerCase()} />
-                        <span className="text-xs text-gray-400">{timeAgo(hit.time)}</span>
+                        <span className="text-xs text-content-faint">{timeAgo(hit.time)}</span>
                       </div>
                     </div>
                     <p className="text-sm text-gray-800 leading-relaxed mb-2">{hit.content}</p>
                     {hit.topicName && (
-                      <p className="text-[11px] text-gray-400 mb-2">Topic: {hit.topicName}</p>
+                      <p className="text-[11px] text-content-faint mb-2">Topic: {hit.topicName}</p>
                     )}
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 text-xs text-gray-500">
+                      <div className="flex items-center gap-3 text-xs text-content-muted">
                         <span>{hit.engagements} engagements</span>
                         <span>Score: {hit.heuristic}</span>
                       </div>
@@ -491,14 +492,14 @@ export default function ListeningPage() {
                             href={hit.sourceUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-2.5 py-1 text-xs bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 font-medium"
+                            className="px-2.5 py-1 text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 rounded-lg hover:bg-blue-100 font-medium"
                           >
                             View
                           </a>
                         )}
                         <button
                           onClick={() => dismissHitMutation.mutate({ id: hit.id })}
-                          className="px-2.5 py-1 text-xs bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100"
+                          className="px-2.5 py-1 text-xs bg-surface-page text-content-secondary rounded-lg hover:bg-surface-hover"
                         >
                           Dismiss
                         </button>
@@ -512,18 +513,18 @@ export default function ListeningPage() {
 
           {/* Sidebar */}
           <div className="space-y-4">
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <h4 className="font-semibold text-gray-900 text-sm mb-3">Active Topics</h4>
+            <div className="bg-surface-card rounded-xl border border-border p-4">
+              <h4 className="font-semibold text-content-primary text-sm mb-3">Active Topics</h4>
               {topicsQ.isLoading ? (
                 <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
               ) : listeningTopics.length === 0 ? (
-                <p className="text-xs text-gray-500 py-2">No topics configured yet.</p>
+                <p className="text-xs text-content-muted py-2">No topics configured yet.</p>
               ) : (
                 listeningTopics.filter((t) => t.active).map((t) => (
-                  <div key={t.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                  <div key={t.id} className="flex items-center justify-between py-2 border-b border-border-secondary last:border-0">
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{t.name}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-sm font-medium text-content-primary">{t.name}</p>
+                      <p className="text-xs text-content-muted">
                         {t.queryCount} queries &middot; {t.hitCount} hits
                       </p>
                     </div>
@@ -543,8 +544,8 @@ export default function ListeningPage() {
               )}
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <h4 className="font-semibold text-gray-900 text-sm mb-3">Sentiment (24h)</h4>
+            <div className="bg-surface-card rounded-xl border border-border p-4">
+              <h4 className="font-semibold text-content-primary text-sm mb-3">Sentiment (24h)</h4>
               <ResponsiveContainer width="100%" height={140}>
                 <PieChart>
                   <Pie
@@ -563,10 +564,10 @@ export default function ListeningPage() {
                     <Cell fill={COLORS.gray} />
                     <Cell fill={COLORS.red} />
                   </Pie>
-                  <Tooltip />
+                  <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="flex justify-center gap-3 text-xs text-gray-600">
+              <div className="flex justify-center gap-3 text-xs text-content-secondary">
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-green-500" />
                   {sentimentQ.data?.breakdown?.positive ?? 0}% Pos
@@ -593,7 +594,7 @@ export default function ListeningPage() {
               AI Insights
             </SectionTitle>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-400">Powered by listening data</span>
+              <span className="text-xs text-content-faint">Powered by listening data</span>
               <button
                 onClick={() => reanalyzeSentimentMutation.mutate({ limit: 50 })}
                 disabled={reanalyzeSentimentMutation.isLoading}
@@ -609,12 +610,12 @@ export default function ListeningPage() {
           </div>
 
           {listeningFeed.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+            <div className="bg-surface-card rounded-xl border border-border p-12 text-center">
               <div className="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center mx-auto mb-3">
                 <span className="text-lg font-bold text-indigo-600">AI</span>
               </div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">No data for insights yet</h3>
-              <p className="text-xs text-gray-500">
+              <h3 className="text-sm font-semibold text-content-primary mb-1">No data for insights yet</h3>
+              <p className="text-xs text-content-muted">
                 Create listening topics and run a scan first. AI insights will be generated from your listening data.
               </p>
             </div>
@@ -647,7 +648,7 @@ export default function ListeningPage() {
               </div>
 
               {/* Top hits */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <div className="bg-surface-card rounded-xl border border-border p-5">
                 <SectionTitle subtitle="Highest-scoring mentions that may require attention">
                   Top Actionable Hits
                 </SectionTitle>
@@ -656,25 +657,25 @@ export default function ListeningPage() {
                     .filter((h) => h.relevance === 'HIGH')
                     .slice(0, 5)
                     .map((hit) => (
-                      <div key={hit.id} className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
+                      <div key={hit.id} className="flex items-start gap-3 p-3 rounded-lg border border-border-secondary hover:bg-surface-hover transition-colors">
                         <PlatformBadge platform={hit.platform} />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-semibold text-gray-900">
+                            <span className="text-sm font-semibold text-content-primary">
                               {hit.platform === 'x' ? `@${hit.author}` : `u/${hit.author}`}
                             </span>
-                            <span className="text-xs text-gray-400">{formatFollowers(hit.followers)}</span>
-                            <span className="text-xs text-gray-400">{timeAgo(hit.time)}</span>
+                            <span className="text-xs text-content-faint">{formatFollowers(hit.followers)}</span>
+                            <span className="text-xs text-content-faint">{timeAgo(hit.time)}</span>
                           </div>
-                          <p className="text-xs text-gray-600 leading-relaxed line-clamp-2">{hit.content}</p>
+                          <p className="text-xs text-content-secondary leading-relaxed line-clamp-2">{hit.content}</p>
                         </div>
-                        <span className="text-xs font-bold text-green-700 bg-green-50 px-2 py-1 rounded">
+                        <span className="text-xs font-bold text-green-700 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded">
                           {hit.heuristic}
                         </span>
                       </div>
                     ))}
                   {listeningFeed.filter((h) => h.relevance === 'HIGH').length === 0 && (
-                    <p className="text-sm text-gray-500 py-4 text-center">No high-relevance hits found yet.</p>
+                    <p className="text-sm text-content-muted py-4 text-center">No high-relevance hits found yet.</p>
                   )}
                 </div>
               </div>
@@ -705,7 +706,7 @@ export default function ListeningPage() {
               </button>
               <button
                 onClick={() => setShowNewTopic(true)}
-                className="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-800"
+                className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm rounded-lg hover:bg-gray-800"
               >
                 + New Topic
               </button>
@@ -714,7 +715,7 @@ export default function ListeningPage() {
 
           {/* ── New Topic Form (AI-powered conversational) ─── */}
           {showNewTopic && (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 mb-6">
+            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 rounded-xl p-5 mb-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">AI</div>
@@ -732,13 +733,13 @@ export default function ListeningPage() {
               <div className="space-y-4">
                 {/* Conversation history */}
                 {newTopicChat.length > 0 && (
-                  <div className="bg-white rounded-lg border border-blue-100 p-3 max-h-[300px] overflow-y-auto space-y-3">
+                  <div className="bg-surface-card rounded-lg border border-blue-100 p-3 max-h-[300px] overflow-y-auto space-y-3">
                     {newTopicChat.map((msg, i) => (
                       <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         {msg.role === 'assistant' && (
                           <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0 mt-0.5">AI</div>
                         )}
-                        <div className={`max-w-[80%] ${msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-800'} rounded-lg px-3 py-2`}>
+                        <div className={`max-w-[80%] ${msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-surface-page text-gray-800'} rounded-lg px-3 py-2`}>
                           <p className="text-xs leading-relaxed">{msg.content}</p>
                           {msg.questions && (
                             <div className="mt-2 space-y-1.5">
@@ -746,7 +747,7 @@ export default function ListeningPage() {
                                 <button
                                   key={qi}
                                   onClick={() => setAiPrompt(q)}
-                                  className="block w-full text-left text-[11px] bg-white/80 text-blue-800 px-2.5 py-1.5 rounded border border-blue-100 hover:bg-blue-50 transition-colors"
+                                  className="block w-full text-left text-[11px] bg-surface-card/80 text-blue-800 dark:text-blue-300 px-2.5 py-1.5 rounded border border-blue-100 hover:bg-surface-hover transition-colors"
                                 >
                                   {qi + 1}. {q}
                                 </button>
@@ -759,9 +760,9 @@ export default function ListeningPage() {
                     {generateQueriesMutation.isPending && (
                       <div className="flex gap-2">
                         <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">AI</div>
-                        <div className="bg-gray-50 rounded-lg px-3 py-2 flex items-center gap-2">
+                        <div className="bg-surface-page rounded-lg px-3 py-2 flex items-center gap-2">
                           <span className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                          <span className="text-xs text-gray-500">Thinking...</span>
+                          <span className="text-xs text-content-muted">Thinking...</span>
                         </div>
                       </div>
                     )}
@@ -770,7 +771,7 @@ export default function ListeningPage() {
 
                 {/* Chat input */}
                 <div>
-                  <label className="block text-xs font-medium text-blue-800 mb-1">
+                  <label className="block text-xs font-medium text-blue-800 dark:text-blue-300 mb-1">
                     {newTopicChat.length === 0
                       ? 'Describe what you want to monitor in plain English'
                       : clarifyingQuestions.length > 0
@@ -786,7 +787,7 @@ export default function ListeningPage() {
                       placeholder={newTopicChat.length === 0
                         ? "e.g. Track conversations about humanoid robots and Figure AI, from investors, analysts, and tech journalists"
                         : "e.g. Focus more on institutional investors, exclude retail crypto discussions..."}
-                      className="flex-1 px-3 py-2.5 text-sm border border-blue-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-400"
+                      className="flex-1 px-3 py-2.5 text-sm border border-blue-200 rounded-lg bg-surface-card focus:outline-none focus:ring-2 focus:ring-blue-400"
                     />
                     <button
                       onClick={handleGenerateQueries}
@@ -815,30 +816,30 @@ export default function ListeningPage() {
                   <>
                     <div className="border-t border-blue-200 pt-4">
                       <div className="flex items-center justify-between mb-2">
-                        <label className="block text-xs font-medium text-blue-800">Topic Name</label>
+                        <label className="block text-xs font-medium text-blue-800 dark:text-blue-300">Topic Name</label>
                       </div>
                       <input
                         type="text"
                         value={topicName}
                         onChange={(e) => setTopicName(e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-blue-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 mb-3"
+                        className="w-full px-3 py-2 text-sm border border-blue-200 rounded-lg bg-surface-card focus:outline-none focus:ring-2 focus:ring-blue-400 mb-3"
                       />
 
-                      <label className="block text-xs font-medium text-blue-800 mb-2">
+                      <label className="block text-xs font-medium text-blue-800 dark:text-blue-300 mb-2">
                         Generated Queries ({topicQueries.length})
                       </label>
                       <div className="space-y-2">
                         {topicQueries.map((q, i) => (
-                          <div key={i} className="bg-white rounded-lg p-3 border border-blue-100">
+                          <div key={i} className="bg-surface-card rounded-lg p-3 border border-blue-100">
                             <div className="flex items-start gap-2">
                               <PlatformBadge platform={q.platform === 'X' ? 'x' : 'reddit'} />
                               <div className="flex-1 min-w-0">
-                                <code className="text-xs text-gray-700 font-mono break-all">{q.queryString}</code>
+                                <code className="text-xs text-content-secondary font-mono break-all">{q.queryString}</code>
                                 {q.rationale && (
-                                  <p className="text-[11px] text-gray-500 mt-1 italic">{q.rationale}</p>
+                                  <p className="text-[11px] text-content-muted mt-1 italic">{q.rationale}</p>
                                 )}
                                 {q.negativeKeywords && (
-                                  <p className="text-[11px] text-gray-400 mt-0.5">
+                                  <p className="text-[11px] text-content-faint mt-0.5">
                                     Excludes: {q.negativeKeywords}
                                   </p>
                                 )}
@@ -861,8 +862,8 @@ export default function ListeningPage() {
                     </div>
 
                     {/* Refine with AI chat */}
-                    <div className="bg-white rounded-lg p-3 border border-blue-100">
-                      <label className="block text-[11px] font-medium text-gray-500 mb-1.5">
+                    <div className="bg-surface-card rounded-lg p-3 border border-blue-100">
+                      <label className="block text-[11px] font-medium text-content-muted mb-1.5">
                         Refine queries with AI
                       </label>
                       <div className="flex gap-2">
@@ -872,12 +873,12 @@ export default function ListeningPage() {
                           onChange={(e) => setRefineInput(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && handleRefineQueries()}
                           placeholder="e.g. Add more Reddit subreddits, focus more on founders, exclude crypto content..."
-                          className="flex-1 px-2.5 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-400"
+                          className="flex-1 px-2.5 py-1.5 text-xs border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-400"
                         />
                         <button
                           onClick={handleRefineQueries}
                           disabled={!refineInput.trim() || generateQueriesMutation.isPending}
-                          className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs rounded-md hover:bg-gray-200 font-medium disabled:opacity-50 flex items-center gap-1"
+                          className="px-3 py-1.5 bg-surface-secondary text-content-secondary text-xs rounded-md hover:bg-surface-tertiary font-medium disabled:opacity-50 flex items-center gap-1"
                         >
                           {generateQueriesMutation.isPending ? (
                             <span className="w-3 h-3 border border-gray-400 border-t-gray-700 rounded-full animate-spin" />
@@ -906,7 +907,7 @@ export default function ListeningPage() {
                       </button>
                       <button
                         onClick={() => { setShowNewTopic(false); setGeneratedResult(null); setTopicQueries([]); setAiPrompt(''); }}
-                        className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+                        className="px-4 py-2 text-sm text-content-secondary hover:text-gray-800"
                       >
                         Cancel
                       </button>
@@ -926,40 +927,40 @@ export default function ListeningPage() {
           {topicsQ.isLoading ? (
             <Skeleton className="h-[200px] w-full rounded-xl" />
           ) : listeningTopics.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-              <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+            <div className="bg-surface-card rounded-xl border border-border p-12 text-center">
+              <div className="w-12 h-12 rounded-full bg-surface-secondary flex items-center justify-center mx-auto mb-3">
                 <span className="text-2xl">🎯</span>
               </div>
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">No listening topics yet</h3>
-              <p className="text-xs text-gray-500 mb-4">
+              <h3 className="text-sm font-semibold text-content-primary mb-1">No listening topics yet</h3>
+              <p className="text-xs text-content-muted mb-4">
                 Create your first topic to start monitoring conversations across X and Reddit.
               </p>
               <button
                 onClick={() => setShowNewTopic(true)}
-                className="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-800"
+                className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm rounded-lg hover:bg-gray-800"
               >
                 + Create First Topic
               </button>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className="bg-surface-card rounded-xl border border-border p-5">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200">
+                  <tr className="border-b border-border">
                     {['Topic', 'Queries', 'Hits', 'Polling Tier', 'Status', 'Actions'].map((h) => (
-                      <th key={h} className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">{h}</th>
+                      <th key={h} className="text-left py-2 px-3 text-xs font-medium text-content-muted uppercase">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {listeningTopics.map((t) => (
                     <React.Fragment key={t.id}>
-                      <tr className={`border-b border-gray-100 hover:bg-gray-50 ${expandedTopicId === t.id ? 'bg-indigo-50/50' : ''}`}>
+                      <tr className={`border-b border-border-secondary hover:bg-surface-hover ${expandedTopicId === t.id ? 'bg-indigo-50/50' : ''}`}>
                         <td className="py-3 px-3">
                           <div>
-                            <span className="font-medium text-gray-900">{t.name}</span>
+                            <span className="font-medium text-content-primary">{t.name}</span>
                             {t.description && (
-                              <p className="text-xs text-gray-500 mt-0.5">{t.description}</p>
+                              <p className="text-xs text-content-muted mt-0.5">{t.description}</p>
                             )}
                           </div>
                         </td>
@@ -970,11 +971,11 @@ export default function ListeningPage() {
                               {t.queries.slice(0, 2).map((q) => (
                                 <div key={q.id} className="flex items-center gap-1">
                                   <PlatformBadge platform={q.platform === 'X' ? 'x' : 'reddit'} />
-                                  <code className="text-[10px] text-gray-500 truncate max-w-[120px]">{q.queryString}</code>
+                                  <code className="text-[10px] text-content-muted truncate max-w-[120px]">{q.queryString}</code>
                                 </div>
                               ))}
                               {t.queries.length > 2 && (
-                                <span className="text-[10px] text-gray-400">+{t.queries.length - 2} more</span>
+                                <span className="text-[10px] text-content-faint">+{t.queries.length - 2} more</span>
                               )}
                             </div>
                           )}
@@ -995,7 +996,7 @@ export default function ListeningPage() {
                             className="flex items-center gap-1.5 text-xs"
                           >
                             <span className={`w-2 h-2 rounded-full ${t.active ? 'bg-green-400' : 'bg-gray-300'}`} />
-                            <span className={t.active ? 'text-green-700 font-medium' : 'text-gray-500'}>
+                            <span className={t.active ? 'text-green-700 font-medium' : 'text-content-muted'}>
                               {t.active ? 'Active' : 'Paused'}
                             </span>
                           </button>
@@ -1016,7 +1017,7 @@ export default function ListeningPage() {
                             <button
                               onClick={() => handleScanTopic(t.id)}
                               disabled={triggerScanMutation.isPending}
-                              className="px-2.5 py-1 text-xs bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 font-medium disabled:opacity-50"
+                              className="px-2.5 py-1 text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 rounded-lg hover:bg-blue-100 font-medium disabled:opacity-50"
                             >
                               {triggerScanMutation.isPending && scanningTopicId === t.id ? (
                                 <span className="flex items-center gap-1">
@@ -1033,7 +1034,7 @@ export default function ListeningPage() {
                                   deleteTopicMutation.mutate({ id: t.id });
                                 }
                               }}
-                              className="px-2.5 py-1 text-xs text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg"
+                              className="px-2.5 py-1 text-xs text-red-600 hover:text-red-800 dark:text-red-300 hover:bg-red-50 dark:bg-red-900/30 rounded-lg"
                             >
                               Delete
                             </button>
@@ -1050,16 +1051,16 @@ export default function ListeningPage() {
                                 <h5 className="text-xs font-semibold text-indigo-800 mb-2">Current Queries</h5>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                   {(topicRefineResult?.queries || t.queries || []).map((q, i) => (
-                                    <div key={i} className="bg-white rounded-lg p-2.5 border border-indigo-100 text-xs">
+                                    <div key={i} className="bg-surface-card rounded-lg p-2.5 border border-indigo-100 text-xs">
                                       <div className="flex items-center gap-1.5 mb-1">
                                         <PlatformBadge platform={(q.platform || 'X') === 'X' ? 'x' : 'reddit'} />
-                                        <code className="text-gray-700 font-mono break-all text-[11px]">{q.queryString}</code>
+                                        <code className="text-content-secondary font-mono break-all text-[11px]">{q.queryString}</code>
                                       </div>
                                       {q.rationale && (
                                         <p className="text-[10px] text-indigo-500 italic mt-0.5">{q.rationale}</p>
                                       )}
                                       {q.negativeKeywords && q.negativeKeywords.length > 0 && (
-                                        <p className="text-[10px] text-gray-400 mt-0.5">
+                                        <p className="text-[10px] text-content-faint mt-0.5">
                                           Excludes: {Array.isArray(q.negativeKeywords) ? q.negativeKeywords.join(', ') : q.negativeKeywords}
                                         </p>
                                       )}
@@ -1085,7 +1086,7 @@ export default function ListeningPage() {
                                         className={`max-w-[80%] px-3 py-1.5 rounded-lg text-xs ${
                                           msg.role === 'user'
                                             ? 'bg-indigo-600 text-white'
-                                            : 'bg-white border border-indigo-200 text-indigo-800'
+                                            : 'bg-surface-card border border-indigo-200 text-indigo-800'
                                         }`}
                                       >
                                         {msg.role === 'assistant' && (
@@ -1109,7 +1110,7 @@ export default function ListeningPage() {
                                   onChange={(e) => setTopicRefineInput(e.target.value)}
                                   onKeyDown={(e) => e.key === 'Enter' && handleTopicRefine(t.id)}
                                   placeholder="e.g. Add more subreddits, exclude crypto content, focus on B2B..."
-                                  className="flex-1 px-3 py-2 text-xs border border-indigo-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                  className="flex-1 px-3 py-2 text-xs border border-indigo-200 rounded-lg bg-surface-card focus:outline-none focus:ring-2 focus:ring-indigo-400"
                                 />
                                 <button
                                   onClick={() => handleTopicRefine(t.id)}
@@ -1137,14 +1138,14 @@ export default function ListeningPage() {
                                     ) : null}
                                     Save Updated Queries
                                   </button>
-                                  <span className="text-[10px] text-gray-500">
+                                  <span className="text-[10px] text-content-muted">
                                     Preview above — click to apply changes
                                   </span>
                                 </div>
                               )}
 
                               {topicRefineResult?.saved && (
-                                <div className="mt-3 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
+                                <div className="mt-3 px-3 py-2 bg-green-50 dark:bg-green-900/30 border border-green-200 rounded-lg">
                                   <span className="text-xs text-green-700 font-medium">Queries updated and saved successfully!</span>
                                 </div>
                               )}
@@ -1167,7 +1168,7 @@ export default function ListeningPage() {
 
           {/* Success notification for scan */}
           {triggerScanMutation.isSuccess && triggerScanMutation.data && (
-            <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-4">
+            <div className="mt-4 bg-green-50 dark:bg-green-900/30 border border-green-200 rounded-xl p-4">
               <div className="flex items-center gap-2">
                 <span className="text-green-600 text-lg">✓</span>
                 <div>
@@ -1198,24 +1199,24 @@ export default function ListeningPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-              <div className="bg-white rounded-xl border border-gray-200 p-4">
-                <p className="text-xs text-gray-500 mb-1">Total (30d)</p>
-                <p className="text-2xl font-bold text-gray-900">{mentionMetricsQ.data?.total30d || 0}</p>
+              <div className="bg-surface-card rounded-xl border border-border p-4">
+                <p className="text-xs text-content-muted mb-1">Total (30d)</p>
+                <p className="text-2xl font-bold text-content-primary">{mentionMetricsQ.data?.total30d || 0}</p>
               </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-4">
-                <p className="text-xs text-gray-500 mb-1">This Week (7d)</p>
-                <p className="text-2xl font-bold text-gray-900">{mentionMetricsQ.data?.total7d || 0}</p>
+              <div className="bg-surface-card rounded-xl border border-border p-4">
+                <p className="text-xs text-content-muted mb-1">This Week (7d)</p>
+                <p className="text-2xl font-bold text-content-primary">{mentionMetricsQ.data?.total7d || 0}</p>
               </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-4">
-                <p className="text-xs text-gray-500 mb-1">Positive</p>
+              <div className="bg-surface-card rounded-xl border border-border p-4">
+                <p className="text-xs text-content-muted mb-1">Positive</p>
                 <p className="text-2xl font-bold text-green-600">{mentionMetricsQ.data?.bySentiment?.POSITIVE || 0}</p>
               </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-4">
-                <p className="text-xs text-gray-500 mb-1">Neutral</p>
-                <p className="text-2xl font-bold text-gray-600">{mentionMetricsQ.data?.bySentiment?.NEUTRAL || 0}</p>
+              <div className="bg-surface-card rounded-xl border border-border p-4">
+                <p className="text-xs text-content-muted mb-1">Neutral</p>
+                <p className="text-2xl font-bold text-content-secondary">{mentionMetricsQ.data?.bySentiment?.NEUTRAL || 0}</p>
               </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-4">
-                <p className="text-xs text-gray-500 mb-1">Negative</p>
+              <div className="bg-surface-card rounded-xl border border-border p-4">
+                <p className="text-xs text-content-muted mb-1">Negative</p>
                 <p className="text-2xl font-bold text-red-600">{mentionMetricsQ.data?.bySentiment?.NEGATIVE || 0}</p>
               </div>
             </div>
@@ -1223,13 +1224,13 @@ export default function ListeningPage() {
 
           {/* Topic Breakdown */}
           {mentionMetricsQ.data?.byTopic && mentionMetricsQ.data.byTopic.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
-              <h4 className="text-sm font-semibold text-gray-900 mb-3">Mentions by Topic (7d)</h4>
+            <div className="bg-surface-card rounded-xl border border-border p-5 mb-8">
+              <h4 className="text-sm font-semibold text-content-primary mb-3">Mentions by Topic (7d)</h4>
               <div className="space-y-2">
                 {mentionMetricsQ.data.byTopic.map((topic) => (
-                  <div key={topic.topicId} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                    <span className="text-sm text-gray-700">{topic.topicName}</span>
-                    <span className="font-semibold text-gray-900">{topic.count}</span>
+                  <div key={topic.topicId} className="flex items-center justify-between py-2 border-b border-border-secondary last:border-0">
+                    <span className="text-sm text-content-secondary">{topic.topicName}</span>
+                    <span className="font-semibold text-content-primary">{topic.count}</span>
                   </div>
                 ))}
               </div>
@@ -1238,14 +1239,14 @@ export default function ListeningPage() {
 
           {/* Daily Trend */}
           {mentionMetricsQ.data?.dailyTrend && mentionMetricsQ.data.dailyTrend.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
-              <h4 className="text-sm font-semibold text-gray-900 mb-3">Daily Mention Trend (14d)</h4>
+            <div className="bg-surface-card rounded-xl border border-border p-5 mb-8">
+              <h4 className="text-sm font-semibold text-content-primary mb-3">Daily Mention Trend (14d)</h4>
               <ResponsiveContainer width="100%" height={200}>
                 <AreaChart data={mentionMetricsQ.data.dailyTrend}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                   <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
+                  <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
                   <Area type="monotone" dataKey="count" stroke="#3b82f6" fill="#93c5fd" name="Mentions" />
                 </AreaChart>
               </ResponsiveContainer>
@@ -1255,14 +1256,14 @@ export default function ListeningPage() {
           {sovQ.isLoading ? (
             <Skeleton className="h-[300px] w-full rounded-xl mb-8" />
           ) : sovData.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">No Share of Voice data yet</h3>
-              <p className="text-xs text-gray-500">Configure competitors to start tracking share of voice.</p>
+            <div className="bg-surface-card rounded-xl border border-border p-12 text-center">
+              <h3 className="text-sm font-semibold text-content-primary mb-1">No Share of Voice data yet</h3>
+              <p className="text-xs text-content-muted">Configure competitors to start tracking share of voice.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">Current SOV</h4>
+              <div className="bg-surface-card rounded-xl border border-border p-5">
+                <h4 className="text-sm font-semibold text-content-primary mb-3">Current SOV</h4>
                 <ResponsiveContainer width="100%" height={200}>
                   <PieChart>
                     <Pie
@@ -1278,12 +1279,12 @@ export default function ListeningPage() {
                         <Cell key={i} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="flex flex-wrap justify-center gap-3 mt-2">
                   {sovData.map((s) => (
-                    <span key={s.name} className="flex items-center gap-1 text-xs text-gray-600">
+                    <span key={s.name} className="flex items-center gap-1 text-xs text-content-secondary">
                       <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
                       {s.name}
                     </span>
@@ -1291,14 +1292,14 @@ export default function ListeningPage() {
                 </div>
               </div>
 
-              <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-5">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">SOV Over Time</h4>
+              <div className="lg:col-span-2 bg-surface-card rounded-xl border border-border p-5">
+                <h4 className="text-sm font-semibold text-content-primary mb-3">SOV Over Time</h4>
                 <ResponsiveContainer width="100%" height={220}>
                   <AreaChart data={sovTimeData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                     <XAxis dataKey="week" tick={{ fontSize: 11 }} />
                     <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip />
+                    <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
                     {sovData.map((entry, i) => (
                       <Area key={entry.name} type="monotone" dataKey={entry.name} stackId="1" stroke={entry.color} fill={entry.color} fillOpacity={0.3} />
                     ))}
@@ -1313,37 +1314,37 @@ export default function ListeningPage() {
           {competitorActivityQ.isLoading ? (
             <Skeleton className="h-[200px] w-full rounded-xl mb-8" />
           ) : competitorActivityQ.data?.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
-              <h4 className="text-sm font-semibold text-gray-900 mb-3">Competitor Activity (30d)</h4>
+            <div className="bg-surface-card rounded-xl border border-border p-5 mb-8">
+              <h4 className="text-sm font-semibold text-content-primary mb-3">Competitor Activity (30d)</h4>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-200">
+                    <tr className="border-b border-border">
                       {['Competitor', 'Followers', 'Posts/Day', 'Avg Engagement', 'Mentions', 'Sentiment', 'SOV', 'Follower Growth'].map((h) => (
-                        <th key={h} className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">{h}</th>
+                        <th key={h} className="text-left py-2 px-3 text-xs font-medium text-content-muted uppercase">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {competitorActivityQ.data.map((comp) => (
-                      <tr key={comp.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <tr key={comp.id} className="border-b border-border-secondary hover:bg-surface-hover">
                         <td className="py-3 px-3">
                           <div>
-                            <span className="font-medium text-gray-900">{comp.name}</span>
+                            <span className="font-medium text-content-primary">{comp.name}</span>
                             {comp.accounts.filter((a) => a.platform === 'X').map((a) => (
-                              <span key={a.username} className="text-xs text-gray-400 ml-1">@{a.username}</span>
+                              <span key={a.username} className="text-xs text-content-faint ml-1">@{a.username}</span>
                             ))}
                           </div>
                         </td>
                         <td className="py-3 px-3 font-semibold">{comp.followersX > 0 ? formatFollowers(comp.followersX) : '—'}</td>
                         <td className="py-3 px-3">
-                          <span className={comp.postsPerDay >= 3 ? 'text-green-600 font-medium' : comp.postsPerDay >= 1 ? 'text-gray-900' : 'text-gray-400'}>
+                          <span className={comp.postsPerDay >= 3 ? 'text-green-600 font-medium' : comp.postsPerDay >= 1 ? 'text-content-primary' : 'text-content-faint'}>
                             {comp.postsPerDay > 0 ? comp.postsPerDay : '—'}
                           </span>
                         </td>
                         <td className="py-3 px-3">
                           {comp.avgEngagementRate > 0 ? (
-                            <span className={comp.avgEngagementRate >= 1 ? 'text-green-600 font-medium' : 'text-gray-900'}>
+                            <span className={comp.avgEngagementRate >= 1 ? 'text-green-600 font-medium' : 'text-content-primary'}>
                               {comp.avgEngagementRate.toFixed(2)}%
                             </span>
                           ) : '—'}
@@ -1370,21 +1371,21 @@ export default function ListeningPage() {
                 </table>
               </div>
               {competitorActivityQ.data[0]?.daysTracked === 0 && (
-                <p className="text-xs text-gray-400 mt-3">No metrics collected yet. Run the competitor poll cron to start tracking.</p>
+                <p className="text-xs text-content-faint mt-3">No metrics collected yet. Run the competitor poll cron to start tracking.</p>
               )}
             </div>
           )}
 
           {/* Sentiment trend */}
           {sentimentTrendData.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h4 className="text-sm font-semibold text-gray-900 mb-3">Sentiment Trend (All Topics)</h4>
+            <div className="bg-surface-card rounded-xl border border-border p-5">
+              <h4 className="text-sm font-semibold text-content-primary mb-3">Sentiment Trend (All Topics)</h4>
               <ResponsiveContainer width="100%" height={200}>
                 <AreaChart data={sentimentTrendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                   <XAxis dataKey="date" tick={{ fontSize: 11 }} />
                   <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
+                  <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
                   <Area type="monotone" dataKey="positive" stackId="1" stroke={COLORS.green} fill="#bbf7d0" name="Positive" />
                   <Area type="monotone" dataKey="neutral" stackId="1" stroke={COLORS.gray} fill="#e5e7eb" name="Neutral" />
                   <Area type="monotone" dataKey="negative" stackId="1" stroke={COLORS.red} fill="#fecaca" name="Negative" />
@@ -1401,13 +1402,13 @@ export default function ListeningPage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <SectionTitle subtitle="Track competitor accounts, keywords, and content performance">Competitor Monitoring</SectionTitle>
-            <button className="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-800">+ Add Competitor</button>
+            <button className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm rounded-lg hover:bg-gray-800">+ Add Competitor</button>
           </div>
 
           {sovData.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">No competitors configured</h3>
-              <p className="text-xs text-gray-500">Add competitors to start tracking their activity and share of voice.</p>
+            <div className="bg-surface-card rounded-xl border border-border p-12 text-center">
+              <h3 className="text-sm font-semibold text-content-primary mb-1">No competitors configured</h3>
+              <p className="text-xs text-content-muted">Add competitors to start tracking their activity and share of voice.</p>
             </div>
           ) : (
             <>
@@ -1415,26 +1416,26 @@ export default function ListeningPage() {
                 {sovData
                   .filter((s) => s.name !== 'Unattributed' && s.name !== 'Highland Ventures')
                   .map((comp, i) => (
-                    <div key={i} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
+                    <div key={i} className="bg-surface-card rounded-xl border border-border p-5 hover:shadow-md transition-shadow cursor-pointer">
                       <div className="flex items-center gap-2 mb-3">
                         <span className="w-4 h-4 rounded-full" style={{ backgroundColor: comp.color }} />
-                        <h4 className="font-semibold text-gray-900">{comp.name}</h4>
+                        <h4 className="font-semibold text-content-primary">{comp.name}</h4>
                       </div>
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
-                          <p className="text-gray-500 text-xs">SOV</p>
+                          <p className="text-content-muted text-xs">SOV</p>
                           <p className="font-bold text-lg">{comp.value}%</p>
                         </div>
                         <div>
-                          <p className="text-gray-500 text-xs">Mentions</p>
+                          <p className="text-content-muted text-xs">Mentions</p>
                           <p className="font-bold text-lg">{comp.mentions}</p>
                         </div>
                         <div>
-                          <p className="text-gray-500 text-xs">Sentiment</p>
+                          <p className="text-content-muted text-xs">Sentiment</p>
                           <p className="font-medium text-amber-600">{comp.sentiment}% pos</p>
                         </div>
                         <div>
-                          <p className="text-gray-500 text-xs">Engagement</p>
+                          <p className="text-content-muted text-xs">Engagement</p>
                           <p className="font-medium">{comp.avgEng}%</p>
                         </div>
                       </div>
@@ -1443,23 +1444,23 @@ export default function ListeningPage() {
               </div>
 
               {/* Competitive comparison table */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">Competitive Comparison</h4>
+              <div className="bg-surface-card rounded-xl border border-border p-5">
+                <h4 className="text-sm font-semibold text-content-primary mb-3">Competitive Comparison</h4>
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-200">
+                    <tr className="border-b border-border">
                       {['Brand', 'SOV', 'Mentions', 'Sentiment', 'Avg Engagement', 'Follower Growth'].map((h) => (
-                        <th key={h} className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">{h}</th>
+                        <th key={h} className="text-left py-2 px-3 text-xs font-medium text-content-muted uppercase">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {sovData.map((s, i) => (
-                      <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
+                      <tr key={i} className="border-b border-border-secondary hover:bg-surface-hover">
                         <td className="py-3 px-3">
                           <div className="flex items-center gap-2">
                             <span className="w-3 h-3 rounded-full" style={{ backgroundColor: s.color }} />
-                            <span className={`font-medium ${i === 0 ? 'text-blue-700' : 'text-gray-900'}`}>{s.name}</span>
+                            <span className={`font-medium ${i === 0 ? 'text-blue-700' : 'text-content-primary'}`}>{s.name}</span>
                           </div>
                         </td>
                         <td className="py-3 px-3 font-bold text-lg">{s.value}%</td>

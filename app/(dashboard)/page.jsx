@@ -10,7 +10,7 @@ import { trpc } from '@/lib/trpc-client';
 import {
   COLORS, PlatformBadge, TrendArrow, DeltaBadge,
   MetricCard, MetricCardSkeleton, SectionTitle,
-  Avatar, Sparkline, Skeleton,
+  Avatar, Sparkline, Skeleton, useChartColors,
 } from '@/components/ui';
 import { useSelectedAccount } from '@/lib/account-context';
 
@@ -58,6 +58,7 @@ export default function DashboardPage() {
   const [customStart, setCustomStart] = useState(() => toDateStr(new Date(Date.now() - 30*24*60*60*1000)));
   const [customEnd, setCustomEnd] = useState(() => toDateStr(new Date()));
   const { selectedAccount } = useSelectedAccount();
+  const chartColors = useChartColors();
 
   // Build query input with optional account filter
   const queryInput = useMemo(() => {
@@ -173,7 +174,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-3 mb-6">
           <Avatar initials={(acct.username || '??').slice(0, 2).toUpperCase()} platform={acct.platform} size="lg" />
           <div>
-            <h2 className="text-xl font-bold text-gray-900">@{acct.username}</h2>
+            <h2 className="text-xl font-bold text-content-primary">@{acct.username}</h2>
             <PlatformBadge platform={acct.platform} />
           </div>
         </div>
@@ -187,36 +188,36 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-surface-card rounded-xl border border-border p-5">
             <SectionTitle>Engagement Over Time</SectionTitle>
             <ResponsiveContainer width="100%" height={240}>
               <LineChart data={engagementData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} />
                 <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
+                <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
                 <Line type="monotone" dataKey="engagementRate" stroke={COLORS.blue} strokeWidth={2} dot={false} name="Eng. Rate %" />
                 <Line type="monotone" dataKey="engagements" stroke={COLORS.green} strokeWidth={2} dot={false} name="Engagements" />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-surface-card rounded-xl border border-border p-5">
             <SectionTitle>Follower Growth</SectionTitle>
             {followerData.length === 0 ? (
-              <div className="h-[240px] flex flex-col items-center justify-center text-gray-400">
+              <div className="h-[240px] flex flex-col items-center justify-center text-content-faint">
                 <span className="text-3xl mb-2">{'\uD83D\uDCC8'}</span>
-                <p className="text-sm font-medium text-gray-500">No follower data yet</p>
-                <p className="text-xs text-gray-400 mt-1">Snapshots are captured every 15 min and at 2 AM UTC daily</p>
+                <p className="text-sm font-medium text-content-muted">No follower data yet</p>
+                <p className="text-xs text-content-faint mt-1">Snapshots are captured every 15 min and at 2 AM UTC daily</p>
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={240}>
                 <AreaChart data={followerData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                   <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} />
                   <YAxis tick={{ fontSize: 11 }} />
-                  <Tooltip />
-                  <Area type="monotone" dataKey="followers" stroke={COLORS.green} fill="#dcfce7" strokeWidth={2} name="Followers" />
+                  <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
+                  <Area type="monotone" dataKey="followers" stroke={chartColors.green} fill={chartColors.fillGreen} strokeWidth={2} name="Followers" />
                 </AreaChart>
               </ResponsiveContainer>
             )}
@@ -224,11 +225,11 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-surface-card rounded-xl border border-border p-5">
             <SectionTitle subtitle="Each dot = one post. Size = total engagements.">Post Performance Map</SectionTitle>
             <ResponsiveContainer width="100%" height={240}>
               <ScatterChart>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                 <XAxis dataKey="impressions" name="Impressions" tick={{ fontSize: 11 }} />
                 <YAxis dataKey="engagementRate" name="Eng. Rate %" tick={{ fontSize: 11 }} />
                 <Tooltip
@@ -237,10 +238,10 @@ export default function DashboardPage() {
                     if (!payload?.length) return null;
                     const d = payload[0].payload;
                     return (
-                      <div className="bg-white border border-gray-200 rounded-lg p-3 shadow-lg max-w-xs">
-                        <p className="text-xs text-gray-500 mb-1">{d.type}</p>
-                        <p className="text-sm font-medium text-gray-900 mb-2">{d.content}</p>
-                        <div className="flex gap-3 text-xs text-gray-600">
+                      <div className="bg-surface-card border border-border rounded-lg p-3 shadow-lg max-w-xs">
+                        <p className="text-xs text-content-muted mb-1">{d.type}</p>
+                        <p className="text-sm font-medium text-content-primary mb-2">{d.content}</p>
+                        <div className="flex gap-3 text-xs text-content-secondary">
                           <span>{(d.impressions ?? 0).toLocaleString()} imp</span>
                           <span>{d.engRate}% eng</span>
                           <span>{d.engagements} total</span>
@@ -267,7 +268,7 @@ export default function DashboardPage() {
               </ScatterChart>
             </ResponsiveContainer>
             <div className="flex items-center justify-between mt-2">
-              <div className="flex gap-4 text-xs text-gray-500">
+              <div className="flex gap-4 text-xs text-content-muted">
                 <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-blue-500" />Thread</span>
                 <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-indigo-500" />Post</span>
                 <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-amber-500" />Reddit</span>
@@ -308,7 +309,7 @@ export default function DashboardPage() {
                         <p className="text-xs font-medium text-blue-800 mb-1">Recommendations</p>
                         {aiAnalysis.recommendations.map((r, i) => (
                           <div key={i} className="text-xs text-blue-700 mb-1 flex items-start gap-1.5">
-                            <span className={`mt-0.5 px-1 rounded text-[9px] font-bold ${r.priority === 'HIGH' ? 'bg-red-100 text-red-700' : r.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}>{r.priority}</span>
+                            <span className={`mt-0.5 px-1 rounded text-[9px] font-bold ${r.priority === 'HIGH' ? 'bg-red-100 text-red-700' : r.priority === 'MEDIUM' ? 'bg-yellow-100 text-yellow-700' : 'bg-surface-secondary text-content-secondary'}`}>{r.priority}</span>
                             <span>{r.recommendation}</span>
                           </div>
                         ))}
@@ -321,17 +322,17 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-surface-card rounded-xl border border-border p-5">
             <SectionTitle subtitle="Day x Hour — colored by avg engagement rate">Best Posting Times</SectionTitle>
             <div className="overflow-x-auto">
               <div className="grid gap-0.5" style={{ gridTemplateColumns: 'repeat(18, 1fr)' }}>
                 <div />
                 {Array.from({ length: 17 }, (_, i) => (
-                  <div key={i} className="text-center text-[10px] text-gray-400">{i + 6}</div>
+                  <div key={i} className="text-center text-[10px] text-content-faint">{i + 6}</div>
                 ))}
                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
                   <>
-                    <div key={day} className="text-[10px] text-gray-500 flex items-center">{day}</div>
+                    <div key={day} className="text-[10px] text-content-muted flex items-center">{day}</div>
                     {heatmapData
                       .filter((d) => d.day === day)
                       .map((cell, j) => {
@@ -349,7 +350,7 @@ export default function DashboardPage() {
                 ))}
               </div>
             </div>
-            <div className="flex items-center gap-2 mt-3 text-xs text-gray-500">
+            <div className="flex items-center gap-2 mt-3 text-xs text-content-muted">
               <span>Low</span>
               <div className="flex gap-0.5">
                 {[0.15, 0.3, 0.5, 0.7, 0.9].map((o, i) => (
@@ -361,28 +362,28 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="bg-surface-card rounded-xl border border-border p-5">
           <SectionTitle>Post Performance Table</SectionTitle>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-200">
+                <tr className="border-b border-border">
                   {['Post', 'Platform', 'Type', 'Published', 'Impressions', 'Engagements', 'Eng. Rate', 'Clicks', 'CTR'].map((h) => (
-                    <th key={h} className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">{h}</th>
+                    <th key={h} className="text-left py-2 px-3 text-xs font-medium text-content-muted uppercase">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {postPerformanceTable.map((post, i) => (
-                  <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-3 max-w-xs truncate font-medium text-gray-900">{post.content}</td>
+                  <tr key={i} className="border-b border-border-secondary hover:bg-surface-hover">
+                    <td className="py-3 px-3 max-w-xs truncate font-medium text-content-primary">{post.content}</td>
                     <td className="py-3 px-3"><PlatformBadge platform={post.platform} /></td>
-                    <td className="py-3 px-3 text-gray-600">{post.type}</td>
-                    <td className="py-3 px-3 text-gray-500">{post.published}</td>
+                    <td className="py-3 px-3 text-content-secondary">{post.type}</td>
+                    <td className="py-3 px-3 text-content-muted">{post.published}</td>
                     <td className="py-3 px-3 font-medium">{(post.impressions ?? 0).toLocaleString()}</td>
                     <td className="py-3 px-3 font-medium">{post.engagements}</td>
                     <td className="py-3 px-3">
-                      <span className={`font-medium ${(post.engRate ?? 0) > 5 ? 'text-green-600' : 'text-gray-900'}`}>{post.engRate}%</span>
+                      <span className={`font-medium ${(post.engRate ?? 0) > 5 ? 'text-green-600' : 'text-content-primary'}`}>{post.engRate}%</span>
                     </td>
                     <td className="py-3 px-3">{post.clicks}</td>
                     <td className="py-3 px-3">{post.ctr}%</td>
@@ -407,8 +408,8 @@ export default function DashboardPage() {
             onClick={() => { setDateRange(r); setShowCustomPicker(false); }}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg ${
               dateRange === r
-                ? 'bg-gray-900 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
+                : 'bg-surface-secondary text-content-secondary hover:bg-surface-tertiary'
             }`}
           >
             {r === '7d' ? 'Last 7 days' : r === '30d' ? 'Last 30 days' : r === '90d' ? 'Last 90 days' : 'Last year'}
@@ -418,27 +419,27 @@ export default function DashboardPage() {
           onClick={() => setShowCustomPicker(!showCustomPicker)}
           className={`px-3 py-1.5 text-xs font-medium rounded-lg ${
             dateRange === 'custom'
-              ? 'bg-gray-900 text-white'
-              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
+              : 'bg-surface-secondary text-content-secondary hover:bg-surface-tertiary'
           }`}
         >
           {dateRange === 'custom' ? rangeLabel('custom', customStart, customEnd) : 'Custom'}
         </button>
         {showCustomPicker && (
-          <div className="flex items-center gap-2 ml-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 shadow-sm">
+          <div className="flex items-center gap-2 ml-2 bg-surface-card border border-border rounded-lg px-3 py-1.5 shadow-sm">
             <input
               type="date"
               value={customStart}
               onChange={(e) => setCustomStart(e.target.value)}
-              className="text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-400"
+              className="text-xs border border-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-400"
             />
-            <span className="text-xs text-gray-400">to</span>
+            <span className="text-xs text-content-faint">to</span>
             <input
               type="date"
               value={customEnd}
               max={toDateStr(new Date())}
               onChange={(e) => setCustomEnd(e.target.value)}
-              className="text-xs border border-gray-200 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-400"
+              className="text-xs border border-border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-gray-400"
             />
             <button
               onClick={() => { setDateRange('custom'); setShowCustomPicker(false); }}
@@ -457,10 +458,10 @@ export default function DashboardPage() {
           {Array.from({ length: 5 }).map((_, i) => <MetricCardSkeleton key={i} />)}
         </div>
       ) : accounts.length === 0 ? (
-        <div className="bg-white rounded-xl border border-dashed border-gray-300 p-12 mb-8 text-center">
+        <div className="bg-surface-card rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-12 mb-8 text-center">
           <div className="text-4xl mb-3">{'\uD83D\uDCE1'}</div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">No accounts connected</h3>
-          <p className="text-sm text-gray-500 mb-4">
+          <h3 className="text-lg font-semibold text-content-primary mb-1">No accounts connected</h3>
+          <p className="text-sm text-content-muted mb-4">
             Connect your X or Reddit account from the Admin tab to start tracking analytics.
           </p>
           <a
@@ -481,7 +482,7 @@ export default function DashboardPage() {
       )}
 
       {/* Per-account breakdown */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
+      <div className="bg-surface-card rounded-xl border border-border p-5 mb-8">
         <SectionTitle subtitle="Click any row to drill into detailed analytics">Per-Account Breakdown</SectionTitle>
         {accountBreakdownQ.isLoading ? (
           <div className="space-y-3">
@@ -490,9 +491,9 @@ export default function DashboardPage() {
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-200">
+              <tr className="border-b border-border">
                 {['Account', 'Platform', 'Followers', 'Impressions', 'Eng. Rate', 'Posts'].map((h) => (
-                  <th key={h} className="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase">{h}</th>
+                  <th key={h} className="text-left py-2 px-3 text-xs font-medium text-content-muted uppercase">{h}</th>
                 ))}
               </tr>
             </thead>
@@ -501,12 +502,12 @@ export default function DashboardPage() {
                 <tr
                   key={acct.id}
                   onClick={() => setDetailAccount(acct.id)}
-                  className="border-b border-gray-100 hover:bg-blue-50 cursor-pointer transition-colors"
+                  className="border-b border-border-secondary hover:bg-surface-hover cursor-pointer transition-colors"
                 >
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-2.5">
                       <Avatar initials={(acct.username || '??').slice(0, 2).toUpperCase()} src={acct.avatarUrl} platform={acct.platform} size="sm" />
-                      <span className="font-medium text-gray-900">@{acct.username}</span>
+                      <span className="font-medium text-content-primary">@{acct.username}</span>
                     </div>
                   </td>
                   <td className="py-3 px-3"><PlatformBadge platform={acct.platform} /></td>
@@ -527,7 +528,7 @@ export default function DashboardPage() {
 
       {/* Reddit Communities */}
       {(subredditMetricsQ.data?.length > 0) && (
-        <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
+        <div className="bg-surface-card rounded-xl border border-border p-5 mb-8">
           <SectionTitle subtitle="Subscriber counts, posts, and engagement for tracked subreddits">Reddit Communities</SectionTitle>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
             {subredditMetricsQ.data.map((sub) => {
@@ -537,7 +538,7 @@ export default function DashboardPage() {
                 ? latest.subscribers - prev.subscribers
                 : null;
               return (
-                <div key={sub.id} className="border border-gray-100 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                <div key={sub.id} className="border border-border-secondary rounded-lg p-4 hover:shadow-sm transition-shadow">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center">
                       <svg className="w-4 h-4 text-white" viewBox="0 0 24 24" fill="currentColor">
@@ -545,14 +546,14 @@ export default function DashboardPage() {
                       </svg>
                     </div>
                     <div>
-                      <h4 className="font-semibold text-gray-900 text-sm">r/{sub.name}</h4>
+                      <h4 className="font-semibold text-content-primary text-sm">r/{sub.name}</h4>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
-                      <p className="text-gray-500 text-xs">Subscribers</p>
+                      <p className="text-content-muted text-xs">Subscribers</p>
                       <div className="flex items-center gap-1.5">
-                        <p className="font-bold text-lg text-gray-900">
+                        <p className="font-bold text-lg text-content-primary">
                           {sub.latestSubscribers != null ? sub.latestSubscribers.toLocaleString() : '—'}
                         </p>
                         {subGrowth != null && subGrowth !== 0 && (
@@ -563,23 +564,23 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <div>
-                      <p className="text-gray-500 text-xs">Posts (today)</p>
-                      <p className="font-bold text-lg text-gray-900">{latest?.posts ?? '—'}</p>
+                      <p className="text-content-muted text-xs">Posts (today)</p>
+                      <p className="font-bold text-lg text-content-primary">{latest?.posts ?? '—'}</p>
                     </div>
                     <div>
-                      <p className="text-gray-500 text-xs">Avg Upvotes</p>
-                      <p className="font-medium text-gray-900">{latest?.avgUpvotes != null ? latest.avgUpvotes.toFixed(1) : '—'}</p>
+                      <p className="text-content-muted text-xs">Avg Upvotes</p>
+                      <p className="font-medium text-content-primary">{latest?.avgUpvotes != null ? latest.avgUpvotes.toFixed(1) : '—'}</p>
                     </div>
                     <div>
-                      <p className="text-gray-500 text-xs">Avg Comments</p>
-                      <p className="font-medium text-gray-900">{latest?.avgComments != null ? latest.avgComments.toFixed(1) : '—'}</p>
+                      <p className="text-content-muted text-xs">Avg Comments</p>
+                      <p className="font-medium text-content-primary">{latest?.avgComments != null ? latest.avgComments.toFixed(1) : '—'}</p>
                     </div>
                   </div>
                   {latest?.topPostTitle && (
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Top Post</p>
-                      <p className="text-xs text-gray-700 line-clamp-2">{latest.topPostTitle}</p>
-                      <span className="text-[10px] text-gray-400">{latest.topPostScore} upvotes</span>
+                    <div className="mt-3 pt-3 border-t border-border-secondary">
+                      <p className="text-[10px] text-content-muted uppercase tracking-wider mb-1">Top Post</p>
+                      <p className="text-xs text-content-secondary line-clamp-2">{latest.topPostTitle}</p>
+                      <span className="text-[10px] text-content-faint">{latest.topPostScore} upvotes</span>
                     </div>
                   )}
                   {sub.history?.length > 1 && (
@@ -599,7 +600,7 @@ export default function DashboardPage() {
       )}
 
       {/* Brand Sentiment */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-8">
+      <div className="bg-surface-card rounded-xl border border-border p-5 mb-8">
         <div className="flex items-center justify-between mb-4">
           <SectionTitle subtitle="AI-powered sentiment analysis across all mentions, replies, and conversations">Brand Sentiment</SectionTitle>
           <div className="flex items-center gap-3">
@@ -607,12 +608,12 @@ export default function DashboardPage() {
               <div
                 key={i}
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
-                  alert.severity === 'warning' ? 'bg-amber-50 text-amber-700' : 'bg-green-50 text-green-700'
+                  alert.severity === 'warning' ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700' : 'bg-green-50 dark:bg-green-900/30 text-green-700'
                 }`}
               >
                 <span>{alert.severity === 'warning' ? '\u26A0' : '\u2713'}</span>
                 <span className="max-w-[200px] truncate">{alert.message}</span>
-                <span className="text-gray-400 ml-1">{alert.time}</span>
+                <span className="text-content-faint ml-1">{alert.time}</span>
               </div>
             ))}
           </div>
@@ -629,8 +630,8 @@ export default function DashboardPage() {
             <div>
               <div className="flex items-center gap-4 mb-4">
                 <div className="text-center">
-                  <div className="text-4xl font-bold text-gray-900">{lastSentimentScore}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">Overall Score</div>
+                  <div className="text-4xl font-bold text-content-primary">{lastSentimentScore}</div>
+                  <div className="text-xs text-content-muted mt-0.5">Overall Score</div>
                   <div className="flex items-center justify-center gap-1 mt-1">
                     <TrendArrow direction="up" />
                     <span className="text-xs text-green-600 font-medium">
@@ -645,19 +646,19 @@ export default function DashboardPage() {
                     { label: 'Negative', pct: sentimentQ.data?.breakdown?.negative ?? 12, color: 'bg-red-500' },
                   ].map((s) => (
                     <div key={s.label} className="flex items-center gap-2">
-                      <span className="text-[10px] text-gray-500 w-12">{s.label}</span>
-                      <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <span className="text-[10px] text-content-muted w-12">{s.label}</span>
+                      <div className="flex-1 h-2 bg-surface-secondary rounded-full overflow-hidden">
                         <div className={`h-full ${s.color} rounded-full`} style={{ width: `${s.pct}%` }} />
                       </div>
-                      <span className="text-xs font-medium text-gray-700 w-8 text-right">{s.pct}%</span>
+                      <span className="text-xs font-medium text-content-secondary w-8 text-right">{s.pct}%</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Per-platform breakdown */}
-              <div className="border-t border-gray-100 pt-3 space-y-2">
-                <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">By Platform</div>
+              <div className="border-t border-border-secondary pt-3 space-y-2">
+                <div className="text-xs font-medium text-content-muted uppercase tracking-wider">By Platform</div>
                 {brandSentimentByPlatform.map((p) => (
                   <div key={p.platform} className="flex items-center justify-between py-1">
                     <div className="flex items-center gap-2">
@@ -666,7 +667,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex items-center gap-3 text-xs">
                       <span className="text-green-600">{p.positive}% pos</span>
-                      <span className="text-gray-400">{p.neutral}% neu</span>
+                      <span className="text-content-faint">{p.neutral}% neu</span>
                       <span className="text-red-500">{p.negative}% neg</span>
                       <span className={`font-medium ${p.change > 0 ? 'text-green-600' : 'text-red-500'}`}>
                         {p.change > 0 ? '↑' : '↓'} {Math.abs(p.change)}
@@ -679,16 +680,16 @@ export default function DashboardPage() {
 
             {/* Sentiment over time chart */}
             <div className="lg:col-span-2">
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Sentiment Trend ({rangeLabel(dateRange, customStart, customEnd)})</div>
+              <div className="text-xs font-medium text-content-muted uppercase tracking-wider mb-2">Sentiment Trend ({rangeLabel(dateRange, customStart, customEnd)})</div>
               <ResponsiveContainer width="100%" height={200}>
                 <AreaChart data={brandSentimentOverTime}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                   <XAxis dataKey="date" tick={{ fontSize: 10 }} interval={xInterval} />
                   <YAxis tick={{ fontSize: 10 }} />
-                  <Tooltip />
-                  <Area type="monotone" dataKey="positive" stackId="1" stroke="#22c55e" fill="#dcfce7" name="Positive %" />
-                  <Area type="monotone" dataKey="neutral" stackId="1" stroke="#9ca3af" fill="#f3f4f6" name="Neutral %" />
-                  <Area type="monotone" dataKey="negative" stackId="1" stroke="#ef4444" fill="#fee2e2" name="Negative %" />
+                  <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
+                  <Area type="monotone" dataKey="positive" stackId="1" stroke={chartColors.green} fill={chartColors.fillGreen} name="Positive %" />
+                  <Area type="monotone" dataKey="neutral" stackId="1" stroke={chartColors.gray} fill={chartColors.fillGray} name="Neutral %" />
+                  <Area type="monotone" dataKey="negative" stackId="1" stroke={chartColors.red} fill={chartColors.fillRed} name="Negative %" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -696,20 +697,20 @@ export default function DashboardPage() {
         )}
 
         {/* Sentiment Drivers */}
-        <div className="mt-4 border-t border-gray-100 pt-4">
-          <div className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3">Sentiment Drivers — Trending Phrases</div>
+        <div className="mt-4 border-t border-border-secondary pt-4">
+          <div className="text-xs font-medium text-content-muted uppercase tracking-wider mb-3">Sentiment Drivers — Trending Phrases</div>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             {brandSentimentDrivers.map((d) => (
-              <div key={d.theme} className="p-3 rounded-lg border border-gray-100 bg-gray-50 hover:bg-white transition-colors">
+              <div key={d.theme} className="p-3 rounded-lg border border-border-secondary bg-surface-page hover:bg-surface-card transition-colors">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-gray-900">{d.theme}</span>
+                  <span className="text-xs font-medium text-content-primary">{d.theme}</span>
                   <span
                     className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
                       d.impact === 'high'
-                        ? 'bg-red-50 text-red-600'
+                        ? 'bg-red-50 dark:bg-red-900/30 text-red-600'
                         : d.impact === 'medium'
-                        ? 'bg-amber-50 text-amber-600'
-                        : 'bg-gray-100 text-gray-500'
+                        ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-600'
+                        : 'bg-surface-secondary text-content-muted'
                     }`}
                   >
                     {d.impact} impact
@@ -721,8 +722,8 @@ export default function DashboardPage() {
                   </div>
                   <TrendArrow direction={d.trend} />
                 </div>
-                <div className="text-[10px] text-gray-500">
-                  <span className="font-medium text-gray-600">&quot;{d.topKeyword}&quot;</span> &middot; {d.volume} mentions
+                <div className="text-[10px] text-content-muted">
+                  <span className="font-medium text-content-secondary">&quot;{d.topKeyword}&quot;</span> &middot; {d.volume} mentions
                 </div>
               </div>
             ))}
@@ -732,40 +733,40 @@ export default function DashboardPage() {
 
       {/* Quick trend charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="bg-surface-card rounded-xl border border-border p-5">
           <SectionTitle>Engagement Trend (All Accounts)</SectionTitle>
           {engagementTrendQ.isLoading ? (
             <Skeleton className="h-[200px] w-full" />
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={engagementData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} />
                 <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
+                <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
                 <Line type="monotone" dataKey="engagementRate" stroke={COLORS.blue} strokeWidth={2} dot={false} name="Eng. Rate %" />
               </LineChart>
             </ResponsiveContainer>
           )}
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="bg-surface-card rounded-xl border border-border p-5">
           <SectionTitle>Follower Growth (All Accounts)</SectionTitle>
           {followerGrowthQ.isLoading ? (
             <Skeleton className="h-[200px] w-full" />
           ) : followerData.length === 0 ? (
-            <div className="h-[200px] flex flex-col items-center justify-center text-gray-400">
+            <div className="h-[200px] flex flex-col items-center justify-center text-content-faint">
               <span className="text-3xl mb-2">{'\uD83D\uDCC8'}</span>
-              <p className="text-sm font-medium text-gray-500">No follower data yet</p>
-              <p className="text-xs text-gray-400 mt-1">Snapshots are captured every 15 min and at 2 AM UTC daily</p>
+              <p className="text-sm font-medium text-content-muted">No follower data yet</p>
+              <p className="text-xs text-content-faint mt-1">Snapshots are captured every 15 min and at 2 AM UTC daily</p>
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <AreaChart data={followerData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} />
                 <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Area type="monotone" dataKey="followers" stroke={COLORS.green} fill="#dcfce7" strokeWidth={2} name="Total Followers" />
+                <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
+                <Area type="monotone" dataKey="followers" stroke={chartColors.green} fill={chartColors.fillGreen} strokeWidth={2} name="Total Followers" />
               </AreaChart>
             </ResponsiveContainer>
           )}

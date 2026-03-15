@@ -1,6 +1,7 @@
 'use client';
 
 import { Component, createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { useTheme } from 'next-themes';
 
 // ============================================================
 // SHARED UTILITY COMPONENTS
@@ -18,14 +19,45 @@ export const COLORS = {
   indigo: "#6366f1",
 };
 
+/** Theme-aware chart colors for Recharts */
+export function useChartColors() {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isDark = mounted && resolvedTheme === 'dark';
+
+  return {
+    blue: "#3b82f6",
+    green: "#22c55e",
+    red: "#ef4444",
+    amber: "#f59e0b",
+    gray: isDark ? "#9ca3af" : "#6b7280",
+    purple: "#8b5cf6",
+    cyan: "#06b6d4",
+    indigo: "#6366f1",
+    orange: "#f97316",
+
+    grid: isDark ? "#292524" : "#f0f0f0",
+    tooltipBg: isDark ? "#1c1917" : "#ffffff",
+    tooltipBorder: isDark ? "#292524" : "#e5e7eb",
+    tooltipText: isDark ? "#fafaf9" : "#111827",
+    axisText: isDark ? "#a8a29e" : "#6b7280",
+
+    fillGreen: isDark ? "rgba(34, 197, 94, 0.4)" : "#dcfce7",
+    fillGray: isDark ? "rgba(107, 114, 128, 0.3)" : "#f3f4f6",
+    fillRed: isDark ? "rgba(239, 68, 68, 0.4)" : "#fee2e2",
+    fillBlue: isDark ? "rgba(59, 130, 246, 0.4)" : "#dbeafe",
+  };
+}
+
 export const PlatformBadge = ({ platform }) => {
   const p = (platform || '').toLowerCase();
   return (
     <span
       className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
         p === "x"
-          ? "bg-gray-900 text-white"
-          : "bg-orange-100 text-orange-800"
+          ? "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900"
+          : "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300"
       }`}
     >
       {p === "x" ? "\u{1D54F}" : "Reddit"}
@@ -35,9 +67,9 @@ export const PlatformBadge = ({ platform }) => {
 
 export const RelevanceBadge = ({ level }) => {
   const styles = {
-    HIGH: "bg-green-100 text-green-800",
-    MEDIUM: "bg-yellow-100 text-yellow-800",
-    LOW: "bg-gray-100 text-gray-600",
+    HIGH: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300",
+    MEDIUM: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300",
+    LOW: "bg-surface-secondary text-content-muted",
   };
   return (
     <span
@@ -56,17 +88,17 @@ export const SentimentDot = ({ sentiment }) => {
       ? "bg-green-400"
       : sentiment === "negative"
       ? "bg-red-400"
-      : "bg-gray-400";
+      : "bg-gray-400 dark:bg-gray-500";
   return <span className={`inline-block w-2 h-2 rounded-full ${color}`} />;
 };
 
 export const ScoreBadge = ({ score }) => {
   const styles = {
-    A: "bg-green-100 text-green-800 border-green-300",
-    B: "bg-blue-100 text-blue-800 border-blue-300",
-    C: "bg-yellow-100 text-yellow-800 border-yellow-300",
-    D: "bg-red-100 text-red-800 border-red-300",
-    F: "bg-red-200 text-red-900 border-red-400",
+    A: "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-300 dark:border-green-700",
+    B: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-700",
+    C: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border-yellow-300 dark:border-yellow-700",
+    D: "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border-red-300 dark:border-red-700",
+    F: "bg-red-200 dark:bg-red-900/40 text-red-900 dark:text-red-300 border-red-400 dark:border-red-700",
   };
   return (
     <span
@@ -83,7 +115,7 @@ export const TrendArrow = ({ trend, direction }) => {
   const d = trend || direction;
   if (d === "up") return <span className="text-green-500 text-sm">↑</span>;
   if (d === "down") return <span className="text-red-500 text-sm">↓</span>;
-  return <span className="text-gray-400 text-sm">→</span>;
+  return <span className="text-content-faint text-sm">→</span>;
 };
 
 export const DeltaBadge = ({ value, pct, invert = false }) => {
@@ -101,9 +133,9 @@ export const DeltaBadge = ({ value, pct, invert = false }) => {
 };
 
 export const MetricCard = ({ label, value, delta, deltaLabel }) => (
-  <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
-    <p className="text-sm text-gray-500 mb-1">{label}</p>
-    <p className="text-2xl font-bold text-gray-900">{value}</p>
+  <div className="bg-surface-card rounded-xl border border-border p-5 hover:shadow-md transition-shadow">
+    <p className="text-sm text-content-muted mb-1">{label}</p>
+    <p className="text-2xl font-bold text-content-primary">{value}</p>
     {delta !== undefined && (
       <p className="mt-1.5">
         <span
@@ -120,9 +152,9 @@ export const MetricCard = ({ label, value, delta, deltaLabel }) => (
 
 export const SectionTitle = ({ children, subtitle }) => (
   <div className="mb-4">
-    <h3 className="text-lg font-semibold text-gray-900">{children}</h3>
+    <h3 className="text-lg font-semibold text-content-primary">{children}</h3>
     {subtitle && (
-      <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>
+      <p className="text-sm text-content-muted mt-0.5">{subtitle}</p>
     )}
   </div>
 );
@@ -132,8 +164,8 @@ export const TabButton = ({ active, onClick, children, badge }) => (
     onClick={onClick}
     className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors relative ${
       active
-        ? "bg-gray-900 text-white"
-        : "text-gray-600 hover:bg-gray-100"
+        ? "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900"
+        : "text-content-secondary hover:bg-surface-hover"
     }`}
   >
     {children}
@@ -155,7 +187,7 @@ export const Avatar = ({ initials, src, platform, size = "md" }) => {
   const fallback = (
     <div
       className={`${sizes[size]} rounded-full flex items-center justify-center font-bold text-white ${
-        p === "reddit" ? "bg-orange-500" : "bg-gray-800"
+        p === "reddit" ? "bg-orange-500" : "bg-gray-800 dark:bg-gray-600"
       }`}
       style={src ? { display: 'none' } : undefined}
     >
@@ -231,13 +263,13 @@ export function MiniSparkline({ data, width = 80, height = 24, color = COLORS.bl
 /** Skeleton placeholder for loading states */
 export const Skeleton = ({ className = "" }) => (
   <div
-    className={`animate-pulse bg-gray-200 rounded ${className}`}
+    className={`animate-pulse bg-skeleton rounded ${className}`}
   />
 );
 
 /** Loading card used in place of MetricCard while data is loading */
 export const MetricCardSkeleton = () => (
-  <div className="bg-white rounded-xl border border-gray-200 p-5">
+  <div className="bg-surface-card rounded-xl border border-border p-5">
     <Skeleton className="h-4 w-24 mb-2" />
     <Skeleton className="h-8 w-16 mb-2" />
     <Skeleton className="h-3 w-20" />
@@ -265,15 +297,15 @@ export class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="bg-white rounded-xl border border-red-200 p-8 text-center">
+        <div className="bg-surface-card rounded-xl border border-red-200 dark:border-red-800 p-8 text-center">
           <div className="text-3xl mb-3">{'⚠️'}</div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">Something went wrong</h3>
-          <p className="text-sm text-gray-500 mb-4 max-w-md mx-auto">
+          <h3 className="text-lg font-semibold text-content-primary mb-1">Something went wrong</h3>
+          <p className="text-sm text-content-muted mb-4 max-w-md mx-auto">
             {this.state.error?.message || 'An unexpected error occurred while rendering this section.'}
           </p>
           <button
             onClick={() => this.setState({ hasError: false, error: null })}
-            className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
+            className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
           >
             Try again
           </button>
@@ -344,10 +376,10 @@ export function useToast() {
 }
 
 const toastStyles = {
-  success: { bg: 'bg-green-50 border-green-200', text: 'text-green-800', icon: '\u2713' },
-  error: { bg: 'bg-red-50 border-red-200', text: 'text-red-800', icon: '\u2717' },
-  warning: { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-800', icon: '\u26A0' },
-  info: { bg: 'bg-blue-50 border-blue-200', text: 'text-blue-800', icon: '\u2139' },
+  success: { bg: 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800', text: 'text-green-800 dark:text-green-300', icon: '\u2713' },
+  error: { bg: 'bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-800', text: 'text-red-800 dark:text-red-300', icon: '\u2717' },
+  warning: { bg: 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800', text: 'text-amber-800 dark:text-amber-300', icon: '\u26A0' },
+  info: { bg: 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800', text: 'text-blue-800 dark:text-blue-300', icon: '\u2139' },
 };
 
 function Toast({ toast, onClose }) {
@@ -382,16 +414,16 @@ function Toast({ toast, onClose }) {
 // ============================================================
 
 export const EmptyState = ({ icon, title, description, action }) => (
-  <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+  <div className="bg-surface-card rounded-xl border border-border p-12 text-center">
     {icon && <div className="text-4xl mb-3">{icon}</div>}
-    <h3 className="text-lg font-semibold text-gray-900 mb-1">{title}</h3>
+    <h3 className="text-lg font-semibold text-content-primary mb-1">{title}</h3>
     {description && (
-      <p className="text-sm text-gray-500 max-w-md mx-auto mb-4">{description}</p>
+      <p className="text-sm text-content-muted max-w-md mx-auto mb-4">{description}</p>
     )}
     {action && (
       <button
         onClick={action.onClick}
-        className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
+        className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
       >
         {action.label}
       </button>

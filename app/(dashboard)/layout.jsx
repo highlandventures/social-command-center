@@ -7,6 +7,7 @@ import { signOut, useSession } from 'next-auth/react';
 import { trpc } from '@/lib/trpc-client';
 import { Avatar } from '@/components/ui';
 import { AccountProvider } from '@/lib/account-context';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 const tabs = [
   { key: "/", label: "Dashboard", icon: "\uD83D\uDCCA" },
@@ -41,15 +42,15 @@ export default function DashboardLayout({ children }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-surface-page">
       {/* ── Top navigation bar ── */}
-      <header className="relative z-30 bg-white border-b border-gray-200 px-6 py-3">
+      <header className="relative z-30 bg-surface-card border-b border-border px-6 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-bold text-gray-900">
+            <h1 className="text-lg font-bold text-content-primary">
               Social Command Center
             </h1>
-            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+            <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full font-medium">
               Internal
             </span>
           </div>
@@ -59,7 +60,7 @@ export default function DashboardLayout({ children }) {
             <div className="relative">
               <button
                 onClick={() => { setAccountMenuOpen(!accountMenuOpen); setUserMenuOpen(false); }}
-                className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors cursor-pointer"
+                className="flex items-center gap-2 px-3 py-1.5 bg-surface-secondary rounded-lg border border-border hover:bg-surface-hover transition-colors cursor-pointer"
               >
                 <div className="flex -space-x-1.5">
                   {accountsList.length > 0
@@ -78,16 +79,16 @@ export default function DashboardLayout({ children }) {
                     : [1, 2].map((i) => (
                         <div
                           key={i}
-                          className="w-7 h-7 rounded-full bg-gray-200 animate-pulse"
+                          className="w-7 h-7 rounded-full bg-skeleton animate-pulse"
                         />
                       ))}
                 </div>
-                <span className="text-sm text-gray-600 ml-1">
+                <span className="text-sm text-content-secondary ml-1">
                   {selectedAccount
                     ? `@${accountsList.find((a) => a.id === selectedAccount)?.username || '...'}`
                     : 'All Accounts'}
                 </span>
-                <span className="text-gray-400">{'\u25BE'}</span>
+                <span className="text-content-faint">{'\u25BE'}</span>
               </button>
               {accountMenuOpen && (
                 <>
@@ -96,13 +97,13 @@ export default function DashboardLayout({ children }) {
                     onClick={() => setAccountMenuOpen(false)}
                   />
                   <div
-                    className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1"
+                    className="absolute right-0 mt-2 w-64 bg-surface-card rounded-lg shadow-lg border border-border z-50 py-1"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <button
                       onClick={() => { setSelectedAccount(null); setAccountMenuOpen(false); }}
-                      className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 hover:bg-gray-50 transition-colors ${
-                        !selectedAccount ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                      className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 hover:bg-surface-hover transition-colors ${
+                        !selectedAccount ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium' : 'text-content-secondary'
                       }`}
                     >
                       <div className="flex -space-x-1">
@@ -119,13 +120,13 @@ export default function DashboardLayout({ children }) {
                       <span>All Accounts</span>
                       {!selectedAccount && <span className="ml-auto text-blue-500">{'\u2713'}</span>}
                     </button>
-                    <div className="border-t border-gray-100 my-1" />
+                    <div className="border-t border-border-secondary my-1" />
                     {accountsList.map((a) => (
                       <button
                         key={a.id}
                         onClick={() => { setSelectedAccount(a.id); setAccountMenuOpen(false); }}
-                        className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 hover:bg-gray-50 transition-colors ${
-                          selectedAccount === a.id ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'
+                        className={`w-full text-left px-4 py-2.5 text-sm flex items-center gap-3 hover:bg-surface-hover transition-colors ${
+                          selectedAccount === a.id ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium' : 'text-content-secondary'
                         }`}
                       >
                         <Avatar
@@ -136,7 +137,7 @@ export default function DashboardLayout({ children }) {
                         />
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">@{a.username}</p>
-                          <p className="text-xs text-gray-400 capitalize">{(a.platform || '').toLowerCase()}</p>
+                          <p className="text-xs text-content-faint capitalize">{(a.platform || '').toLowerCase()}</p>
                         </div>
                         {selectedAccount === a.id && <span className="text-blue-500">{'\u2713'}</span>}
                       </button>
@@ -145,6 +146,9 @@ export default function DashboardLayout({ children }) {
                 </>
               )}
             </div>
+
+            {/* Theme toggle */}
+            <ThemeToggle />
 
             {/* User menu */}
             <div className="relative">
@@ -161,16 +165,16 @@ export default function DashboardLayout({ children }) {
                     onClick={() => setUserMenuOpen(false)}
                   />
                   <div
-                    className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50 py-1"
+                    className="absolute right-0 mt-2 w-56 bg-surface-card rounded-lg shadow-lg border border-border z-50 py-1"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <div className="px-4 py-2 border-b border-gray-100">
-                      <p className="text-sm font-medium text-gray-900 truncate">{userEmail}</p>
-                      <p className="text-xs text-gray-500">{session?.user?.role || 'User'}</p>
+                    <div className="px-4 py-2 border-b border-border-secondary">
+                      <p className="text-sm font-medium text-content-primary truncate">{userEmail}</p>
+                      <p className="text-xs text-content-muted">{session?.user?.role || 'User'}</p>
                     </div>
                     <button
                       onClick={() => signOut({ callbackUrl: '/auth/signin' })}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                     >
                       Sign out
                     </button>
@@ -183,7 +187,7 @@ export default function DashboardLayout({ children }) {
       </header>
 
       {/* ── Tab navigation bar ── */}
-      <div className="relative z-20 bg-white border-b border-gray-200 px-6">
+      <div className="relative z-20 bg-surface-card border-b border-border px-6">
         <div className="flex items-center gap-1 -mb-px">
           {tabs.map((tab) => {
             const active = isActive(tab.key);
@@ -193,8 +197,8 @@ export default function DashboardLayout({ children }) {
                 href={tab.key}
                 className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                   active
-                    ? 'border-gray-900 text-gray-900'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-content-primary text-content-primary'
+                    : 'border-transparent text-content-muted hover:text-content-secondary hover:border-content-faint'
                 }`}
               >
                 <span className="mr-1.5">{tab.icon}</span>

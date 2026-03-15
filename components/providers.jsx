@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpBatchLink } from '@trpc/client';
 import superjson from 'superjson';
 import { trpc } from '@/lib/trpc-client';
+import { ThemeProvider } from 'next-themes';
 import { ToastProvider } from '@/components/ui';
 
 function getBaseUrl() {
@@ -39,14 +40,16 @@ export default function Providers({ children }) {
   );
 
   return (
-    <SessionProvider>
-      <trpc.Provider client={trpcClient} queryClient={queryClient}>
-        <QueryClientProvider client={queryClient}>
-          <ToastProvider>
-            {children}
-          </ToastProvider>
-        </QueryClientProvider>
-      </trpc.Provider>
-    </SessionProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <SessionProvider>
+        <trpc.Provider client={trpcClient} queryClient={queryClient}>
+          <QueryClientProvider client={queryClient}>
+            <ToastProvider>
+              {children}
+            </ToastProvider>
+          </QueryClientProvider>
+        </trpc.Provider>
+      </SessionProvider>
+    </ThemeProvider>
   );
 }
