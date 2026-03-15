@@ -74,7 +74,7 @@ Plans:
 - Integer phases (5, 6, 7, 8): Planned milestone work
 - Decimal phases (e.g., 6.1): Urgent insertions (marked with INSERTED)
 
-- [ ] **Phase 5: Report Engine + Charts** - Rich report generation with inline charts, KPI stats, executive summaries, and comparison deltas
+- [x] **Phase 5: Report Engine + Charts** - Rich report generation with inline charts, KPI stats, executive summaries, and comparison deltas (completed 2026-03-15)
 - [ ] **Phase 6: Export + Distribution** - PDF export and email delivery with full visual content inline
 - [ ] **Phase 7: Scheduling + Ad Hoc Reports** - Automated cadence reports and conversational AI report scoping
 - [ ] **Phase 8: Benchmarking** - Period-over-period comparisons and custom milestone benchmarking
@@ -155,7 +155,7 @@ Phases execute in numeric order: 5 -> 5.1 -> 6 -> 6.1 -> 7 -> 8
 | 2. Competitor Intel | v1.0 | 2/2 | Complete | 2026-03-14 |
 | 3. Audience Questions | v1.0 | 2/2 | Complete | 2026-03-15 |
 | 4. Content Co-Pilot | v1.0 | 0/3 | Deferred | - |
-| 5. Report Engine + Charts | v1.1 | 0/3 | Not started | - |
+| 5. Report Engine + Charts | 3/3 | Complete   | 2026-03-15 | - |
 | 6. Export + Distribution | v1.1 | 0/? | Not started | - |
 | 7. Scheduling + Ad Hoc Reports | v1.1 | 0/? | Not started | - |
 | 8. Benchmarking | v1.1 | 0/? | Not started | - |
