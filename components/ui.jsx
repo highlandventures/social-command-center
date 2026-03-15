@@ -132,7 +132,7 @@ export const DeltaBadge = ({ value, pct, invert = false }) => {
   );
 };
 
-export const MetricCard = ({ label, value, delta, deltaLabel }) => (
+export const MetricCard = ({ label, value, delta, deltaLabel, benchmark }) => (
   <div className="bg-surface-card rounded-xl border border-border p-5 hover:shadow-md transition-shadow">
     <p className="text-sm text-content-muted mb-1">{label}</p>
     <p className="text-2xl font-bold text-content-primary">{value}</p>
@@ -146,6 +146,19 @@ export const MetricCard = ({ label, value, delta, deltaLabel }) => (
           {delta >= 0 ? "▲" : "▼"} {Math.abs(delta)}% {deltaLabel || "WoW"}
         </span>
       </p>
+    )}
+    {benchmark && (
+      <div className="mt-2 pt-2 border-t border-border-secondary">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] text-content-faint uppercase tracking-wider">{benchmark.label || 'Top 10%'}</span>
+          <span className="text-xs font-semibold text-content-secondary">{benchmark.value}</span>
+        </div>
+        {benchmark.delta != null && (
+          <span className={`text-[10px] font-medium ${benchmark.delta >= 0 ? 'text-green-600' : 'text-amber-500'}`}>
+            {benchmark.delta >= 0 ? '▲' : '▼'} {Math.abs(benchmark.delta)}% vs benchmark
+          </span>
+        )}
+      </div>
     )}
   </div>
 );

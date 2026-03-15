@@ -15,6 +15,7 @@ const tabs = [
   { key: "/calendar", label: "Calendar", icon: "\uD83D\uDCC5" },
   { key: "/listening", label: "Social Listening", icon: "\uD83D\uDC42" },
   { key: "/kol", label: "KOL Tracking", icon: "\uD83C\uDF1F" },
+  { key: "/competitors", label: "Competitors", icon: "\uD83C\uDFAF" },
   { key: "/reports", label: "Reports", icon: "\uD83D\uDCCB" },
   { key: "/admin", label: "Admin", icon: "\u2699" },
 ];
