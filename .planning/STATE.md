@@ -3,14 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-03-15T05:56:28.471Z"
-last_activity: 2026-03-14 -- Completed Phase 1 (Performance Intel) — both plans done
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-03-15T06:01:37.658Z"
+last_activity: 2026-03-14 -- Completed Phase 2 (Competitor Intel) -- both plans done
 progress:
   total_phases: 4
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 4
-  completed_plans: 3
+  completed_plans: 4
+  percent: 75
 ---
 
 # Project State
@@ -20,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-14)
 
 **Core value:** Team can compose high-performing content informed by real data on what works, what competitors do, and what the audience needs.
-**Current focus:** Phase 2 -- Competitor Intel
+**Current focus:** Phase 3 -- Audience Questions
 
 ## Current Position
 
-Phase: 2 of 4 (Competitor Intel)
-Plan: 1 of 2 complete
+Phase: 3 of 4 (Audience Questions)
+Plan: 0 of 0 complete (plans not yet created)
 Status: Executing
-Last activity: 2026-03-14 -- Completed 02-01 (Competitor Intel data pipeline + API)
+Last activity: 2026-03-14 -- Completed 02-02 (Competitor Intel UI panel)
 
-Progress: [██████░░░░] 75% -- 3 of 4 plans done
+Progress: [██████████] 100% -- 4 of 4 plans done
 
 ## Phase 1 Results
 
@@ -39,18 +40,27 @@ All PERF requirements delivered:
 - PERF-03: Engagement trend sparklines per post ✓
 - PERF-04: Insight cards in composer sidebar ✓
 
+## Phase 2 Results
+
+All COMP requirements delivered:
+- COMP-01: Competitor post content capture from X via cron ✓
+- COMP-02: AI-extracted themes with frequency analysis ✓
+- COMP-03: Format engagement breakdown ✓
+- COMP-04: Per-competitor strategy cards with all benchmarks ✓
+
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
+- Total plans completed: 4
 - Average duration: 3 min
-- Total execution time: 0.1 hours
+- Total execution time: 0.2 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Performance Intel | 2/2 | 6 min | 3 min |
+| 2. Competitor Intel | 2/2 | 5 min | 2.5 min |
 
 **Recent Trend:**
 - Last 5 plans: --
@@ -58,6 +68,7 @@ All PERF requirements delivered:
 
 *Updated after each plan completion*
 | Phase 02-competitor-intel P01 | 2min | 2 tasks | 4 files |
+| Phase 02-competitor-intel P02 | 3min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -78,6 +89,8 @@ Recent decisions affecting current work:
 - [Phase 02-competitor-intel]: All tRPC procedures read from AIInsight cache only -- no live AI computation in API routes
 - [Phase 02-competitor-intel]: Batch AI analysis runs during cron, caching themes/formats/strategyCards separately in AIInsight
 - [Phase 02-competitor-intel]: Strategy cards include follower counts and all benchmark types (engagement, cadence, followers)
+- [Phase 02-competitor-intel]: Sub-tab toggle (By Competitor / Landscape) instead of flat scroll for competitor intel panel
+- [Phase 02-competitor-intel]: Multi-panel sidebar with border-t dividers in scrollable container
 
 ### Pending Todos
 
@@ -85,10 +98,10 @@ None yet.
 
 ### Blockers/Concerns
 
-- COMP-01 requires capturing competitor post content (text, not just account metrics) -- existing CompetitorMetrics only has aggregate stats. Need to determine API source for competitor posts (SocialData.tools or similar).
+None. COMP-01 resolved -- CompetitorPost model + cron upsert stores individual post content from TwitterAPI.io.
 
 ## Session Continuity
 
-Last session: 2026-03-15T05:56:28.468Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-03-15T06:01:00.000Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None
