@@ -24,13 +24,13 @@ vi.mock('../../lib/email-templates/report-email.jsx', () => ({
 }));
 
 describe('email-sender', () => {
-  it.skip('sends email (Plan 02)', async () => {
+  it('sends email', async () => {
     const { sendReportEmail } = await import('../../lib/email-sender.js');
     expect(sendReportEmail).toBeDefined();
     expect(typeof sendReportEmail).toBe('function');
   });
 
-  it.skip('email content includes report data (Plan 02)', async () => {
+  it('email content includes report data', async () => {
     const { sendReportEmail } = await import('../../lib/email-sender.js');
     const result = await sendReportEmail({
       report: { id: 'r1', title: 'Test', content: { kpis: [], executiveSummary: 'Summary' } },
@@ -42,7 +42,7 @@ describe('email-sender', () => {
     expect(result.messageId).toBeDefined();
   });
 
-  it.skip('recipients are passed to transport (Plan 02)', async () => {
+  it('recipients are passed to transport', async () => {
     const nodemailer = await import('nodemailer');
     const transport = nodemailer.default.createTransport();
     const { sendReportEmail } = await import('../../lib/email-sender.js');
@@ -55,7 +55,7 @@ describe('email-sender', () => {
     expect(transport.sendMail).toHaveBeenCalled();
   });
 
-  it.skip('delivery logging data is returned (Plan 02)', async () => {
+  it('delivery logging data is returned', async () => {
     const { sendReportEmail } = await import('../../lib/email-sender.js');
     const result = await sendReportEmail({
       report: { id: 'r1', title: 'Test', content: { kpis: [], executiveSummary: 'Summary' } },
