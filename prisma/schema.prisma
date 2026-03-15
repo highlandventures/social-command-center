@@ -17,23 +17,23 @@ datasource db {
 // ============================================================
 
 model User {
-  id              String    @id @default(cuid())
-  email           String    @unique
-  name            String?
-  avatarUrl       String?
-  role            Role      @default(INTERNAL)
-  invitedBy       String?
-  createdAt       DateTime  @default(now())
-  lastActiveAt    DateTime?
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String?
+  avatarUrl    String?
+  role         Role      @default(INTERNAL)
+  invitedBy    String?
+  createdAt    DateTime  @default(now())
+  lastActiveAt DateTime?
 
   // Relations
-  sessions        Session[]
-  accountAccess   UserAccountAccess[]
-  approvalsMade   ApprovalRequest[]   @relation("reviewer")
-  auditLogs       AuditLog[]
-  posts           Post[]              @relation("createdBy")
-  alertRules      AlertRule[]
-  aiInsights      AIInsight[]
+  sessions      Session[]
+  accountAccess UserAccountAccess[]
+  approvalsMade ApprovalRequest[]   @relation("reviewer")
+  auditLogs     AuditLog[]
+  posts         Post[]              @relation("createdBy")
+  alertRules    AlertRule[]
+  aiInsights    AIInsight[]
 
   @@map("users")
 }
@@ -68,27 +68,27 @@ model VerificationToken {
 // ============================================================
 
 model Account {
-  id               String    @id @default(cuid())
-  platform         Platform
-  accessToken      String    // AES-256-GCM encrypted
-  refreshToken     String?   // AES-256-GCM encrypted
-  tokenExpiresAt   DateTime?
-  platformUserId   String
-  username         String
-  displayName      String?
-  avatarUrl        String?
-  connectedAt      DateTime  @default(now())
-  isActive         Boolean   @default(true)
+  id             String    @id @default(cuid())
+  platform       Platform
+  accessToken    String // AES-256-GCM encrypted
+  refreshToken   String? // AES-256-GCM encrypted
+  tokenExpiresAt DateTime?
+  platformUserId String
+  username       String
+  displayName    String?
+  avatarUrl      String?
+  connectedAt    DateTime  @default(now())
+  isActive       Boolean   @default(true)
 
   // Relations
-  posts            Post[]
-  postMetrics      PostMetrics[]
-  accountMetrics   AccountMetrics[]
-  mentions         Mention[]
-  inboxItems       InboxItem[]
-  listeningHits    ListeningHit[]
-  userAccess       UserAccountAccess[]
-  aiInsights       AIInsight[]
+  posts          Post[]
+  postMetrics    PostMetrics[]
+  accountMetrics AccountMetrics[]
+  mentions       Mention[]
+  inboxItems     InboxItem[]
+  listeningHits  ListeningHit[]
+  userAccess     UserAccountAccess[]
+  aiInsights     AIInsight[]
 
   @@unique([platform, platformUserId])
   @@map("accounts")
@@ -118,31 +118,31 @@ model UserAccountAccess {
 // ============================================================
 
 model Post {
-  id              String       @id @default(cuid())
-  accountId       String
-  platform        Platform
-  platformPostId  String?      // Null until published
-  content         String
-  contentType     ContentType  @default(POST)
-  threadId        String?      // Self-ref for thread items
-  threadPosition  Int?
-  status          PostStatus   @default(DRAFT)
-  scheduledFor    DateTime?
-  publishedAt     DateTime?
-  createdById     String
-  subreddit       String?      // Reddit only
-  flairId         String?      // Reddit only
-  articleTitle    String?      // X Articles only
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  id             String      @id @default(cuid())
+  accountId      String
+  platform       Platform
+  platformPostId String? // Null until published
+  content        String
+  contentType    ContentType @default(POST)
+  threadId       String? // Self-ref for thread items
+  threadPosition Int?
+  status         PostStatus  @default(DRAFT)
+  scheduledFor   DateTime?
+  publishedAt    DateTime?
+  createdById    String
+  subreddit      String? // Reddit only
+  flairId        String? // Reddit only
+  articleTitle   String? // X Articles only
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   // Relations
-  account         Account          @relation(fields: [accountId], references: [id])
-  createdBy       User             @relation("createdBy", fields: [createdById], references: [id])
-  threadParent    Post?            @relation("threadPosts", fields: [threadId], references: [id])
-  threadPosts     Post[]           @relation("threadPosts")
-  metrics         PostMetrics[]
-  approvals       ApprovalRequest[]
+  account      Account           @relation(fields: [accountId], references: [id])
+  createdBy    User              @relation("createdBy", fields: [createdById], references: [id])
+  threadParent Post?             @relation("threadPosts", fields: [threadId], references: [id])
+  threadPosts  Post[]            @relation("threadPosts")
+  metrics      PostMetrics[]
+  approvals    ApprovalRequest[]
 
   @@index([accountId, status])
   @@index([scheduledFor])
@@ -167,32 +167,32 @@ enum PostStatus {
 }
 
 model PostMetrics {
-  id              String   @id @default(cuid())
-  postId          String
-  accountId       String
-  fetchedAt       DateTime @default(now())
+  id        String   @id @default(cuid())
+  postId    String
+  accountId String
+  fetchedAt DateTime @default(now())
 
   // X metrics
-  impressions     Int      @default(0)
-  engagements     Int      @default(0)
-  likes           Int      @default(0)
-  retweets        Int      @default(0)
-  replies         Int      @default(0)
-  bookmarks       Int      @default(0)
-  linkClicks      Int      @default(0)
-  profileClicks   Int      @default(0)
+  impressions   Int @default(0)
+  engagements   Int @default(0)
+  likes         Int @default(0)
+  retweets      Int @default(0)
+  replies       Int @default(0)
+  bookmarks     Int @default(0)
+  linkClicks    Int @default(0)
+  profileClicks Int @default(0)
 
   // Reddit metrics
-  upvotes         Int      @default(0)
-  downvotes       Int      @default(0)
-  commentCount    Int      @default(0)
-  awards          Int      @default(0)
+  upvotes      Int @default(0)
+  downvotes    Int @default(0)
+  commentCount Int @default(0)
+  awards       Int @default(0)
 
   // Computed
-  engagementRate  Float    @default(0)
+  engagementRate Float @default(0)
 
-  post            Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  account         Account  @relation(fields: [accountId], references: [id])
+  post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  account Account @relation(fields: [accountId], references: [id])
 
   @@index([postId, fetchedAt])
   @@index([accountId, fetchedAt])
@@ -204,12 +204,12 @@ model AccountMetrics {
   accountId String
   date      DateTime @db.Date
 
-  followers   Int    @default(0)
-  following   Int    @default(0)
-  totalPosts  Int    @default(0)
-  karma       Int?   // Reddit only
+  followers  Int  @default(0)
+  following  Int  @default(0)
+  totalPosts Int  @default(0)
+  karma      Int? // Reddit only
 
-  account   Account  @relation(fields: [accountId], references: [id])
+  account Account @relation(fields: [accountId], references: [id])
 
   @@unique([accountId, date])
   @@map("account_metrics")
@@ -220,20 +220,20 @@ model AccountMetrics {
 // ============================================================
 
 model Mention {
-  id                 String      @id @default(cuid())
-  accountId          String
-  platform           Platform
-  platformMentionId  String?
-  authorUsername     String
-  authorDisplayName  String?
-  content            String
-  mentionType        MentionType
-  sourceUrl          String?
-  detectedAt         DateTime    @default(now())
-  read               Boolean     @default(false)
-  responded          Boolean     @default(false)
+  id                String      @id @default(cuid())
+  accountId         String
+  platform          Platform
+  platformMentionId String?
+  authorUsername    String
+  authorDisplayName String?
+  content           String
+  mentionType       MentionType
+  sourceUrl         String?
+  detectedAt        DateTime    @default(now())
+  read              Boolean     @default(false)
+  responded         Boolean     @default(false)
 
-  account            Account     @relation(fields: [accountId], references: [id])
+  account Account @relation(fields: [accountId], references: [id])
 
   @@index([accountId, detectedAt])
   @@map("mentions")
@@ -247,21 +247,21 @@ enum MentionType {
 }
 
 model InboxItem {
-  id             String    @id @default(cuid())
-  accountId      String
-  platform       Platform
-  itemType       InboxType
-  fromUsername    String
-  content        String
-  threadContext   String?
-  receivedAt     DateTime  @default(now())
-  read           Boolean   @default(false)
-  archived       Boolean   @default(false)
-  replied        Boolean   @default(false)
-  assignedTo     String?
-  internalNotes  String?
+  id            String    @id @default(cuid())
+  accountId     String
+  platform      Platform
+  itemType      InboxType
+  fromUsername  String
+  content       String
+  threadContext String?
+  receivedAt    DateTime  @default(now())
+  read          Boolean   @default(false)
+  archived      Boolean   @default(false)
+  replied       Boolean   @default(false)
+  assignedTo    String?
+  internalNotes String?
 
-  account        Account   @relation(fields: [accountId], references: [id])
+  account Account @relation(fields: [accountId], references: [id])
 
   @@index([accountId, receivedAt])
   @@index([read, archived])
@@ -279,18 +279,18 @@ enum InboxType {
 // ============================================================
 
 model ListeningTopic {
-  id                  String        @id @default(cuid())
+  id                  String       @id @default(cuid())
   name                String
   description         String?
   createdById         String
-  createdAt           DateTime      @default(now())
-  active              Boolean       @default(true)
-  pollingTier         PollingTier   @default(WARM)
+  createdAt           DateTime     @default(now())
+  active              Boolean      @default(true)
+  pollingTier         PollingTier  @default(WARM)
   pollingTierOverride PollingTier?
 
-  queries             ListeningQuery[]
-  hits                ListeningHit[]
-  subreddits          MonitoredSubreddit[]
+  queries    ListeningQuery[]
+  hits       ListeningHit[]
+  subreddits MonitoredSubreddit[]
 
   @@map("listening_topics")
 }
@@ -303,59 +303,59 @@ enum PollingTier {
 }
 
 model ListeningQuery {
-  id               String   @id @default(cuid())
+  id               String    @id @default(cuid())
   topicId          String
   platform         Platform
   queryString      String
-  negativeKeywords String[] @default([])
-  subreddits       String[] @default([])
-  generatedBy      String   @default("manual") // "ai" | "manual"
-  active           Boolean  @default(true)
+  negativeKeywords String[]  @default([])
+  subreddits       String[]  @default([])
+  generatedBy      String    @default("manual") // "ai" | "manual"
+  active           Boolean   @default(true)
   estDailyVolume   Int?
   estMonthlyCost   Float?
-  totalHits        Int      @default(0)
-  actionableHits   Int      @default(0)
-  spamHits         Int      @default(0)
-  dismissedHits    Int      @default(0)
+  totalHits        Int       @default(0)
+  actionableHits   Int       @default(0)
+  spamHits         Int       @default(0)
+  dismissedHits    Int       @default(0)
   avgHeuristic     Float?
   lastEvaluatedAt  DateTime?
 
-  topic            ListeningTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  hits             ListeningHit[]
+  topic ListeningTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  hits  ListeningHit[]
 
   @@map("listening_queries")
 }
 
 model ListeningHit {
-  id                       String    @id @default(cuid())
-  queryId                  String
-  topicId                  String
-  accountId                String?
-  platform                 Platform
-  platformPostId           String?
-  authorUsername            String
-  authorDisplayName        String?
-  authorProfileImageUrl    String?
-  authorFollowersOrKarma   Int?
-  content                  String
-  sourceUrl                String?
-  subreddit                String?
-  parentThreadTitle        String?
-  detectedAt               DateTime  @default(now())
-  engagementCount          Int       @default(0)
-  heuristicScore           Float     @default(0)
-  aiRelevance              Relevance?
-  sentiment                Sentiment?
-  sentimentConfidence      Float?
-  isActionable             Boolean   @default(false)
-  dismissed                Boolean   @default(false)
-  dismissedBy              String?
-  dismissReason            String?
-  routedToInboxItemId      String?
+  id                     String     @id @default(cuid())
+  queryId                String
+  topicId                String
+  accountId              String?
+  platform               Platform
+  platformPostId         String?
+  authorUsername         String
+  authorDisplayName      String?
+  authorProfileImageUrl  String?
+  authorFollowersOrKarma Int?
+  content                String
+  sourceUrl              String?
+  subreddit              String?
+  parentThreadTitle      String?
+  detectedAt             DateTime   @default(now())
+  engagementCount        Int        @default(0)
+  heuristicScore         Float      @default(0)
+  aiRelevance            Relevance?
+  sentiment              Sentiment?
+  sentimentConfidence    Float?
+  isActionable           Boolean    @default(false)
+  dismissed              Boolean    @default(false)
+  dismissedBy            String?
+  dismissReason          String?
+  routedToInboxItemId    String?
 
-  query                    ListeningQuery  @relation(fields: [queryId], references: [id], onDelete: Cascade)
-  topic                    ListeningTopic  @relation(fields: [topicId], references: [id])
-  account                  Account?        @relation(fields: [accountId], references: [id])
+  query   ListeningQuery @relation(fields: [queryId], references: [id], onDelete: Cascade)
+  topic   ListeningTopic @relation(fields: [topicId], references: [id])
+  account Account?       @relation(fields: [accountId], references: [id])
 
   @@index([topicId, detectedAt])
   @@index([sentiment, detectedAt])
@@ -376,35 +376,35 @@ enum Sentiment {
 }
 
 model MonitoredSubreddit {
-  id              String   @id @default(cuid())
-  topicId         String
-  subredditName   String
-  suggestedBy     String   @default("manual")
-  active          Boolean  @default(true)
-  avgDailyPosts   Int?
-  avgEngagement   Float?
+  id            String  @id @default(cuid())
+  topicId       String
+  subredditName String
+  suggestedBy   String  @default("manual")
+  active        Boolean @default(true)
+  avgDailyPosts Int?
+  avgEngagement Float?
 
-  topic           ListeningTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  metrics         SubredditMetrics[]
+  topic   ListeningTopic     @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  metrics SubredditMetrics[]
 
   @@unique([topicId, subredditName])
   @@map("monitored_subreddits")
 }
 
 model SubredditMetrics {
-  id                    String   @id @default(cuid())
-  subredditId           String
-  date                  DateTime @db.Date
+  id          String   @id @default(cuid())
+  subredditId String
+  date        DateTime @db.Date
 
-  subscribers           Int      @default(0)
-  postsCount            Int      @default(0)
-  commentsCount         Int      @default(0)
-  avgUpvotes            Float    @default(0)
-  avgComments           Float    @default(0)
-  topPostScore          Int      @default(0)
-  topPostTitle          String?
+  subscribers   Int     @default(0)
+  postsCount    Int     @default(0)
+  commentsCount Int     @default(0)
+  avgUpvotes    Float   @default(0)
+  avgComments   Float   @default(0)
+  topPostScore  Int     @default(0)
+  topPostTitle  String?
 
-  subreddit             MonitoredSubreddit @relation(fields: [subredditId], references: [id], onDelete: Cascade)
+  subreddit MonitoredSubreddit @relation(fields: [subredditId], references: [id], onDelete: Cascade)
 
   @@unique([subredditId, date])
   @@map("subreddit_metrics")
@@ -415,14 +415,15 @@ model SubredditMetrics {
 // ============================================================
 
 model Competitor {
-  id         String   @id @default(cuid())
-  name       String
+  id          String   @id @default(cuid())
+  name        String
   createdById String
-  createdAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
 
-  accounts   CompetitorAccount[]
-  keywords   CompetitorKeyword[]
-  metrics    CompetitorMetrics[]
+  accounts CompetitorAccount[]
+  keywords CompetitorKeyword[]
+  metrics  CompetitorMetrics[]
+  posts    CompetitorPost[]
 
   @@map("competitors")
 }
@@ -434,7 +435,7 @@ model CompetitorAccount {
   username       String
   platformUserId String?
 
-  competitor     Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  competitor Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
 
   @@map("competitor_accounts")
 }
@@ -444,29 +445,55 @@ model CompetitorKeyword {
   competitorId String
   keyword      String
 
-  competitor   Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  competitor Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
 
   @@map("competitor_keywords")
 }
 
 model CompetitorMetrics {
-  id                    String   @id @default(cuid())
-  competitorId          String
-  date                  DateTime @db.Date
+  id           String   @id @default(cuid())
+  competitorId String
+  date         DateTime @db.Date
 
-  followersX            Int      @default(0)
-  followersReddit       Int      @default(0)
-  karmaReddit           Int      @default(0)
-  postsCount            Int      @default(0)
-  avgEngagementRate     Float    @default(0)
-  mentionCount          Int      @default(0)
-  sentimentPositivePct  Float    @default(0)
-  shareOfVoicePct       Float    @default(0)
+  followersX           Int   @default(0)
+  followersReddit      Int   @default(0)
+  karmaReddit          Int   @default(0)
+  postsCount           Int   @default(0)
+  avgEngagementRate    Float @default(0)
+  mentionCount         Int   @default(0)
+  sentimentPositivePct Float @default(0)
+  shareOfVoicePct      Float @default(0)
 
-  competitor            Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  competitor Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
 
   @@unique([competitorId, date])
   @@map("competitor_metrics")
+}
+
+model CompetitorPost {
+  id             String   @id @default(cuid())
+  competitorId   String
+  platform       Platform
+  platformPostId String
+  content        String
+  contentType    String   @default("POST") // POST, THREAD, ARTICLE
+  authorUsername String
+  postedAt       DateTime
+  fetchedAt      DateTime @default(now())
+
+  // Engagement metrics at time of fetch
+  likes          Int   @default(0)
+  retweets       Int   @default(0)
+  replies        Int   @default(0)
+  quotes         Int   @default(0)
+  impressions    Int   @default(0)
+  engagementRate Float @default(0)
+
+  competitor Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+
+  @@unique([competitorId, platformPostId])
+  @@index([competitorId, postedAt])
+  @@map("competitor_posts")
 }
 
 // ============================================================
@@ -474,28 +501,28 @@ model CompetitorMetrics {
 // ============================================================
 
 model KOL {
-  id                    String         @id @default(cuid())
-  name                  String
-  platform              Platform
-  username              String
-  platformUserId        String?
-  avatarUrl             String?
-  relationshipType      RelationshipType
-  cohortId              String?
-  compensationMonthly   Float?
-  campaignDeliverables  Json?
-  baselineFollowers     Int?
-  baselineEngRate       Float?
-  aiScore               String?        // A-F
-  aiScoreRationale      String?
-  aiScoreUpdatedAt      DateTime?
-  addedBy               String
-  createdAt             DateTime       @default(now())
-  active                Boolean        @default(true)
+  id                   String           @id @default(cuid())
+  name                 String
+  platform             Platform
+  username             String
+  platformUserId       String?
+  avatarUrl            String?
+  relationshipType     RelationshipType
+  cohortId             String?
+  compensationMonthly  Float?
+  campaignDeliverables Json?
+  baselineFollowers    Int?
+  baselineEngRate      Float?
+  aiScore              String? // A-F
+  aiScoreRationale     String?
+  aiScoreUpdatedAt     DateTime?
+  addedBy              String
+  createdAt            DateTime         @default(now())
+  active               Boolean          @default(true)
 
-  cohort                KOLCohort?     @relation(fields: [cohortId], references: [id])
-  activations           KOLActivation[]
-  metrics               KOLMetrics[]
+  cohort      KOLCohort?      @relation(fields: [cohortId], references: [id])
+  activations KOLActivation[]
+  metrics     KOLMetrics[]
 
   @@map("kols")
 }
@@ -516,30 +543,30 @@ model KOLCohort {
   createdBy   String
   createdAt   DateTime @default(now())
 
-  kols        KOL[]
+  kols KOL[]
 
   @@map("kol_cohorts")
 }
 
 model KOLActivation {
-  id                  String          @id @default(cuid())
-  kolId               String
-  platform            Platform
-  activationType      ActivationType
-  platformPostId      String?
-  content             String?
-  sourceUrl           String?
-  postedAt            DateTime?
-  detectedAt          DateTime        @default(now())
-  detectionMethod     String?
-  campaignId          String?
-  sentiment           Sentiment?
-  metricsAtDetection  Json?
-  metricsAt24h        Json?
-  metricsAt48h        Json?
-  metricsAt7d         Json?
+  id                 String         @id @default(cuid())
+  kolId              String
+  platform           Platform
+  activationType     ActivationType
+  platformPostId     String?
+  content            String?
+  sourceUrl          String?
+  postedAt           DateTime?
+  detectedAt         DateTime       @default(now())
+  detectionMethod    String?
+  campaignId         String?
+  sentiment          Sentiment?
+  metricsAtDetection Json?
+  metricsAt24h       Json?
+  metricsAt48h       Json?
+  metricsAt7d        Json?
 
-  kol                 KOL @relation(fields: [kolId], references: [id], onDelete: Cascade)
+  kol KOL @relation(fields: [kolId], references: [id], onDelete: Cascade)
 
   @@index([kolId, detectedAt])
   @@map("kol_activations")
@@ -557,22 +584,22 @@ enum ActivationType {
 }
 
 model KOLMetrics {
-  id                          String   @id @default(cuid())
-  kolId                       String
-  weekStart                   DateTime @db.Date
+  id        String   @id @default(cuid())
+  kolId     String
+  weekStart DateTime @db.Date
 
-  followers                   Int      @default(0)
-  engagementRateBrand         Float    @default(0)
-  engagementRateBaseline      Float    @default(0)
-  activationsCount            Int      @default(0)
-  totalImpressionsEst         Int      @default(0)
-  avgEngagementPerActivation  Float    @default(0)
-  sentimentPositivePct        Float    @default(0)
-  followerGrowthCorrelation   Float    @default(0)
-  aiScore                     String?
-  costPerEngagement           Float?
+  followers                  Int     @default(0)
+  engagementRateBrand        Float   @default(0)
+  engagementRateBaseline     Float   @default(0)
+  activationsCount           Int     @default(0)
+  totalImpressionsEst        Int     @default(0)
+  avgEngagementPerActivation Float   @default(0)
+  sentimentPositivePct       Float   @default(0)
+  followerGrowthCorrelation  Float   @default(0)
+  aiScore                    String?
+  costPerEngagement          Float?
 
-  kol                         KOL @relation(fields: [kolId], references: [id], onDelete: Cascade)
+  kol KOL @relation(fields: [kolId], references: [id], onDelete: Cascade)
 
   @@unique([kolId, weekStart])
   @@map("kol_metrics")
@@ -583,32 +610,32 @@ model KOLMetrics {
 // ============================================================
 
 model AlertRule {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   createdById String
   name        String
-  active      Boolean  @default(true)
-  conditions  Json     // { topic, platform, relevance, sentiment, thresholds }
-  actions     Json     // { notify channels, assign_to, tag, priority }
+  active      Boolean @default(true)
+  conditions  Json // { topic, platform, relevance, sentiment, thresholds }
+  actions     Json // { notify channels, assign_to, tag, priority }
 
-  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdBy User @relation(fields: [createdById], references: [id])
 
   @@map("alert_rules")
 }
 
 model AIInsight {
-  id             String   @id @default(cuid())
+  id             String      @id @default(cuid())
   accountId      String?
   userId         String?
   insightType    InsightType
   content        Json
   dataRangeStart DateTime?
   dataRangeEnd   DateTime?
-  generatedAt    DateTime @default(now())
-  dismissed      Boolean  @default(false)
+  generatedAt    DateTime    @default(now())
+  dismissed      Boolean     @default(false)
   dismissedBy    String?
 
-  account        Account? @relation(fields: [accountId], references: [id])
-  user           User?    @relation(fields: [userId], references: [id])
+  account Account? @relation(fields: [accountId], references: [id])
+  user    User?    @relation(fields: [userId], references: [id])
 
   @@index([insightType, generatedAt])
   @@map("ai_insights")
@@ -623,6 +650,7 @@ enum InsightType {
   AUDIENCE_INSIGHT
   CONTENT_SUGGESTION
   PERFORMANCE_PATTERN
+  COMPETITOR_STRATEGY
 }
 
 // ============================================================
@@ -639,8 +667,8 @@ model ApprovalRequest {
   requestedAt     DateTime       @default(now())
   reviewedAt      DateTime?
 
-  post            Post @relation(fields: [postId], references: [id], onDelete: Cascade)
-  reviewer        User? @relation("reviewer", fields: [reviewedById], references: [id])
+  post     Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reviewer User? @relation("reviewer", fields: [reviewedById], references: [id])
 
   @@map("approval_requests")
 }
@@ -657,16 +685,16 @@ enum ApprovalStatus {
 // ============================================================
 
 model Report {
-  id           String     @id @default(cuid())
-  title        String
-  reportType   ReportType
-  prompt       String?    // NLP prompt used to generate
-  content      Json       // Generated report data
-  aiPct        Float      @default(0) // Percentage AI-generated
-  createdById  String
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  downloads    Int        @default(0)
+  id          String     @id @default(cuid())
+  title       String
+  reportType  ReportType
+  prompt      String? // NLP prompt used to generate
+  content     Json // Generated report data
+  aiPct       Float      @default(0) // Percentage AI-generated
+  createdById String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  downloads   Int        @default(0)
 
   @@map("reports")
 }
@@ -692,7 +720,7 @@ model AuditLog {
   ipAddress String?
   timestamp DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@index([userId, timestamp])
   @@index([action, timestamp])
@@ -704,16 +732,16 @@ model AuditLog {
 // ============================================================
 
 model APICallLog {
-  id           String   @id @default(cuid())
-  provider     String   // "x_official", "twitterapi_io", "reddit", "claude"
-  endpoint     String
-  method       String
-  statusCode   Int
-  responseTime Int      // ms
-  tokensUsed   Int?     // For Claude API
-  estimatedCost Float   @default(0)
-  accountId    String?
-  timestamp    DateTime @default(now())
+  id            String   @id @default(cuid())
+  provider      String // "x_official", "twitterapi_io", "reddit", "claude"
+  endpoint      String
+  method        String
+  statusCode    Int
+  responseTime  Int // ms
+  tokensUsed    Int? // For Claude API
+  estimatedCost Float    @default(0)
+  accountId     String?
+  timestamp     DateTime @default(now())
 
   @@index([provider, timestamp])
   @@index([accountId, timestamp])
@@ -725,11 +753,11 @@ model APICallLog {
 // ============================================================
 
 model CacheEntry {
-  id         String   @id @default(cuid())
-  cacheKey   String   @unique
-  dataType   String   // "profile", "post_metrics", "mentions", "search"
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  cacheKey  String   @unique
+  dataType  String // "profile", "post_metrics", "mentions", "search"
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 
   @@index([expiresAt])
   @@map("cache_entries")
