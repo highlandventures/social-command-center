@@ -52,10 +52,10 @@
 - [ ] **RCNT-01**: Every report displays topline KPI stats (impressions, engagement rate, follower delta, top post, sentiment)
 - [ ] **RCNT-02**: Every report includes an AI-generated executive summary (what happened, what's notable, what to do next)
 - [ ] **RCNT-03**: Every report includes comparison deltas vs previous period (WoW, MoM, QoQ, YoY) with trend arrows
-- [ ] **RCNT-04**: Reports include inline charts (engagement trend line, content type breakdown, sentiment distribution)
+- [x] **RCNT-04**: Reports include inline charts (engagement trend line, content type breakdown, sentiment distribution)
 - [ ] **RCNT-05**: Cadence reports include key sentiment themes with bulleted details (top positive/negative drivers, emerging topics, notable shifts)
 - [ ] **RCNT-06**: Ad hoc reports include a sentiment/reception summary for the milestone or event period
-- [ ] **RCNT-07**: Report content is stored as structured JSON with both data arrays (for in-app charts) and chart image URLs (for export/email)
+- [x] **RCNT-07**: Report content is stored as structured JSON with both data arrays (for in-app charts) and chart image URLs (for export/email)
 
 ### Ad Hoc Reports
 
@@ -151,10 +151,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RCNT-01 | Phase 5 | Pending |
 | RCNT-02 | Phase 5 | Pending |
 | RCNT-03 | Phase 5 | Pending |
-| RCNT-04 | Phase 5 | Pending |
+| RCNT-04 | Phase 5 | Complete |
 | RCNT-05 | Phase 5 | Pending |
 | RCNT-06 | Phase 5 | Pending |
-| RCNT-07 | Phase 5 | Pending |
+| RCNT-07 | Phase 5 | Complete |
 | EXPT-01 | Phase 6 | Pending |
 | EXPT-02 | Phase 6 | Pending |
 | DIST-01 | Phase 6 | Pending |
