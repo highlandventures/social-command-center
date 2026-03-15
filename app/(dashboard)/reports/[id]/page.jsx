@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { trpc } from '@/lib/trpc-client';
 import ReportViewer from '@/components/ReportViewer';
-import { Skeleton, useToast } from '@/components/ui';
+import EmailReportModal from '@/components/EmailReportModal';
+import { Skeleton, SectionTitle, useToast } from '@/components/ui';
 
 export default function ReportDetailPage() {
   const { id } = useParams();
@@ -12,6 +13,7 @@ export default function ReportDetailPage() {
   const toast = useToast();
   const reportQ = trpc.reports.getById.useQuery({ id }, { staleTime: 30_000 });
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
 
   if (reportQ.isLoading) return <LoadingSkeleton />;
   if (reportQ.error || !reportQ.data) return <NotFound onBack={() => router.push('/reports')} />;
@@ -66,10 +68,10 @@ export default function ReportDetailPage() {
           >
             {pdfLoading ? 'Generating...' : 'Export PDF'}
           </button>
-          {/* Email Report placeholder (Plan 02) */}
+          {/* Email Report */}
           <button
-            disabled
-            className="bg-white dark:bg-surface-card border border-gray-300 dark:border-border text-gray-700 dark:text-content-muted text-sm font-medium rounded-lg px-4 py-2 opacity-50 cursor-not-allowed"
+            onClick={() => setEmailModalOpen(true)}
+            className="bg-white dark:bg-surface-card border border-gray-300 dark:border-border text-gray-700 dark:text-content-secondary text-sm font-medium rounded-lg px-4 py-2 hover:bg-gray-50 dark:hover:bg-surface-base transition-colors"
           >
             Email Report
           </button>
@@ -84,6 +86,17 @@ export default function ReportDetailPage() {
         </div>
       </div>
       <ReportViewer report={report} />
+
+      {/* Email Report Modal */}
+      <EmailReportModal
+        isOpen={emailModalOpen}
+        onClose={() => setEmailModalOpen(false)}
+        reportId={id}
+        reportTitle={report.title}
+      />
+
+      {/* Delivery History */}
+      <DeliveryHistory reportId={id} />
     </div>
   );
 }
@@ -108,6 +121,85 @@ function LoadingSkeleton() {
       <Skeleton className="h-32 w-full mb-6" />
       <Skeleton className="h-4 w-24 mb-3" />
       <Skeleton className="h-48 w-full" />
+    </div>
+  );
+}
+
+function DeliveryHistory({ reportId }) {
+  const deliveryLogQ = trpc.reports.deliveryLog.useQuery({ reportId });
+
+  if (deliveryLogQ.isLoading) return null;
+
+  const deliveries = deliveryLogQ.data || [];
+
+  return (
+    <div className="mt-8">
+      <SectionTitle>Delivery History</SectionTitle>
+      {deliveries.length === 0 ? (
+        <p className="text-sm text-gray-400 dark:text-content-muted mt-2">No deliveries yet</p>
+      ) : (
+        <div className="overflow-x-auto mt-3">
+          <table className="w-full text-xs border border-gray-200 dark:border-border">
+            <thead>
+              <tr className="bg-gray-50 dark:bg-surface-base text-left">
+                <th className="px-3 py-2 font-medium text-gray-600 dark:text-content-muted">Date</th>
+                <th className="px-3 py-2 font-medium text-gray-600 dark:text-content-muted">Channel</th>
+                <th className="px-3 py-2 font-medium text-gray-600 dark:text-content-muted">Recipients</th>
+                <th className="px-3 py-2 font-medium text-gray-600 dark:text-content-muted">Status</th>
+                <th className="px-3 py-2 font-medium text-gray-600 dark:text-content-muted">Error</th>
+              </tr>
+            </thead>
+            <tbody>
+              {deliveries.map((d, i) => {
+                let recipientList = '---';
+                try {
+                  const parsed = typeof d.recipients === 'string' ? JSON.parse(d.recipients) : d.recipients;
+                  if (Array.isArray(parsed) && parsed.length > 0) {
+                    recipientList = parsed.join(', ');
+                  }
+                } catch {
+                  // keep default
+                }
+
+                return (
+                  <tr
+                    key={d.id}
+                    className={i % 2 === 0 ? 'bg-white dark:bg-surface-card' : 'bg-gray-50/50 dark:bg-surface-base/50'}
+                  >
+                    <td className="px-3 py-2 text-gray-700 dark:text-content-secondary whitespace-nowrap">
+                      {new Date(d.createdAt).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                        d.channel === 'EMAIL'
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                          : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                      }`}>
+                        {d.channel === 'PDF_DOWNLOAD' ? 'PDF' : d.channel}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-gray-600 dark:text-content-muted max-w-[200px] truncate">
+                      {recipientList}
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                        d.status === 'SENT'
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                      }`}>
+                        {d.status}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-gray-500 dark:text-content-muted max-w-[150px] truncate">
+                      {d.error || ''}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
