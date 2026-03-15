@@ -622,6 +622,7 @@ enum InsightType {
   OPTIMAL_SCHEDULE
   AUDIENCE_INSIGHT
   CONTENT_SUGGESTION
+  PERFORMANCE_PATTERN
 }
 
 // ============================================================
