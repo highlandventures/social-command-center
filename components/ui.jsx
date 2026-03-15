@@ -203,6 +203,31 @@ export const Sparkline = ({ data, color = "#3b82f6", height = 24 }) => {
   );
 };
 
+/** Compact sparkline for sidebar use — configurable width/height, SVG polyline */
+export function MiniSparkline({ data, width = 80, height = 24, color = COLORS.blue }) {
+  if (!data || data.length < 2) {
+    return (
+      <svg width={width} height={height} className="inline-block">
+        <line x1="0" y1={height / 2} x2={width} y2={height / 2}
+          stroke={color} strokeWidth="1.5" strokeDasharray="3 3" opacity="0.4" />
+      </svg>
+    );
+  }
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const range = max - min || 1;
+  const points = data
+    .map((v, i) =>
+      `${(i / (data.length - 1)) * width},${height - 2 - ((v - min) / range) * (height - 4)}`
+    )
+    .join(' ');
+  return (
+    <svg width={width} height={height} className="inline-block">
+      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 /** Skeleton placeholder for loading states */
 export const Skeleton = ({ className = "" }) => (
   <div
