@@ -9,10 +9,10 @@ Requirements for this milestone. Each maps to roadmap phases.
 
 ### Performance Intel
 
-- [ ] **PERF-01**: Team can view published posts ranked by performance tier (top / average / poor) with engagement metrics
-- [ ] **PERF-02**: Team can see pattern analysis -- which topics, content formats (thread vs post vs article), and posting times correlate with high performance
-- [ ] **PERF-03**: Team can view engagement trend sparklines per post showing trajectory over time
-- [ ] **PERF-04**: Insights are displayed as reusable cards in the composer sidebar (e.g., "Threads about RWA outperform single posts by 3.2x")
+- [x] **PERF-01**: Team can view published posts ranked by performance tier (top / average / poor) with engagement metrics
+- [x] **PERF-02**: Team can see pattern analysis -- which topics, content formats (thread vs post vs article), and posting times correlate with high performance
+- [x] **PERF-03**: Team can view engagement trend sparklines per post showing trajectory over time
+- [x] **PERF-04**: Insights are displayed as reusable cards in the composer sidebar (e.g., "Threads about RWA outperform single posts by 3.2x")
 
 ### Competitor Intel
 
@@ -69,10 +69,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PERF-01 | Phase 1 | Pending |
-| PERF-02 | Phase 1 | Pending |
-| PERF-03 | Phase 1 | Pending |
-| PERF-04 | Phase 1 | Pending |
+| PERF-01 | Phase 1 | Complete |
+| PERF-02 | Phase 1 | Complete |
+| PERF-03 | Phase 1 | Complete |
+| PERF-04 | Phase 1 | Complete |
 | COMP-01 | Phase 2 | Pending |
 | COMP-02 | Phase 2 | Pending |
 | COMP-03 | Phase 2 | Pending |
