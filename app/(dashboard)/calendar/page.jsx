@@ -8,11 +8,12 @@ export default function CalendarPage() {
   const [view, setView] = useState('month');
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
-    return { year: now.getFullYear(), month: now.getMonth() }; // 0-indexed
+    return { year: now.getFullYear(), month: now.getMonth() };
   });
   const [dragOverDay, setDragOverDay] = useState(null);
-  const [rescheduleModal, setRescheduleModal] = useState(null); // { postId, postLabel, originalTime, targetDay }
+  const [rescheduleModal, setRescheduleModal] = useState(null);
   const [newTime, setNewTime] = useState('09:15');
+  const [selectedPost, setSelectedPost] = useState(null); // click-to-view
 
   const toast = useToast();
   const utils = trpc.useUtils();
@@ -42,7 +43,6 @@ export default function CalendarPage() {
 
   const monthName = new Date(currentMonth.year, currentMonth.month).toLocaleString('en-US', { month: 'long', year: 'numeric' });
   const daysInMonth = new Date(currentMonth.year, currentMonth.month + 1, 0).getDate();
-  // Day of week the 1st falls on (0=Sun). Convert to Mon-start: (dow + 6) % 7
   const firstDayDow = new Date(currentMonth.year, currentMonth.month, 1).getDay();
   const startPadCount = (firstDayDow + 6) % 7;
   const today = new Date();
@@ -51,56 +51,6 @@ export default function CalendarPage() {
   // ── tRPC queries ──────────────────────────────────────────
   const postsQ = trpc.posts.list.useQuery(undefined, { staleTime: 15_000 });
   const posts = postsQ.data?.items ?? [];
-
-  // ── Build calendar data from real posts ───────────────────
-  const scheduledPosts = posts.filter(
-    (p) => p.status === 'SCHEDULED' || p.status === 'scheduled'
-  );
-  const publishedPosts = posts.filter(
-    (p) => p.status === 'PUBLISHED' || p.status === 'published'
-  );
-
-  // Build a map of day => posts for the current month
-  const calendarDays = useMemo(() => {
-    const days = [];
-    const postMap = {};
-
-    // Map real posts to day numbers for the current month
-    [...scheduledPosts, ...publishedPosts].forEach((p) => {
-      const date = p.scheduledFor || p.publishedAt || p.createdAt;
-      if (!date) return;
-      const d = new Date(date);
-      if (d.getMonth() === currentMonth.month && d.getFullYear() === currentMonth.year) {
-        const dayNum = d.getDate();
-        if (!postMap[dayNum]) postMap[dayNum] = [];
-        postMap[dayNum].push({
-          id: p.id,
-          type: p.contentType?.toLowerCase() || p.type || 'post',
-          platform: (p.platform || 'X').toLowerCase(),
-          label: (p.content || '').slice(0, 40),
-          time: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
-          timeRaw: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
-          status: (p.status || '').toLowerCase(),
-          draggable: p.status === 'SCHEDULED',
-          accountId: p.account?.id,
-          accountUsername: p.account?.username || p.account?.displayName,
-        });
-      }
-    });
-
-    for (let d = 1; d <= daysInMonth; d++) {
-      days.push({ day: d, posts: postMap[d] || [], isToday: d === todayDay });
-    }
-    return days;
-  }, [scheduledPosts, publishedPosts, currentMonth, daysInMonth, todayDay]);
-
-  const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
-  const postColors = {
-    scheduled: 'bg-blue-100 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200',
-    published: 'bg-green-100 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200',
-    ghost: 'bg-surface-page border-dashed border-gray-300 text-content-muted',
-  };
 
   // ── Account color map ───────────────────────────────────────
   const ACCOUNT_COLORS = [
@@ -130,6 +80,50 @@ export default function CalendarPage() {
     });
     return map;
   }, [posts]);
+
+  // ── Build calendar data from real posts ───────────────────
+  const scheduledPosts = posts.filter(
+    (p) => p.status === 'SCHEDULED' || p.status === 'scheduled'
+  );
+  const publishedPosts = posts.filter(
+    (p) => p.status === 'PUBLISHED' || p.status === 'published'
+  );
+
+  const calendarDays = useMemo(() => {
+    const days = [];
+    const postMap = {};
+
+    [...scheduledPosts, ...publishedPosts].forEach((p) => {
+      const date = p.scheduledFor || p.publishedAt || p.createdAt;
+      if (!date) return;
+      const d = new Date(date);
+      if (d.getMonth() === currentMonth.month && d.getFullYear() === currentMonth.year) {
+        const dayNum = d.getDate();
+        if (!postMap[dayNum]) postMap[dayNum] = [];
+        postMap[dayNum].push({
+          id: p.id,
+          type: p.contentType?.toLowerCase() || p.type || 'post',
+          platform: (p.platform || 'X').toLowerCase(),
+          label: (p.content || '').slice(0, 40),
+          fullContent: p.content || '',
+          time: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+          timeRaw: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+          fullDate: d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
+          status: (p.status || '').toLowerCase(),
+          draggable: p.status === 'SCHEDULED',
+          accountId: p.account?.id,
+          accountUsername: p.account?.username || p.account?.displayName,
+        });
+      }
+    });
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      days.push({ day: d, posts: postMap[d] || [], isToday: d === todayDay });
+    }
+    return days;
+  }, [scheduledPosts, publishedPosts, currentMonth, daysInMonth, todayDay]);
+
+  const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   // ── Drag & Drop handlers ──────────────────────────────────
   const handleDragStart = useCallback((e, post) => {
@@ -189,8 +183,73 @@ export default function CalendarPage() {
     setRescheduleModal(null);
   }, [rescheduleModal, newTime, currentMonth, updateMutation]);
 
+  // ── Post card click handler ─────────────────────────────────
+  const handlePostClick = useCallback((post) => {
+    setSelectedPost(post);
+  }, []);
+
+  // ── Shared post card renderer ───────────────────────────────
+  const renderPostCard = (post, i, compact = false) => {
+    const acctColor = accountColorMap[post.accountId];
+    const isScheduled = post.status === 'scheduled';
+    const statusBadge = isScheduled
+      ? 'bg-blue-500/20 text-blue-300'
+      : 'bg-green-500/20 text-green-300';
+    const statusLabel = isScheduled ? 'Scheduled' : 'Published';
+
+    return (
+      <div
+        key={i}
+        draggable={post.draggable}
+        onDragStart={post.draggable ? (e) => { e.stopPropagation(); handleDragStart(e, post); } : undefined}
+        onClick={(e) => { e.stopPropagation(); handlePostClick(post); }}
+        className={`group rounded border-l-[3px] transition-all cursor-pointer ${
+          acctColor ? acctColor.border : 'border-l-gray-400'
+        } ${
+          compact
+            ? 'px-1.5 py-1 bg-surface-secondary/50 hover:bg-surface-secondary border border-l-[3px] border-border-secondary'
+            : 'p-2 bg-surface-secondary/50 hover:bg-surface-secondary border border-l-[3px] border-border-secondary'
+        } ${post.draggable ? 'hover:shadow-md' : ''}`}
+      >
+        {compact ? (
+          <>
+            <div className="flex items-center gap-1 text-[10px]">
+              <span className="truncate font-medium text-content-primary">{post.label}</span>
+            </div>
+            <div className="flex items-center gap-1 mt-0.5">
+              <span className="text-[9px] text-content-muted">{post.time}</span>
+              <span className={`text-[8px] px-1 rounded ${statusBadge}`}>{statusLabel}</span>
+              {post.accountUsername && (
+                <span className={`text-[9px] ml-auto ${acctColor?.text || 'text-content-muted'}`}>@{post.accountUsername}</span>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${acctColor?.dot || 'bg-gray-400'}`} />
+              <span className={`text-[10px] font-medium ${acctColor?.text || 'text-content-muted'}`}>
+                @{post.accountUsername || '—'}
+              </span>
+              <span className={`text-[9px] px-1.5 py-0.5 rounded-full ml-auto ${statusBadge}`}>{statusLabel}</span>
+            </div>
+            <p className="text-xs leading-snug text-content-primary">{post.label}</p>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="text-[10px] text-content-muted">{post.time}</span>
+              <span className="text-[10px] text-content-faint capitalize">{post.type}</span>
+              {post.draggable && (
+                <span className="ml-auto text-[9px] text-content-faint opacity-0 group-hover:opacity-100 transition-opacity">Drag to move</span>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div>
+      {/* ── Header ───────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-bold text-content-primary">{monthName}</h2>
@@ -213,41 +272,39 @@ export default function CalendarPage() {
               {v}
             </button>
           ))}
-          <div className="flex items-center gap-2 ml-3 text-xs text-content-muted">
-            <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded bg-blue-200 border border-blue-300" />
-              Scheduled
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded bg-green-200 border border-green-300" />
-              Published
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded bg-surface-secondary border border-dashed border-gray-300" />
-              AI Suggestion
-            </span>
-            {Object.entries(accountColorMap).length > 1 && (
-              <>
-                <span className="text-content-faint">|</span>
-                {Object.entries(accountColorMap).map(([id, acct]) => (
-                  <span key={id} className="flex items-center gap-1">
-                    <span className={`w-2.5 h-2.5 rounded-sm ${acct.bg}`} />
-                    <span className={acct.text}>@{acct.username}</span>
-                  </span>
-                ))}
-              </>
-            )}
-          </div>
         </div>
+      </div>
+
+      {/* ── Legend ────────────────────────────────────────────── */}
+      <div className="flex items-center gap-3 mb-3 text-xs text-content-muted flex-wrap">
+        <span className="text-content-faint font-medium">Status:</span>
+        <span className="flex items-center gap-1">
+          <span className="px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px]">Scheduled</span>
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="px-1.5 py-0.5 rounded-full bg-green-500/20 text-green-300 text-[10px]">Published</span>
+        </span>
+        {Object.entries(accountColorMap).length > 0 && (
+          <>
+            <span className="text-content-faint">|</span>
+            <span className="text-content-faint font-medium">Accounts:</span>
+            {Object.entries(accountColorMap).map(([id, acct]) => (
+              <span key={id} className="flex items-center gap-1">
+                <span className={`w-2.5 h-0.5 rounded-full ${acct.bg}`} />
+                <span className={acct.text}>@{acct.username}</span>
+              </span>
+            ))}
+          </>
+        )}
       </div>
 
       {postsQ.isLoading ? (
         <Skeleton className="h-[500px] w-full rounded-xl" />
       ) : (
         <>
+          {/* ── Month View ──────────────────────────────────────── */}
           {view === 'month' && (
             <div className="bg-surface-card rounded-xl border border-border overflow-hidden">
-              {/* Day headers */}
               <div className="grid grid-cols-7 border-b border-border">
                 {daysOfWeek.map((d) => (
                   <div key={d} className="py-2 text-center text-xs font-medium text-content-muted uppercase">
@@ -255,9 +312,7 @@ export default function CalendarPage() {
                   </div>
                 ))}
               </div>
-              {/* Calendar grid */}
               <div className="grid grid-cols-7">
-                {/* Padding for days before the 1st */}
                 {Array.from({ length: startPadCount }, (_, i) => (
                   <div key={`pad-${i}`} className="min-h-[100px] border-b border-r border-border-secondary bg-surface-page/50" />
                 ))}
@@ -270,10 +325,10 @@ export default function CalendarPage() {
                     className={`min-h-[100px] border-b border-r border-border-secondary p-1.5 transition-colors ${
                       dragOverDay === day.day
                         ? 'bg-blue-100/60 dark:bg-blue-900/30 ring-2 ring-inset ring-blue-400'
-                        : day.isToday ? 'bg-blue-50/50' : 'hover:bg-surface-hover'
+                        : day.isToday ? 'bg-blue-50/30 dark:bg-blue-900/10' : 'hover:bg-surface-hover'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-1">
+                    <div className="mb-1">
                       <span
                         className={`text-xs font-medium ${
                           day.isToday
@@ -283,39 +338,12 @@ export default function CalendarPage() {
                       >
                         {day.day}
                       </span>
-                      {(day.day === 3 || day.day === 10 || day.day === 17 || day.day === 24) && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-300" title="Optimal posting day" />
-                      )}
                     </div>
                     <div className="space-y-1">
-                      {day.posts.map((post, i) => {
-                        const acctColor = accountColorMap[post.accountId];
-                        return (
-                        <div
-                          key={i}
-                          draggable={post.draggable}
-                          onDragStart={post.draggable ? (e) => handleDragStart(e, post) : undefined}
-                          className={`px-1.5 py-1 rounded border-l-[3px] border border-l-transparent text-[10px] leading-tight transition-shadow ${
-                            postColors[post.status || post.type]
-                          } ${acctColor ? acctColor.border : ''} ${post.draggable ? 'cursor-grab active:cursor-grabbing hover:shadow-md hover:ring-1 hover:ring-blue-300' : 'cursor-default'}`}
-                        >
-                          <div className="flex items-center gap-1">
-                            <span className="truncate font-medium">{post.label}</span>
-                            {post.draggable && (
-                              <span className="ml-auto text-[8px] opacity-40 flex-shrink-0" title="Drag to reschedule">&#x2630;</span>
-                            )}
-                          </div>
-                          <span className="text-[9px] opacity-70">
-                            {post.time} &middot; {post.type === 'ghost' ? 'Suggestion' : post.type}
-                            {post.accountUsername && ` · @${post.accountUsername}`}
-                          </span>
-                        </div>
-                        );
-                      })}
+                      {day.posts.map((post, i) => renderPostCard(post, i, true))}
                     </div>
                   </div>
                 ))}
-                {/* Padding for remaining cells */}
                 {Array.from({ length: (7 - ((startPadCount + daysInMonth) % 7)) % 7 }, (_, i) => (
                   <div key={`pad-end-${i}`} className="min-h-[100px] border-b border-r border-border-secondary bg-surface-page/50" />
                 ))}
@@ -323,10 +351,10 @@ export default function CalendarPage() {
             </div>
           )}
 
+          {/* ── Week View ───────────────────────────────────────── */}
           {view === 'week' && (() => {
-            // Compute the current week (Mon-Sun) containing today or the 1st of the displayed month
             const refDate = todayDay ? new Date(currentMonth.year, currentMonth.month, todayDay) : new Date(currentMonth.year, currentMonth.month, 1);
-            const refDow = (refDate.getDay() + 6) % 7; // 0=Mon
+            const refDow = (refDate.getDay() + 6) % 7;
             const weekStart = new Date(refDate);
             weekStart.setDate(refDate.getDate() - refDow);
             const weekDays = Array.from({ length: 7 }, (_, i) => {
@@ -353,42 +381,15 @@ export default function CalendarPage() {
                       onDrop={(e) => handleDrop(e, dayNum)}
                       className={`rounded-lg border p-3 min-h-[200px] transition-colors ${
                         dragOverDay === dayNum
-                          ? 'border-blue-400 bg-blue-50/40 ring-2 ring-blue-300'
-                          : isToday ? 'border-blue-300 bg-blue-50/30' : 'border-border'
+                          ? 'border-blue-400 bg-blue-50/40 dark:bg-blue-900/20 ring-2 ring-blue-300'
+                          : isToday ? 'border-blue-300 bg-blue-50/20 dark:bg-blue-900/10' : 'border-border'
                       }`}
                     >
-                      <p className={`text-xs font-medium mb-2 ${isToday ? 'text-blue-700' : 'text-content-muted'}`}>
+                      <p className={`text-xs font-medium mb-2 ${isToday ? 'text-blue-400' : 'text-content-muted'}`}>
                         {label} {isToday && '(Today)'}
                       </p>
                       <div className="space-y-2">
-                        {dayData?.posts.map((post, j) => {
-                          const acctColor = accountColorMap[post.accountId];
-                          return (
-                          <div
-                            key={j}
-                            draggable={post.draggable}
-                            onDragStart={post.draggable ? (e) => handleDragStart(e, post) : undefined}
-                            className={`p-2 rounded-lg border border-l-[3px] border-l-transparent ${postColors[post.status || post.type]} ${
-                              acctColor ? acctColor.border : ''
-                            } ${post.draggable ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : ''}`}
-                          >
-                            <div className="flex items-center gap-1 mb-1">
-                              <span className={`w-2 h-2 rounded-full ${acctColor?.dot || 'bg-gray-400'}`} />
-                              <span className="text-[10px] font-medium uppercase">
-                                {post.type === 'ghost' ? 'AI Suggestion' : post.type}
-                              </span>
-                              {post.accountUsername && (
-                                <span className={`text-[10px] ${acctColor?.text || 'text-content-muted'}`}>@{post.accountUsername}</span>
-                              )}
-                              {post.draggable && (
-                                <span className="ml-auto text-[9px] opacity-40">&#x2630;</span>
-                              )}
-                            </div>
-                            <p className="text-xs leading-snug">{post.label}</p>
-                            <p className="text-[10px] text-content-faint mt-1">{post.time}</p>
-                          </div>
-                          );
-                        })}
+                        {dayData?.posts.map((post, j) => renderPostCard(post, j, false))}
                       </div>
                     </div>
                   );
@@ -398,12 +399,13 @@ export default function CalendarPage() {
             );
           })()}
 
+          {/* ── List View ───────────────────────────────────────── */}
           {view === 'list' && (
             <div className="bg-surface-card rounded-xl border border-border p-5">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border">
-                    {['Content', 'Platform', 'Account', 'Type', 'Scheduled For', 'Status'].map((h) => (
+                    {['Content', 'Account', 'Type', 'Date', 'Status'].map((h) => (
                       <th key={h} className="text-left py-2 px-3 text-xs font-medium text-content-muted uppercase">
                         {h}
                       </th>
@@ -411,33 +413,59 @@ export default function CalendarPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {scheduledPosts.map((p) => (
-                    <tr key={p.id} className="border-b border-border-secondary hover:bg-surface-hover cursor-pointer">
-                      <td className="py-3 px-3 font-medium text-content-primary max-w-sm truncate">{p.content}</td>
+                  {[...scheduledPosts, ...publishedPosts]
+                    .sort((a, b) => new Date(a.scheduledFor || a.publishedAt || a.createdAt) - new Date(b.scheduledFor || b.publishedAt || b.createdAt))
+                    .map((p) => {
+                    const acctColor = accountColorMap[p.account?.id];
+                    const isScheduled = p.status === 'SCHEDULED' || p.status === 'scheduled';
+                    return (
+                    <tr
+                      key={p.id}
+                      onClick={() => handlePostClick({
+                        id: p.id,
+                        fullContent: p.content,
+                        label: (p.content || '').slice(0, 40),
+                        platform: (p.platform || 'X').toLowerCase(),
+                        type: p.contentType?.toLowerCase() || 'post',
+                        status: (p.status || '').toLowerCase(),
+                        time: new Date(p.scheduledFor || p.publishedAt || p.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+                        fullDate: new Date(p.scheduledFor || p.publishedAt || p.createdAt).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
+                        accountId: p.account?.id,
+                        accountUsername: p.account?.username || p.account?.displayName,
+                      })}
+                      className="border-b border-border-secondary hover:bg-surface-hover cursor-pointer"
+                    >
                       <td className="py-3 px-3">
-                        <PlatformBadge platform={p.platform} />
+                        <div className={`font-medium text-content-primary max-w-sm truncate border-l-[3px] pl-2 ${acctColor?.border || 'border-l-gray-400'}`}>
+                          {p.content}
+                        </div>
                       </td>
-                      <td className="py-3 px-3 text-content-secondary">
+                      <td className="py-3 px-3">
                         <span className="flex items-center gap-1.5">
-                          {accountColorMap[p.account?.id] && (
-                            <span className={`w-2 h-2 rounded-full flex-shrink-0 ${accountColorMap[p.account.id].dot}`} />
-                          )}
-                          @{p.account?.username || '—'}
+                          <PlatformBadge platform={p.platform} />
+                          <span className={`text-xs ${acctColor?.text || 'text-content-secondary'}`}>@{p.account?.username || '—'}</span>
                         </span>
                       </td>
                       <td className="py-3 px-3">
-                        <span className="text-xs font-medium text-content-secondary">
+                        <span className="text-xs font-medium text-content-secondary capitalize">
                           {p.contentType === 'THREAD' ? 'Thread' : p.contentType === 'ARTICLE' ? 'Article' : 'Post'}
                         </span>
                       </td>
-                      <td className="py-3 px-3 text-content-secondary">{p.scheduledFor ? new Date(p.scheduledFor).toLocaleString() : '—'}</td>
+                      <td className="py-3 px-3 text-content-secondary text-xs">
+                        {new Date(p.scheduledFor || p.publishedAt || p.createdAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                      </td>
                       <td className="py-3 px-3">
-                        <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
-                          Scheduled
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                          isScheduled
+                            ? 'bg-blue-500/20 text-blue-400'
+                            : 'bg-green-500/20 text-green-400'
+                        }`}>
+                          {isScheduled ? 'Scheduled' : 'Published'}
                         </span>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -445,77 +473,165 @@ export default function CalendarPage() {
         </>
       )}
 
-      {/* Bottom: upcoming + AI suggestions */}
+      {/* ── Bottom: Upcoming + AI Suggestions ────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         <div className="bg-surface-card rounded-xl border border-border p-5">
           <h4 className="text-sm font-semibold text-content-primary mb-3">Upcoming (Next 7 Days)</h4>
+          {scheduledPosts.length === 0 && (
+            <p className="text-sm text-content-muted py-4">No scheduled posts</p>
+          )}
           {scheduledPosts.map((p) => {
             const acctColor = accountColorMap[p.account?.id];
             return (
-            <div key={p.id} className="flex items-center justify-between py-2 border-b border-border-secondary last:border-0">
-              <div className="flex items-center gap-2">
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${acctColor?.dot || 'bg-gray-400'}`} />
-                <span className="text-sm text-content-primary truncate max-w-xs">{p.content}</span>
-                {p.account?.username && (
-                  <span className={`text-xs flex-shrink-0 ${acctColor?.text || 'text-content-muted'}`}>@{p.account.username}</span>
-                )}
+            <div
+              key={p.id}
+              onClick={() => handlePostClick({
+                id: p.id,
+                fullContent: p.content,
+                label: (p.content || '').slice(0, 40),
+                platform: (p.platform || 'X').toLowerCase(),
+                type: p.contentType?.toLowerCase() || 'post',
+                status: 'scheduled',
+                time: p.scheduledFor ? new Date(p.scheduledFor).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '—',
+                fullDate: p.scheduledFor ? new Date(p.scheduledFor).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) : '—',
+                accountId: p.account?.id,
+                accountUsername: p.account?.username || p.account?.displayName,
+              })}
+              className="flex items-center justify-between py-2.5 border-b border-border-secondary last:border-0 cursor-pointer hover:bg-surface-hover -mx-2 px-2 rounded"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span className={`w-0.5 h-6 rounded-full flex-shrink-0 ${acctColor?.bg || 'bg-gray-400'}`} />
+                <div className="min-w-0">
+                  <span className="text-sm text-content-primary truncate block">{p.content}</span>
+                  <span className={`text-[10px] ${acctColor?.text || 'text-content-muted'}`}>@{p.account?.username || '—'}</span>
+                </div>
               </div>
-              <span className="text-xs text-content-faint whitespace-nowrap">{p.scheduledFor ? new Date(p.scheduledFor).toLocaleString() : '—'}</span>
+              <span className="text-xs text-content-faint whitespace-nowrap ml-3">{p.scheduledFor ? new Date(p.scheduledFor).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}</span>
             </div>
             );
           })}
         </div>
-        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5">
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/20 border border-blue-200 dark:border-blue-800 rounded-xl p-5">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white text-[10px] font-bold">
               AI
             </div>
-            <h4 className="text-sm font-semibold text-blue-900">Content Suggestions for This Week</h4>
+            <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-200">Content Suggestions for This Week</h4>
           </div>
           <div className="space-y-3">
-            <div className="bg-white/70 dark:bg-white/10 rounded-lg p-3 border border-blue-100">
+            <div className="bg-white/70 dark:bg-white/5 rounded-lg p-3 border border-blue-100 dark:border-blue-800">
               <div className="flex items-center gap-2 mb-1">
                 <PlatformBadge platform="x" />
-                <span className="text-xs font-medium text-blue-800">Thread &middot; Tuesday 9:15am</span>
-                <span className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">OPPORTUNITY</span>
+                <span className="text-xs font-medium text-blue-800 dark:text-blue-300">Thread &middot; Tuesday 9:15am</span>
+                <span className="text-[10px] px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded">OPPORTUNITY</span>
               </div>
               <p className="text-xs text-content-primary">
                 How AI is transforming LP reporting — first mover opportunity, rising theme in listening
               </p>
-              <button className="text-xs text-blue-600 font-medium mt-1 hover:text-blue-800">Start Draft →</button>
+              <button className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-1 hover:text-blue-800 dark:hover:text-blue-300">Start Draft →</button>
             </div>
-            <div className="bg-white/70 dark:bg-white/10 rounded-lg p-3 border border-blue-100">
+            <div className="bg-white/70 dark:bg-white/5 rounded-lg p-3 border border-blue-100 dark:border-blue-800">
               <div className="flex items-center gap-2 mb-1">
                 <PlatformBadge platform="reddit" />
-                <span className="text-xs font-medium text-blue-800">Text Post &middot; Thursday 10:00am</span>
-                <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded">REINFORCE</span>
+                <span className="text-xs font-medium text-blue-800 dark:text-blue-300">Text Post &middot; Thursday 10:00am</span>
+                <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded">REINFORCE</span>
               </div>
               <p className="text-xs text-content-primary">
                 Curate founder testimonials about AI sourcing — positive theme rising in r/venturecapital
               </p>
-              <button className="text-xs text-blue-600 font-medium mt-1 hover:text-blue-800">Start Draft →</button>
+              <button className="text-xs text-blue-600 dark:text-blue-400 font-medium mt-1 hover:text-blue-800 dark:hover:text-blue-300">Start Draft →</button>
             </div>
           </div>
         </div>
       </div>
 
+      {/* ── Post Detail Modal ────────────────────────────────── */}
+      {selectedPost && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setSelectedPost(null)}>
+          <div className="bg-surface-card rounded-xl shadow-xl w-[500px] max-w-[90vw] max-h-[80vh] overflow-auto border border-border" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <div className="flex items-center gap-2">
+                <PlatformBadge platform={selectedPost.platform} />
+                <span className={`text-sm font-medium ${accountColorMap[selectedPost.accountId]?.text || 'text-content-primary'}`}>
+                  @{selectedPost.accountUsername || '—'}
+                </span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                  selectedPost.status === 'scheduled'
+                    ? 'bg-blue-500/20 text-blue-400'
+                    : 'bg-green-500/20 text-green-400'
+                }`}>
+                  {selectedPost.status === 'scheduled' ? 'Scheduled' : 'Published'}
+                </span>
+              </div>
+              <button
+                onClick={() => setSelectedPost(null)}
+                className="text-content-muted hover:text-content-primary text-lg leading-none"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-4">
+              <div className="flex items-center gap-2 mb-3 text-xs text-content-muted">
+                <span>{selectedPost.fullDate}</span>
+                <span>&middot;</span>
+                <span>{selectedPost.time}</span>
+                <span>&middot;</span>
+                <span className="capitalize">{selectedPost.type}</span>
+              </div>
+              <p className="text-sm text-content-primary whitespace-pre-wrap leading-relaxed">
+                {selectedPost.fullContent}
+              </p>
+            </div>
+
+            {/* Actions */}
+            {selectedPost.status === 'scheduled' && (
+              <div className="flex items-center gap-2 p-4 border-t border-border">
+                <button
+                  onClick={() => {
+                    setSelectedPost(null);
+                    window.location.href = `/composer?edit=${selectedPost.id}`;
+                  }}
+                  className="px-3 py-1.5 text-xs font-medium bg-surface-secondary text-content-primary rounded-lg hover:bg-surface-tertiary"
+                >
+                  Edit Post
+                </button>
+                <button
+                  onClick={() => {
+                    updateMutation.mutate({
+                      id: selectedPost.id,
+                      data: { status: 'DRAFT', scheduledFor: null },
+                    });
+                    setSelectedPost(null);
+                  }}
+                  className="px-3 py-1.5 text-xs font-medium text-red-400 hover:text-red-300 rounded-lg hover:bg-red-900/10"
+                >
+                  Move to Drafts
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Reschedule Modal ────────────────────────────────── */}
       {rescheduleModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setRescheduleModal(null)}>
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-[380px] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-surface-card rounded-xl shadow-xl p-6 w-[380px] max-w-[90vw] border border-border" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-sm font-semibold text-content-primary mb-1">Reschedule Post</h3>
             <p className="text-xs text-content-secondary mb-4 truncate">
               {rescheduleModal.postLabel}...
             </p>
 
             <div className="space-y-2">
-              {/* Option 1: Keep same time */}
               <button
                 onClick={() => handleReschedule('keep')}
                 disabled={updateMutation.isPending}
                 className="w-full flex items-center gap-3 p-3 rounded-lg border border-border hover:bg-surface-hover transition-colors text-left"
               >
-                <span className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-sm flex-shrink-0">
+                <span className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 text-sm flex-shrink-0">
                   {'\uD83D\uDD50'}
                 </span>
                 <div>
@@ -526,10 +642,9 @@ export default function CalendarPage() {
                 </div>
               </button>
 
-              {/* Option 2: New time */}
               <div className="p-3 rounded-lg border border-border">
                 <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-sm flex-shrink-0">
+                  <span className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-600 dark:text-amber-400 text-sm flex-shrink-0">
                     {'\u23F0'}
                   </span>
                   <div className="flex-1">
@@ -553,13 +668,12 @@ export default function CalendarPage() {
                 </div>
               </div>
 
-              {/* Option 3: Move to Drafts */}
               <button
                 onClick={() => handleReschedule('drafts')}
                 disabled={updateMutation.isPending}
-                className="w-full flex items-center gap-3 p-3 rounded-lg border border-red-200 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors text-left"
+                className="w-full flex items-center gap-3 p-3 rounded-lg border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors text-left"
               >
-                <span className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600 text-sm flex-shrink-0">
+                <span className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 text-sm flex-shrink-0">
                   {'\uD83D\uDCC4'}
                 </span>
                 <div>
