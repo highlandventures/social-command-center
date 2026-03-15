@@ -27,6 +27,13 @@ function transformKOL(k) {
   const initials = k.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   const followers = m?.followers ?? k.baselineFollowers ?? 0;
   const scoreLabels = { A: 'High Value', B: 'Good', C: 'Watch', D: 'Low Value', F: 'Drop' };
+
+  // Prefer live-computed values from activations, fall back to KOLMetrics
+  const activations = k.activationCount ?? m?.activationsCount ?? 0;
+  const sentimentRaw = k.sentimentPositivePct ?? m?.sentimentPositivePct ?? null;
+  const engRate = k.engagementRate ?? m?.engagementRateBrand ?? k.baselineEngRate ?? 0;
+  const impressionsRaw = k.totalImpressions ?? m?.totalImpressionsEst ?? 0;
+
   return {
     ...k,
     handle: `@${k.username}`,
@@ -36,10 +43,10 @@ function transformKOL(k) {
     followersRaw: followers,
     rawType: k.relationshipType || 'ORGANIC_ADVOCATE',
     type: TYPE_LABELS[k.relationshipType] ? TYPE_LABELS[k.relationshipType].replace(/s$/, '') : 'Organic Advocate',
-    activations: m?.activationsCount ?? 0,
-    avgEng: (m?.engagementRateBrand ?? k.baselineEngRate ?? 0).toFixed(1),
-    impressions: (m?.totalImpressionsEst ?? 0) >= 1000 ? `${((m?.totalImpressionsEst ?? 0) / 1000).toFixed(1)}K` : (m?.totalImpressionsEst ?? 0),
-    sentiment: (m?.sentimentPositivePct ?? 0).toFixed(0),
+    activations,
+    avgEng: engRate.toFixed(1),
+    impressions: impressionsRaw >= 1000 ? `${(impressionsRaw / 1000).toFixed(1)}K` : impressionsRaw,
+    sentiment: sentimentRaw !== null ? String(Math.round(sentimentRaw)) : null,
     score: k.aiScore || '—',
     scoreLabel: scoreLabels[k.aiScore] || 'Unscored',
     correlation: m?.followerGrowthCorrelation ?? 0,
@@ -108,6 +115,12 @@ export default function KOLPage() {
   const cohortsQ = trpc.kol.getCohorts.useQuery(undefined, { staleTime: 60_000 });
   const createMutation = trpc.kol.create.useMutation({
     onSuccess: () => { kolsQ.refetch(); setShowAddModal(false); setAddForm(EMPTY_KOL_FORM); },
+  });
+  const updateMutation = trpc.kol.update.useMutation({
+    onSuccess: () => kolsQ.refetch(),
+  });
+  const deactivateMutation = trpc.kol.deactivate.useMutation({
+    onSuccess: () => kolsQ.refetch(),
   });
 
   // ── AI Scorecard ────────────────────────────────────────
@@ -405,7 +418,7 @@ export default function KOLPage() {
                     : '0.0';
 
                   return (
-                    <div key={sectionType} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    <div key={sectionType} className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
                       {/* Section header */}
                       <div className={`px-5 py-3 border-b border-gray-100 flex items-center justify-between`}>
                         <div className="flex items-center gap-3">
@@ -422,10 +435,10 @@ export default function KOLPage() {
                         </div>
                       </div>
                       {/* Section table */}
-                      <table className="w-full text-sm">
+                      <table className="w-full text-sm min-w-[900px]">
                         <thead>
                           <tr className="border-b border-gray-100 bg-gray-50/50">
-                            {['KOL', 'Platform', 'Followers', 'Activations', 'Avg Eng.', 'Impressions', 'Sentiment', 'AI Score'].map((h) => (
+                            {['KOL', 'Platform', 'Followers', 'Activations', 'Avg Eng.', 'Impressions', 'Sentiment', 'Actions'].map((h) => (
                               <th key={h} className="text-left py-2 px-3 text-[10px] font-medium text-gray-400 uppercase tracking-wider">{h}</th>
                             ))}
                           </tr>
@@ -456,10 +469,35 @@ export default function KOLPage() {
                               </td>
                               <td className="py-2.5 px-3 text-gray-700">{kol.impressions}</td>
                               <td className="py-2.5 px-3">
-                                <span className={parseInt(kol.sentiment) > 75 ? 'text-green-600' : 'text-amber-600'}>{kol.sentiment}% pos</span>
+                                {kol.sentiment !== null ? (
+                                  <span className={parseInt(kol.sentiment) > 60 ? 'text-green-600' : parseInt(kol.sentiment) > 30 ? 'text-amber-600' : 'text-red-500'}>{kol.sentiment}% pos</span>
+                                ) : (
+                                  <span className="text-gray-300">—</span>
+                                )}
                               </td>
                               <td className="py-2.5 px-3">
-                                <ScoreBadge score={kol.score} />
+                                <div className="flex items-center gap-1">
+                                  <select
+                                    value={kol.rawType}
+                                    onClick={(e) => e.stopPropagation()}
+                                    onChange={(e) => {
+                                      e.stopPropagation();
+                                      updateMutation.mutate({ kolId: kol.id, relationshipType: e.target.value });
+                                    }}
+                                    className="text-xs border border-gray-200 rounded px-1.5 py-1 bg-white text-gray-700 cursor-pointer hover:border-gray-400"
+                                  >
+                                    {SECTION_ORDER.map((t) => (
+                                      <option key={t} value={t}>{TYPE_LABELS[t]?.replace(/s$/, '')}</option>
+                                    ))}
+                                  </select>
+                                  <button
+                                    onClick={(e) => { e.stopPropagation(); if (confirm(`Remove ${kol.name} from roster?`)) deactivateMutation.mutate({ kolId: kol.id }); }}
+                                    className="w-6 h-6 rounded-full bg-amber-100 text-amber-600 hover:bg-red-100 hover:text-red-600 flex items-center justify-center text-xs font-bold flex-shrink-0"
+                                    title="Remove from roster"
+                                  >
+                                    &minus;
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))}
