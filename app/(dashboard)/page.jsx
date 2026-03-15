@@ -505,7 +505,7 @@ export default function DashboardPage() {
                 >
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-2.5">
-                      <Avatar initials={(acct.username || '??').slice(0, 2).toUpperCase()} platform={acct.platform} size="sm" />
+                      <Avatar initials={(acct.username || '??').slice(0, 2).toUpperCase()} src={acct.avatarUrl} platform={acct.platform} size="sm" />
                       <span className="font-medium text-gray-900">@{acct.username}</span>
                     </div>
                   </td>
