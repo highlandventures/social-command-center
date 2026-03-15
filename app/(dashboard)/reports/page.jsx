@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import {
   AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip,
@@ -8,6 +9,7 @@ import {
 } from 'recharts';
 import { trpc } from '@/lib/trpc-client';
 import { TabButton, SectionTitle, Skeleton, useChartColors } from '@/components/ui';
+import ReportViewer from '@/components/ReportViewer';
 
 export default function ReportsPage() {
   const [subTab, setSubTab] = useState('builder');
@@ -177,86 +179,15 @@ export default function ReportsPage() {
                   <p className="text-sm text-content-muted">Generating your report with AI...</p>
                   <p className="text-xs text-content-faint mt-1">This may take 15-30 seconds</p>
                 </div>
-              ) : generatedReport?.content ? (
-                <div className="max-w-2xl mx-auto">
+              ) : generatedReport ? (
+                <div>
                   <div className="text-center mb-6">
                     <h2 className="text-xl font-bold text-content-primary">{generatedReport.title}</h2>
                     <p className="text-sm text-content-muted mt-1">
                       Generated {new Date(generatedReport.createdAt).toLocaleDateString()} | {reportTypeLabels[generatedReport.reportType] || 'Report'}
                     </p>
                   </div>
-
-                  {/* Executive Summary */}
-                  {(generatedReport.content.executiveSummary || generatedReport.content.summary) && (
-                    <div className="mb-6">
-                      <h3 className="text-sm font-bold text-content-primary uppercase tracking-wider mb-2 border-b border-border pb-1">Executive Summary</h3>
-                      <p className="text-sm text-content-secondary leading-relaxed">
-                        {generatedReport.content.executiveSummary || generatedReport.content.summary}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Key Metrics */}
-                  {generatedReport.content.keyMetrics && (
-                    <div className="mb-6">
-                      <h3 className="text-sm font-bold text-content-primary uppercase tracking-wider mb-2 border-b border-border pb-1">Key Metrics</h3>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {Object.entries(generatedReport.content.keyMetrics).map(([key, val]) => (
-                          <div key={key} className="p-3 bg-surface-page rounded-lg">
-                            <p className="text-xs text-content-muted capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-                            <p className="text-lg font-bold text-content-primary">{typeof val === 'number' ? val.toLocaleString() : val}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Top Content */}
-                  {generatedReport.content.topContent?.length > 0 && (
-                    <div className="mb-6">
-                      <h3 className="text-sm font-bold text-content-primary uppercase tracking-wider mb-2 border-b border-border pb-1">Top Performing Content</h3>
-                      <div className="space-y-2">
-                        {generatedReport.content.topContent.map((item, i) => (
-                          <div key={i} className="p-3 bg-surface-page rounded-lg">
-                            <p className="text-sm font-medium text-content-primary">{item.title || item.postId}</p>
-                            {item.whyItWorked && <p className="text-xs text-content-secondary mt-1">{item.whyItWorked}</p>}
-                            <div className="flex gap-3 mt-1 text-xs text-content-muted">
-                              {item.impressions && <span>{item.impressions.toLocaleString()} imp</span>}
-                              {item.engagementRate && <span>{item.engagementRate}% eng</span>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Recommendations */}
-                  {generatedReport.content.recommendations?.length > 0 && (
-                    <div className="mb-6">
-                      <h3 className="text-sm font-bold text-content-primary uppercase tracking-wider mb-2 border-b border-border pb-1">Recommendations</h3>
-                      <div className="space-y-2">
-                        {generatedReport.content.recommendations.map((rec, i) => (
-                          <div key={i} className="p-3 bg-surface-page rounded-lg flex items-start gap-2">
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium mt-0.5 ${
-                              rec.priority === 'HIGH' ? 'bg-red-50 dark:bg-red-900/30 text-red-600' : rec.priority === 'MEDIUM' ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-600' : 'bg-surface-secondary text-content-secondary'
-                            }`}>{rec.priority}</span>
-                            <div>
-                              <p className="text-sm text-content-primary">{rec.recommendation}</p>
-                              {rec.expectedImpact && <p className="text-xs text-content-muted mt-0.5">Impact: {rec.expectedImpact}</p>}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Outlook */}
-                  {generatedReport.content.outlook && (
-                    <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                      <h3 className="text-sm font-bold text-blue-900 mb-1">Week Ahead Outlook</h3>
-                      <p className="text-sm text-blue-800 dark:text-blue-300">{generatedReport.content.outlook}</p>
-                    </div>
-                  )}
+                  <ReportViewer report={generatedReport} />
                 </div>
               ) : (
                 <div className="text-center py-12 text-content-faint">
@@ -384,7 +315,7 @@ export default function ReportsPage() {
                       <td className="py-3 px-4 text-content-muted">{report.downloads}</td>
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-1">
-                          <button className="text-xs text-blue-600 hover:text-blue-800 font-medium px-2 py-1 rounded hover:bg-surface-hover">View</button>
+                          <Link href={`/reports/${report.id}`} className="text-xs text-blue-600 hover:text-blue-800 font-medium px-2 py-1 rounded hover:bg-surface-hover">View</Link>
                           <button className="text-xs text-content-muted hover:text-content-secondary px-2 py-1 rounded hover:bg-surface-hover">PDF</button>
                           <button className="text-xs text-content-muted hover:text-content-secondary px-2 py-1 rounded hover:bg-surface-hover">Slides</button>
                         </div>
