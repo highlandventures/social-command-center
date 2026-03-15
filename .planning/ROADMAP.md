@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Performance Intel** - Surface our post performance data as actionable insight cards in the composer sidebar
 - [x] **Phase 2: Competitor Intel** - Capture competitor post content and extract strategic patterns via AI analysis
-- [ ] **Phase 3: Audience Questions** - Extract, cluster, and score questions from listening hits as content opportunities
+- [x] **Phase 3: Audience Questions** - Extract, cluster, and score questions from listening hits as content opportunities
 - [ ] **Phase 4: Content Co-Pilot** - Conversational AI agent in the composer with full context on performance, competitors, and audience
 
 ## Phase Details
@@ -61,8 +61,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md -- Backend: AUDIENCE_QUESTION InsightType, batch AI analysis in listening scanner, audienceQuestions tRPC router with clusters and questions procedures
-- [ ] 03-02-PLAN.md -- Frontend: AudienceQuestionsPanel component in composer sidebar with cluster cards, opportunity scores, and expandable questions
+- [x] 03-01-PLAN.md -- Backend: AUDIENCE_QUESTION InsightType, batch AI analysis in listening scanner, audienceQuestions tRPC router with clusters and questions procedures
+- [x] 03-02-PLAN.md -- Frontend: AudienceQuestionsPanel component in composer sidebar with cluster cards, opportunity scores, and expandable questions
 
 ### Phase 4: Content Co-Pilot
 **Goal**: Team can co-create content with an AI agent that has full context on what works, what competitors do, and what the audience needs
@@ -89,5 +89,5 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 |-------|----------------|--------|-----------|
 | 1. Performance Intel | 2/2 | ✅ Complete | 2026-03-14 |
 | 2. Competitor Intel | 2/2 | ✅ Complete | 2026-03-14 |
-| 3. Audience Questions | 1/2 | In Progress|  |
+| 3. Audience Questions | 2/2 | Complete   | 2026-03-15 |
 | 4. Content Co-Pilot | 0/0 | Not started | - |
