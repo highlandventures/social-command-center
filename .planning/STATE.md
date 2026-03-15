@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Report Center
 status: executing
-stopped_at: Completed 06-00-PLAN.md
-last_updated: "2026-03-15T21:12:04Z"
-last_activity: 2026-03-15 -- Completed 06-00 (Wave 0 Test Scaffolds)
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-03-15T21:18:11Z"
+last_activity: 2026-03-15 -- Completed 06-01 (PDF Export)
 progress:
   total_phases: 8
   completed_phases: 4
   total_plans: 15
-  completed_plans: 10
-  percent: 67
+  completed_plans: 11
+  percent: 73
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 ## Current Position
 
 Phase: 6 of 8 (Export & Distribution)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: Executing
-Last activity: 2026-03-15 -- Completed 06-00 (Wave 0 Test Scaffolds)
+Last activity: 2026-03-15 -- Completed 06-01 (PDF Export)
 
-Progress: [███████░░░] 67% (10/15 plans complete)
+Progress: [██████████████░░░░░░] 73% (11/15 plans complete)
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [███████░░░] 67% (10/15 plans complete)
 | Phase 05 P02 | 11min | 2 tasks | 4 files |
 | Phase 05 P03 | 5min | 3 tasks | 4 files |
 | Phase 06 P00 | 1min | 1 task | 2 files |
+| Phase 06 P01 | 6min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,9 @@ Recent decisions affecting current work:
 - [Phase 05]: OldFormatViewer for backward compatibility with pre-enriched reports
 - [Phase 06]: Dynamic imports in test stubs so files can exist before source modules
 - [Phase 06]: Mock @react-pdf/renderer, nodemailer, @react-email/render to avoid heavy deps in tests
+- [Phase 06]: PDF renderer uses .jsx extension for Vitest JSX transform compatibility
+- [Phase 06]: Dedicated App Router GET handler for PDF generation (not tRPC) to avoid binary serialization issues
+- [Phase 06]: Chart images pre-fetched as base64 data URIs for reliable PDF embedding
 
 ### Pending Todos
 
@@ -93,6 +97,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15T21:12:04Z
-Stopped at: Completed 06-00-PLAN.md
+Last session: 2026-03-15T21:18:11Z
+Stopped at: Completed 06-01-PLAN.md
 Resume file: None
