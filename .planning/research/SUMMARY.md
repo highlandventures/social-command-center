@@ -1,17 +1,17 @@
 # Project Research Summary
 
-**Project:** Social Command — Autonomous Listening Intelligence Milestone
-**Domain:** Autonomous social listening query management + structured SWT (Strengths / Weaknesses / Threats) insight categorization (fintech/RWA/blockchain)
-**Researched:** 2026-03-14
+**Project:** Social Command — Report Center v1.1
+**Domain:** Social media report center — scheduled generation, PDF export, server-side charts, email/Slack distribution, conversational AI scoping
+**Researched:** 2026-03-15
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This is an additive milestone on an existing, production Next.js 14 / Prisma 5.14 / tRPC 10 / Vercel platform. The core problem is that query management and insight generation are both manual today: operators hand-curate Boolean queries and receive generic AI theme summaries. The milestone replaces both with autonomous systems — a nightly Query Expansion Engine that detects coverage gaps and generates/retires queries without human initiation, and a daily SWT Insight Engine that categorizes accumulated listening hits into Strengths, Weaknesses, and Threats per brand and competitor. The infrastructure backbone (cron jobs, AI wrapper, performance counters, KV cache) is already in place; the work is building the two new modules on top of it.
+The Report Center milestone transforms an existing manual report builder into a fully automated reporting system with multi-channel delivery. The project is an additive layer on a well-established Next.js 14 / tRPC / Prisma / Vercel stack — no framework changes are needed, only new libraries and components. The recommended approach is to use `@react-pdf/renderer` for PDF generation (avoids Chromium's 50 MB bundle limit on Vercel serverless), QuickChart.io for all server-side chart rendering (Recharts requires a browser DOM and cannot run in API routes), and `@react-email/components` + `nodemailer` for email delivery. Slack delivery uses `@slack/webhook` with Incoming Webhooks and Block Kit — no full Slack App required. This four-library combination covers every new capability with no native dependencies, no microservices, and no infrastructure changes beyond `next.config.js`.
 
-The recommended approach is batch-first, additive-writes-only, and audit-trailed. Every design decision points to the same constraint: autonomous systems that silently modify data or call AI too frequently erode operator trust and blow cost budgets. The expansion engine should run once nightly (not per poll cycle), write only new queries (never delete history), and log every change with a rationale. The SWT engine should batch hits per topic in a 7-day window, run one Claude Haiku 4.5 call per topic per day, and always surface a "based on N hits as of [date]" freshness timestamp. The only required package change is upgrading `@anthropic-ai/sdk` from 0.24.0 to 0.78.0 to access structured outputs.
+The key architectural insight is that QuickChart.io is the linchpin for every visual output channel. Chart images must be rendered server-side as PNG URLs before a report is persisted — the same stored URL then drives the in-app viewer, the PDF embed, the email CID attachment, and the Slack image block. This "chart-as-URL" pattern is the most important design decision in the milestone. The conversational ad hoc report scoping feature (Claude Sonnet multi-turn chat) is a genuine differentiator — no competitor offers a guided AI conversation for report scoping — but it must be built after the core report engine is proven, and conversation history must be persisted in the database (not React state) to survive page refreshes.
 
-The two highest risks are architectural, not technical. First: the existing `refineTopicQueries` mutation already uses a delete-and-recreate pattern that would destroy query performance history if replicated in the autonomous cron — this must be caught at design time, not discovered in production. Second: SWT categories are strategic, not sentiment labels — an implementation that maps POSITIVE → Strength and NEGATIVE → Weakness will ship a feature that looks complete but is analytically worthless. Both risks are fully preventable with clear prompt engineering and a no-delete policy enforced from day one.
+The top risks are Vercel serverless constraints that bite at scale: cron timeouts when generating multiple-brand reports, Vercel cron double-delivery creating duplicate reports, and benchmarking queries loading tens of thousands of raw `PostMetrics` rows into memory. All three are well-understood patterns with clear mitigations that must be designed in from day one. The email delivery surface also has two hard limits — Gmail clips HTML at 102 KB and Outlook's dual rendering engine requires table-based layouts — that must be architected for from the start, not retrofitted.
 
 ---
 
@@ -19,132 +19,207 @@ The two highest risks are architectural, not technical. First: the existing `ref
 
 ### Recommended Stack
 
-The existing stack requires only one change: upgrade `@anthropic-ai/sdk` from 0.24.0 to 0.78.0. This unlocks `client.messages.parse()` and `zodOutputFormat()` for schema-guaranteed structured outputs — critical for SWT where a missing `category` field breaks the UI filter. Everything else (Zod, Prisma, Vercel KV, Vercel Cron) is already installed and correctly versioned.
-
-For model selection: use Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) for scheduled batch SWT analysis (~5x cheaper than Sonnet, adequate quality for categorical classification of aggregated hit data) and keep Claude Sonnet 4.6 for the expansion engine's query generation where higher output quality justifies the cost.
+The milestone adds four net-new libraries to the existing stack. All critical stack decisions are HIGH confidence with verified version requirements. The `serverExternalPackages: ['@react-pdf/renderer']` config change to `next.config.js` is mandatory — without it, the react-pdf yoga-layout dependency inflates the Vercel function bundle past the 50 MB compressed limit and deployment fails silently. QuickChart.io requires no npm install; charts are generated via `fetch()` POST calls returning PNG buffers. All other infrastructure (`@vercel/blob`, `@vercel/kv`, `nodemailer`, Vercel Cron) is already installed and wired.
 
 **Core technologies:**
-- `@anthropic-ai/sdk@^0.78.0`: structured outputs via `zodOutputFormat()` — only package requiring upgrade
-- `claude-haiku-4-5-20251001`: batch SWT analysis — $1/MTok input, 200k context, structured output support confirmed
-- `claude-sonnet-4-6` (existing): query expansion generation — higher quality output for query strings that affect data collection
-- `zod@^3.23.0` (existing): schema definition for `SWTAnalysis` output — already at correct version
-- `Prisma@^5.14.0` (existing): `createMany` with `skipDuplicates: true` for gap record insertion; no version change needed
-- `@vercel/kv` (existing): distributed lock + SWT result cache keyed by `swt:topic:{topicId}` with 24h TTL
+- `@react-pdf/renderer@^4.3.2`: PDF generation — the only viable serverless PDF library; no Chromium, pure Node.js, ~5 MB bundle; requires `serverExternalPackages` config
+- `QuickChart.io` (external API, no npm): Server-side chart images — browser-independent Chart.js renderer; free tier is 100K images/month (well above projected usage of ~50-200 charts/month)
+- `@react-email/components@^1.0.8` + `@react-email/render@^2.0.4`: Email HTML templates — compiles to table-based inline-styled HTML; tested against Gmail, Outlook, Apple Mail
+- `@slack/webhook@^7.0.7`: Slack delivery — official SDK for Incoming Webhooks; Block Kit `blocks` array support; no OAuth or bot token required
 
-See `.planning/research/STACK.md` for full analysis including what NOT to use (LangChain, streaming responses, per-hit classification).
+**Do not use:** Puppeteer (170 MB Chromium binary breaks Vercel deployment), `node-canvas` (native C++ bindings unavailable on serverless), Recharts server-side (requires browser DOM), `html-pdf`/`pdf-creator-node` (PhantomJS/wkhtmltopdf not available on Vercel).
 
 ### Expected Features
 
-This milestone's table stakes are scoped to making autonomous query management and SWT analysis feel complete — not general social listening features (which already exist).
+The primary gap to fill is automation, visual richness, and multi-channel distribution. Reports currently require manual triggering and produce text-only output with no scheduling or delivery. The competitor landscape (Sprout Social, Hootsuite, Brandwatch) sets clear table stakes for scheduled reports and PDF export, but this project has two genuine differentiators: conversational AI report scoping (no competitor offers this) and custom milestone benchmarking against user-defined event dates (not available in any SaaS tool surveyed).
 
-**Must have (table stakes):**
-- Entity glossary (config-driven) — brands, tickers, products, competitor name variants; foundational for everything else; without it, the audit has no source of truth
-- Coverage gap detection cron — daily audit comparing entity list against active queries per topic
-- Auto-generate queries for detected gaps — calls existing `generateQueries` logic; new queries start `active=false` for review
-- Competitor parity check — same audit loop flags competitors below coverage threshold; shares entity glossary
-- Batch SWT analysis cron — 7-day hit window, one Claude call per qualifying topic, structured S/W/T output
-- Per-brand SWT filter in UI — brand/competitor selector scoping the SWT panel; defaults to primary owned brand
+**Must have (table stakes for v1):**
+- Scheduled cadence report generation (weekly + monthly) — every serious tool auto-generates on schedule
+- Comparison period deltas (WoW, MoM) — reports without deltas are meaningless snapshots
+- Topline KPI section in every report — impressions, engagement rate, follower growth, top post
+- AI executive summary (2-4 sentences) — already using Claude; primarily a prompt engineering task
+- Inline charts via QuickChart.io — trend line + content type bar chart minimum per report
+- PDF export — industry standard; every major competitor offers this
+- Email delivery (scheduled + on-demand) — scheduled sends to configured recipient list; manual share from report detail page
+- Slack delivery (scheduled + on-demand) — Block Kit highlight digest to configured channel; manual push from report detail page
 
-**Should have (competitive):**
-- Query health → auto-refinement trigger — wire existing `refineTopicQueries` to a scheduler that fires when health grade drops; add after users trust auto-generated queries
-- Misspelling + variant coverage audit — extend entity glossary to include common misspellings after base glossary proves stable
-- Cost-per-insight tracking — tag SWT cron runs in `APICallLog` with `analysisType: 'SWT'`; add when cost visibility becomes operationally relevant
-- Fintech/crypto-aware query vocabulary — glossary seeded with tickers (`$HASH`, `$YLDS`), RWA terminology, and community slang that generic tools miss
+**Should have (differentiators — v1.x after core pipeline is running):**
+- Conversational ad hoc report scoping — Claude Sonnet multi-turn conversation to scope custom reports; genuine competitive advantage with no analog in any competitor
+- Custom milestone benchmarking — `Milestone` model for user-defined event anchors (product launch, campaign start); not available in any competitor
+- Quarterly and yearly scheduled cadences — additive to weekly/monthly after those are stable
+- Side-by-side benchmark comparison UI — two-column before/after layout with color-coded deltas
 
 **Defer (v2+):**
-- Real-time threat alerting (push/email) — depends on SWT baseline being reliable enough that alerts won't create noise fatigue
-- Predictive trend forecasting — requires 3-6 months of SWT data history; premature for v1
-- Custom framework support (SWOT, PESTLE) — defer until SWT is validated and adopted; multiple frameworks multiply testing surface area
-
-See `.planning/research/FEATURES.md` for full feature dependency graph and competitor analysis vs. Brandwatch/Sprinklr.
+- Real-time dashboard — infrastructure mismatch with Vercel serverless; not suited for WebSocket-style live updates
+- PPTX export — explicitly deferred in PROJECT.md; PDF covers stakeholder presentation use cases
+- Custom report builder UI (drag-and-drop widgets) — conversational scoping is a better first approach
+- White-label client-facing portal — agency SaaS feature; out of scope for internal tool
 
 ### Architecture Approach
 
-The two new systems — Query Expansion Engine and SWT Insight Engine — are additive modules that plug into the existing 3-tier pipeline without modifying it. The expansion engine reads `ListeningQuery` performance counters and writes back new/deactivated queries plus an audit log. The SWT engine reads `ListeningHit` records and writes structured `AIInsight` records cached in Vercel KV. Both are orchestrated by new Vercel Cron entries and expose tRPC triggers for on-demand admin use. The shared logic module pattern (one `lib/*.js` file called by both cron handler and tRPC trigger) is already established in the codebase and should be followed for both new components.
+The architecture is a clean pipeline of independent modules called by two entry points: Vercel Cron (automated) and tRPC mutations (user-triggered). A central `lib/report-engine.js` orchestrator owns data aggregation, Claude AI generation, and chart spec building. It is consumed by both the `generate-scheduled-reports` cron and the `reports.generate` tRPC mutation — following the "shared logic module" pattern already established in the codebase with `lib/listening-scanner.js`. Charts are rendered once at generation time and stored as URLs in `Report.chartUrls[]`; all display surfaces (in-app, PDF, email, Slack) reference these stored URLs rather than re-rendering. See `.planning/research/ARCHITECTURE.md` for detailed data flow diagrams and the recommended build order.
 
 **Major components:**
-1. **Schema additions** — Add `SWT_ANALYSIS` to `InsightType` enum; add `QueryExpansionLog` model; add nullable `competitorId` FK to `ListeningTopic` (required for parity audit correctness)
-2. **Query Expansion Engine** (`lib/query-expander.js` + `app/api/cron/expand-queries/route.js`) — nightly at 01:00 UTC; reads all active topics + competitor keywords; calls Claude Sonnet once (batch all topics); writes new queries, deactivates retirements, logs every change
-3. **SWT Insight Engine** (`lib/swt-analyzer.js` + `app/api/cron/swt-analysis/route.js`) — daily at 03:30 UTC; one Claude Haiku call per qualifying topic (>= 10 hits in 7-day window); writes to `AIInsight` + caches in KV
-4. **tRPC procedures** — `listening.swtInsights` (KV-cached read), `listening.queryExpansionLog` (audit trail), `listening.triggerSwtAnalysis`, `listening.triggerExpansion` (admin on-demand triggers)
-5. **Frontend SWT panel** — Extension of `app/(dashboard)/listening/page.jsx`; three-column Strengths/Weaknesses/Threats view with brand filter and "last analyzed" timestamp
+1. `lib/report-engine.js` — Core orchestrator: data aggregation, benchmark deltas, Claude Haiku generation, chart spec building; called by both cron and tRPC
+2. `lib/chart-renderer.js` — All QuickChart.io communication; renders chart specs as PNG buffers/Blob URLs in parallel via `Promise.all()`
+3. `lib/pdf-exporter.js` — `@react-pdf/renderer` document assembly from structured report content + pre-rendered base64 chart images; outputs PDF buffer to Vercel Blob
+4. `lib/distributor.js` — Email (nodemailer with CID-inline chart PNGs) and Slack (Block Kit with hosted chart URLs); writes `ReportDelivery` audit log rows
+5. `lib/report-chat.js` — Stateless multi-turn Claude Sonnet conversation; chat history persisted in `ReportConversation` DB model; returns structured `ReportSpec` when complete
+6. `lib/report-scheduler.js` — Queries due `ReportSchedule` records per cron invocation; single weekly cron covers all cadences via `nextRunAt` field checking
 
-**Build order (dependency-driven):** Schema → SWT Analyzer → tRPC reads → Frontend SWT panel → Query Expansion Engine → Expansion log UI.
-
-See `.planning/research/ARCHITECTURE.md` for full data flow diagrams, cost projections (~$0.30/day at current scale), and scaling considerations.
+**New schema additions:**
+- `ReportSchedule` — cadence config (WEEKLY/MONTHLY/QUARTERLY/YEARLY), auto-distribution settings, email recipients, Slack webhook
+- `ReportDelivery` — per-send audit log (channel, status, sentAt, error message)
+- Extended `Report` — adds `chartUrls`, `pdfUrl`, `coveragePeriod`, `benchmarkPeriod`, `scheduleId`
+- `ReportConversation` — chat history persistence for ad hoc scoping conversations (v1.x)
+- `Milestone` — user-defined event anchors for custom benchmarking (v1.x)
 
 ### Critical Pitfalls
 
-1. **Autonomous expansion wiping query performance history** — The existing `refineTopicQueries` mutation already uses a delete-and-recreate pattern. Never call `deleteMany` from an autonomous process. Implement query reconciliation: match by `(platform, queryString)` fingerprint, preserve counters on matched rows, create genuinely new rows, set `active=false` on retirements. Verify by checking `totalHits` is non-zero on kept queries after a full expansion cycle.
+The pitfalls research (HIGH confidence, verified against official docs and direct codebase review) identifies 11 pitfalls. The top 5 by implementation risk:
 
-2. **SWT categories becoming sentiment rebranding** — Do not map POSITIVE → Strength, NEGATIVE → Weakness. Feed raw content snippets to Claude with explicit category definitions (Strength = perceived differentiation; Weakness = addressable gap; Threat = external risk signal). Validate by checking that a competitor-positive hit appears in Threats, not Strengths. If SWT distribution mirrors sentiment distribution, the prompt is wrong.
+1. **Cron timeout with multi-brand scheduled generation** — Set `export const maxDuration = 800` in every scheduled-report cron route from day one; split generation and delivery into separate phases using `GENERATING` → `READY` status; never generate all brands in a single sequential chain.
 
-3. **Query proliferation without a ceiling** — AI errs toward completeness when asked to find gaps. Enforce a hard limit (8–12 active queries per topic per platform). New autonomous queries start `active=false` staging. Rate-limit expansion to once per topic per week using a KV timestamp check.
+2. **Duplicate reports from Vercel cron double-delivery** — Vercel explicitly documents that cron events may be delivered more than once. Implement both a KV lock (`report-gen:{cadence}:lock` with 10-minute TTL, using existing `lib/redis.js`) AND a DB deduplication check (`findFirst` by `reportType + dataRangeStart`) before creating any report record. Both mechanisms are required.
 
-4. **Vercel cron timeout on full expansion run** — At 15+ topics with Claude calls, sequential processing easily exceeds the 300-second Pro limit. Architect batching from day one: process 3–5 topics per invocation using KV to track progress, or use per-brand cron routes staggered in `vercel.json`. Set `export const maxDuration = 300` in all new cron route handlers.
+3. **QuickChart GET URL failures for complex charts in email** — Never embed raw QuickChart GET URLs in email HTML. Complex multi-series charts exceed 2,000-character URL limits and break silently in email clients. Use POST endpoint server-side to receive PNG buffers, upload to Vercel Blob, and use blob URLs in CID-attached email images.
 
-5. **Competitor parity audit using wrong source of truth** — `Competitor` and `ListeningTopic` have no FK link; the audit cannot reliably reconcile them by name-matching. Add `competitorId String?` FK to `ListeningTopic` as part of the schema migration, backfill existing rows, and use a LEFT JOIN for the parity check before building the audit cron.
+4. **Benchmarking queries loading full PostMetrics table into memory** — At 15-minute polling across 3 brands, `PostMetrics` accumulates ~10,000+ rows per month. A quarterly benchmark query without `take` limits causes Vercel function OOM. Add `take: 5000` safety cap to all existing benchmarks queries immediately; implement a nightly `aggregate-benchmarks` cron before adding cross-period delta comparisons.
 
-6. **Niche term hallucination in autonomous queries** — Post-2024 RWA/fintech terms are underrepresented in Claude's training data. Build a `KNOWN_TERMS` canonical glossary from human curation (not AI generation) and inject it into every expansion prompt. Require human review for any query introducing an unverified term.
-
-See `.planning/research/PITFALLS.md` for full pitfall analysis, technical debt patterns, integration gotchas, and a "looks done but isn't" checklist.
+5. **AI context token bloat from raw Prisma rows** — Monthly/quarterly reports silently multiply Claude input tokens. Always pre-aggregate before building the Claude context (top 5 posts, aggregated sentiment, last 50 listening hits by heuristic score). Add a `JSON.stringify(context).length > 50_000` guard that triggers automatic payload reduction.
 
 ---
 
 ## Implications for Roadmap
 
-Based on combined research, the architecture's prescribed build order and the pitfall dependency mapping align on a clear 5-phase structure.
+The research resolves all major technical decisions and reveals a clear dependency chain. The recommended phase structure follows the build order identified in ARCHITECTURE.md, with pitfall prevention baked into the phase structure.
 
-### Phase 1: Schema Foundation + Entity Glossary
-**Rationale:** Everything in this milestone depends on two things that don't exist yet: a correct data schema (including the `competitorId` FK that makes the parity audit reliable) and a canonical entity glossary (which makes both coverage gap detection and SWT attribution possible). Without these, every subsequent phase is building on sand.
-**Delivers:** Prisma migration with `SWT_ANALYSIS` enum value, `QueryExpansionLog` model, and `competitorId` FK on `ListeningTopic`; entity glossary seeded with Figure brands, tickers, competitor names, and key variants
-**Addresses:** Entity glossary (P1 feature), schema readiness for all downstream work
-**Avoids:** Competitor FK pitfall (Pitfall 6), niche term hallucination (Pitfall 7 — glossary is the prevention)
+### Phase 1: Foundation — Schema + Chart Infrastructure
 
-### Phase 2: SWT Insight Engine (Batch Analysis + Cron)
-**Rationale:** SWT is the highest-value deliverable and has zero dependencies on the expansion engine. Building it first means the milestone delivers concrete user value even if query expansion requires more tuning. The SWT prompt engineering is also the most design-sensitive work — it needs iteration time before the UI is built on top of it.
-**Delivers:** `lib/swt-analyzer.js` module, `app/api/cron/swt-analysis/route.js`, Claude Haiku structured output integration, `AIInsight` records with `SWT_ANALYSIS` type, KV cache layer
-**Uses:** `@anthropic-ai/sdk@^0.78.0` upgrade, `zodOutputFormat()` for schema-guaranteed JSON, Claude Haiku 4.5 for cost efficiency
-**Implements:** SWT Insight Engine (Architecture Component 2)
-**Avoids:** SWT = sentiment rebranding (Pitfall 3), per-hit classification anti-pattern, SWT stored only in KV (Pitfall 5)
+**Rationale:** QuickChart.io is the linchpin for every downstream visual feature. PDF, email, and Slack all depend on server-renderable chart URLs. Schema migrations unblock all other work. These must be built and validated first before any higher-level feature can be verified end-to-end.
 
-### Phase 3: SWT UI + tRPC Read Layer
-**Rationale:** Once the analyzer cron can write real `AIInsight` records, the UI can be built against actual data. The tRPC procedures are the interface contract between backend and frontend and should be finalized before the component is implemented. The "last analyzed" timestamp and "Analyze now" admin trigger are required in this phase (not deferred) to address the cache staleness pitfall.
-**Delivers:** `listening.swtInsights` tRPC procedure with KV cache, `listening.triggerSwtAnalysis` admin trigger, SWT panel in `app/(dashboard)/listening/page.jsx` with brand filter and freshness timestamp
-**Implements:** tRPC procedure additions (Architecture Component 4), Frontend SWT panel (Architecture Component 5)
-**Avoids:** SWT cache staleness UX pitfall, default-to-all-brands anti-pattern (default to primary owned brand)
+**Delivers:** Prisma schema additions (`ReportSchedule`, `ReportDelivery`, `Report` extensions), `lib/chart-renderer.js` with QuickChart.io POST integration and Vercel Blob upload, and comparison period delta calculation utilities. A standalone test confirming chart PNG generation from QuickChart in a Vercel Preview deployment.
 
-### Phase 4: Query Expansion Engine (Cron + Audit Log)
-**Rationale:** Building expansion after SWT is working means the milestone has shipped demonstrable value before touching the higher-risk autonomous write path. The expansion engine modifies `ListeningQuery` records, which directly affects data collection — this deserves its own phase with targeted testing. The batching architecture must be designed upfront (not retrofitted) to avoid the cron timeout pitfall.
-**Delivers:** `lib/query-expander.js` module, `app/api/cron/expand-queries/route.js`, query reconciliation logic (no delete-and-recreate), per-topic expansion limits, `active=false` staging for new queries, `QueryExpansionLog` writes
-**Uses:** Existing `generateQueries`/`refineTopicQueries` logic wired into autonomous context; `generatedBy: 'auto-expand'` field already supported on `ListeningQuery`
-**Implements:** Query Expansion Engine (Architecture Component 1)
-**Avoids:** Performance history deletion (Pitfall 1 — highest severity), query proliferation (Pitfall 2), Vercel timeout (Pitfall 4)
+**Addresses:** "Inline charts in reports" (table stakes), "Comparison period deltas" (required for reports to be meaningful)
 
-### Phase 5: Coverage Gap Detection + Competitor Parity Audit
-**Rationale:** This phase closes the automation loop: the expansion engine generates queries, but something must detect which topics need expansion and which competitors have insufficient coverage. This depends on Phase 4's expansion engine being stable and the Phase 1 `competitorId` FK being correctly backfilled. Running both owned-brand and competitor parity in a single audit loop avoids duplicated cron overhead.
-**Delivers:** Coverage gap detection algorithm (compare entity glossary against active queries per platform), competitor parity check (LEFT JOIN on `competitorId`), expansion log UI (timeline of autonomous changes with rationale), `listening.queryExpansionLog` tRPC procedure
-**Addresses:** Coverage gap detection (P1), competitor parity check (P1), query expansion log UI
-**Avoids:** Parity audit using string-matching instead of FK join (Pitfall 6)
+**Avoids:** QuickChart GET URL pitfall — establish POST-first pattern as the standard from day one. Benchmarking query OOM — add `take: 5000` safety caps to existing `getBenchmarks` queries as part of the migration step.
+
+**Research flag:** Skip — chart rendering is well-documented, QuickChart POST API is straightforward, no additional research needed.
+
+---
+
+### Phase 2: Report Generation Engine
+
+**Rationale:** With chart infrastructure ready and schema in place, the core report engine can be built and tested via the existing `reports.generate` tRPC mutation before adding scheduling complexity. This validates the full content pipeline (data aggregation → benchmark deltas → Claude Haiku → chart specs → `Report` record) without cron infrastructure.
+
+**Delivers:** `lib/report-engine.js` orchestrator, enriched report content schema (KPI blocks, benchmark deltas, executive summary), updated `reports.generate` tRPC mutation producing reports with inline chart URLs, and a `ReportViewer` frontend component showing rich reports with embedded charts.
+
+**Uses:** `lib/chart-renderer.js` (Phase 1), existing `generateInsight()` Claude Haiku wrapper, existing `PostMetrics`/`AccountMetrics`/`CompetitorMetrics` queries
+
+**Avoids:** AI context token bloat — establish pre-aggregation contract (summarized context objects, not raw rows) as the standard pattern before writing any new report generation functions.
+
+**Research flag:** Skip — established patterns; Claude integration and Prisma queries are already working in the codebase.
+
+---
+
+### Phase 3: PDF Export
+
+**Rationale:** PDF export is table stakes (every competitor offers it) and is fully self-contained once the report engine produces rich content with chart URLs. Build before distribution to validate the full report artifact before routing it through email and Slack channels.
+
+**Delivers:** `lib/pdf-exporter.js` using `@react-pdf/renderer`, `app/api/reports/export-pdf/route.js` with `maxDuration = 60`, PDF upload to Vercel Blob, download URL returned to client, and "Export PDF" button wired into the report detail UI.
+
+**Uses:** `@react-pdf/renderer@^4.3.2` (new install), `@vercel/blob` (already installed), chart base64 URIs from chart-renderer
+
+**Avoids:** Puppeteer bundle size failure — react-pdf is the correct choice; add `serverExternalPackages: ['@react-pdf/renderer']` to `next.config.js` before installing the package. Validate font loading in a Vercel Preview deployment before building the full PDF template.
+
+**Research flag:** Skip — `@react-pdf/renderer` is well-documented with confirmed Next.js 14 compatibility. The `serverExternalPackages` config requirement is clearly documented in official react-pdf and Next.js docs.
+
+---
+
+### Phase 4: Email Distribution
+
+**Rationale:** Email delivery (both scheduled and on-demand) is the primary distribution channel. Must be built before Slack to validate the distributor architecture. Email has the most rendering constraints (Outlook compatibility, Gmail 102 KB limit) that must be solved before anything else is wired to the distribution engine.
+
+**Delivers:** `lib/distributor.js` (email path), `ReportEmailTemplate` using `@react-email/components`, CID-inline chart attachment pattern via nodemailer, `reports.distribute` tRPC mutation (email channel), on-demand "Share via Email" UI on report detail page, and `ReportDelivery` audit log writes.
+
+**Uses:** `@react-email/components@^1.0.8`, `@react-email/render@^2.0.4` (new installs), `nodemailer@^7.0.13` (already installed)
+
+**Avoids:** Outlook rendering breakage — React Email produces table-based inline-styled HTML; test against both Outlook Word engine and new Chromium Outlook before shipping. Gmail 102 KB clip — design email as "KPI summary + View Full Report CTA" from day one; add `Buffer.byteLength(html) < 81920` assertion. QuickChart GET URL in email — use CID-attached PNG buffers, not direct chart URLs.
+
+**Research flag:** Consider a focused sub-research phase on email template design and Litmus/cross-client compatibility testing strategy, particularly for the Outlook dual rendering engine (Word + Chromium coexistence through 2027-2028). The technical approach is clear; the template layout decisions warrant validation.
+
+---
+
+### Phase 5: Slack Distribution
+
+**Rationale:** Slack delivery follows the same distributor pattern as email. Build after email is validated so the `lib/distributor.js` architecture is proven. Slack has different constraints (publicly accessible URLs required for `image` blocks; 1 MB payload limit; 3,000 char text truncation) that require separate design decisions.
+
+**Delivers:** Slack delivery path in `lib/distributor.js`, Block Kit payload builder (highlight digest format: header + 3 KPIs + 1 hero chart + 2-sentence summary + "View Full Report" button), `@slack/webhook` integration, on-demand "Share to Slack" UI, and `ReportDelivery` log entries for Slack sends.
+
+**Uses:** `@slack/webhook@^7.0.7` (new install), publicly readable Vercel Blob chart URLs (stored with `access: 'public'` in Phase 1)
+
+**Avoids:** Slack 1 MB payload rejection — design as highlight digest, not full report; validate `JSON.stringify(blocks).length < 900_000`. Text truncation — cap executive summary at 2,900 chars before including in Block Kit section block.
+
+**Research flag:** Skip — Block Kit is thoroughly documented; the digest-not-full-report design decision is clear from pitfalls research.
+
+---
+
+### Phase 6: Scheduled Report Generation
+
+**Rationale:** Scheduling is built last among the core v1 features because it is autonomous — bugs in early iterations affect all brands simultaneously and are harder to debug than manually triggered failures. The report engine, distribution, PDF, and delivery logging must all be working correctly before the scheduler fans out to multiple brands automatically.
+
+**Delivers:** `lib/report-scheduler.js`, `app/api/cron/generate-scheduled-reports/route.js` with `maxDuration = 800`, `ReportSchedule` CRUD tRPC procedures, `ReportScheduleManager` UI component, and a single new `vercel.json` cron entry (Monday 7 AM UTC, covering all cadences via `nextRunAt` field checking).
+
+**Avoids:** Cron timeout — phased generation architecture + `maxDuration = 800` from day one. Duplicate reports from double-delivery — KV lock + DB deduplication check; both required before first cron ships. Per-cadence cron proliferation — one cron route checks all due schedules.
+
+**Research flag:** Skip — the scheduling pattern is clear; the single-cron-checks-all-schedules approach follows existing codebase patterns (`vercel.json` already has 10 cron entries using this convention).
+
+---
+
+### Phase 7: Conversational Ad Hoc Report Scoping (v1.x)
+
+**Rationale:** Builds on a proven report engine. This is the highest-complexity feature and the biggest differentiator — no competitor offers a conversational scoping flow. Deferring to v1.x (after the core pipeline is in production use) ensures report generation output quality is validated before adding a conversational frontend to it. Iteration on prompt engineering is also more effective with real usage data.
+
+**Delivers:** `lib/report-chat.js`, `reports.chat` tRPC procedure (stateless; full conversation history sent each turn), `ReportConversation` DB model for durable history persistence, `ReportChatInterface` UI component in the Builder tab, Claude Sonnet multi-turn conversation producing a confirmed `ReportSpec` that feeds into `reports.generate`.
+
+**Avoids:** Conversation state loss on refresh — DB persistence is mandatory; React state is not durable across page loads. Context window overflow — truncate to last 20 turns before building the Claude `messages` array.
+
+**Research flag:** The conversation mechanics pattern is clear. A focused sub-research phase on prompt engineering for extracting structured `ReportSpec` parameters from open-ended user input is recommended before implementation.
+
+---
+
+### Phase 8: Custom Milestone Benchmarking (v1.x)
+
+**Rationale:** The `Milestone` model is a new schema entity that unlocks event-anchored benchmarking — a genuine competitive differentiator with no analog in any surveyed competitor tool. Depends on comparison period delta calculation (Phase 1) being robust. Build after conversational scoping is working, since milestones integrate naturally into the ad hoc report conversation ("benchmark against our product launch in February").
+
+**Delivers:** `Milestone` Prisma model (name, date, description, createdBy), milestone creation/management UI, milestone-anchored benchmark comparison in report generation, and side-by-side before/after comparison UI with color-coded deltas.
+
+**Avoids:** Benchmarking query OOM — pre-aggregation from Phase 1 (`BenchmarkSnapshot` or KV cache) handles this; the milestone comparison query reads from aggregated data, not raw `PostMetrics` rows.
+
+**Research flag:** Skip — the Milestone model is a straightforward schema addition; the benchmarking query patterns are established in earlier phases.
+
+---
 
 ### Phase Ordering Rationale
 
-- Schema first because `competitorId` FK and `QueryExpansionLog` model are required by Phase 4 and 5 respectively — building either without the schema is impossible
-- SWT before expansion because SWT has no write-side risk (only reads `ListeningHit`, writes to `AIInsight`), delivers immediate user value, and allows the AI integration pattern to be validated before the more sensitive query-modifying work begins
-- UI after backend because the SWT panel needs real data to be useful; stubbing with mock data is possible but wastes iteration cycles
-- Expansion before parity because gap detection is meaningless without the expansion engine to act on detected gaps — the audit outputs feed directly into expansion triggers
-- Expansion log UI last because it is purely cosmetic; the system works correctly without it and it can be added incrementally
+- **Dependencies drive the order:** QuickChart.io integration (Phase 1) must exist before any visual output (Phases 2-6). The report engine (Phase 2) must produce complete reports before distribution channels can be validated (Phases 3-5). Distribution channels must work before the scheduler fans them out autonomously (Phase 6).
+- **Risk isolation:** PDF and email are built before scheduling to ensure bugs are caught in manual, user-triggered flows before they propagate to autonomous cron runs affecting all brands.
+- **Differentiators are late-stage:** Conversational scoping (Phase 7) and milestone benchmarking (Phase 8) are built after the core pipeline is in production use, so both the report generation quality and the prompt engineering can be refined with real usage data.
+- **Pitfall-driven phase boundaries:** The benchmarking query safety cap (Phase 1) and the email content architecture decision (Phase 4) are explicitly made early in their respective phases — before templates or queries are built — to prevent expensive retrofitting.
 
 ### Research Flags
 
-Phases likely needing deeper research during planning:
-- **Phase 2 (SWT prompt engineering):** The prompt design for SWT categories is the most critical correctness risk in the milestone. The distinction between Strength/Weakness/Threat requires precise definitions that may need iteration against real hit data before they stabilize. Plan for a prompt validation sub-phase with a sample of actual production hits.
-- **Phase 4 (Expansion batching architecture):** The specific strategy for batching topics across Vercel invocations (per-brand cron routes vs. KV-tracked batch index) should be decided at design time, not during implementation. Both approaches are viable; the choice affects the `vercel.json` structure and the cron route file organization.
+Phases needing deeper research during planning:
+- **Phase 4 (Email Distribution):** Template design and cross-client compatibility testing strategy. The Outlook dual-rendering engine (Word + new Chromium Outlook, coexisting through 2027-2028) may require specific React Email component choices. Recommend a focused research sub-phase on the specific email template structure and Litmus testing strategy before building `ReportEmailTemplate`.
+- **Phase 7 (Conversational Scoping):** Prompt engineering for structured parameter extraction (`ReportSpec` from open-ended conversation). Recommend a prompt validation sub-phase using a sample of real production report requests.
 
-Phases with standard patterns (skip research-phase):
-- **Phase 1 (Schema migration):** Prisma migrations are well-understood; the specific additions (`SWT_ANALYSIS` enum, `QueryExpansionLog` model, nullable FK) are straightforward. No research needed.
-- **Phase 3 (SWT UI):** Extends an existing page with an established component pattern (multi-select filter already present). Standard React Query + tRPC pattern.
-- **Phase 5 (Gap detection algorithm):** The core algorithm (compare entity list against active query set, LEFT JOIN for competitor gaps) is pure database logic with no novel patterns.
+Phases with standard, well-documented patterns (skip research-phase):
+- **Phase 1 (Foundation):** QuickChart POST API and Prisma migrations are thoroughly documented; patterns are straightforward.
+- **Phase 2 (Report Engine):** Established patterns; existing Claude integration and Prisma queries are the blueprint.
+- **Phase 3 (PDF Export):** react-pdf is well-documented with confirmed Next.js 14.2+ compatibility and clear serverless workarounds.
+- **Phase 5 (Slack):** Block Kit is thoroughly documented; the digest design decision is clear from pitfalls research.
+- **Phase 6 (Scheduling):** Cron patterns follow existing codebase conventions (`vercel.json` already has 10 entries using the same model).
+- **Phase 8 (Milestone Benchmarking):** Straightforward schema and query work building on patterns established in earlier phases.
 
 ---
 
@@ -152,41 +227,51 @@ Phases with standard patterns (skip research-phase):
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Single package upgrade (`@anthropic-ai/sdk`); everything else confirmed installed and version-compatible. Anthropic SDK 0.78.0 structured output API verified against official docs. |
-| Features | HIGH | Features derived from direct codebase review of existing capabilities + validated enterprise tool comparisons (Brandwatch, Sprinklr). Table stakes are clearly bounded by what already exists vs. what doesn't. |
-| Architecture | HIGH | Architecture derived directly from codebase analysis — existing patterns (`lib/listening-scanner.js`, `weekly-ai-insights`, `lib/redis.js`) are the blueprint. Component boundaries are concrete, not speculative. |
-| Pitfalls | HIGH | Pitfalls sourced from direct code review (the delete-and-recreate bug already exists in `refineTopicQueries`; this is not hypothetical). Vercel timeout behavior verified against official docs. LLM categorization risks verified against structured output reliability research. |
+| Stack | HIGH | All library versions verified via npm registry and official docs; Vercel serverless constraints confirmed against official docs and community-validated GitHub issues; version compatibility matrix confirmed for Next.js 14.2+ |
+| Features | HIGH | Verified against Sprout Social, Hootsuite, Brandwatch, and Buffer official support docs; feature prioritization based on multiple 2025-2026 sources; competitor analysis covers the five key feature dimensions |
+| Architecture | HIGH | Derived from direct codebase analysis + official service docs; build order is logically derived from the dependency graph; component patterns match established codebase conventions (`lib/listening-scanner.js` as the precedent) |
+| Pitfalls | HIGH | 11 pitfalls verified against official docs (Vercel, Slack, QuickChart, Gmail, Outlook) and community-validated GitHub issues; cron double-delivery and PDF bundle size failures are explicitly documented by Vercel and react-pdf maintainers respectively |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **SWT prompt quality:** The research defines what SWT categories should mean and how to avoid mapping them to sentiment, but the specific prompt wording and few-shot examples need to be written and validated against real production hits during implementation. No amount of research pre-validates a prompt — it must be tested empirically.
-- **Entity glossary content:** The glossary is architecturally straightforward (config file or DB table) but its contents (all brand names, product names, tickers, competitor terms, misspellings) require human curation from the Figure team. This is a content dependency, not a technical one, but it is blocking for Phase 1.
-- **Expansion staging approval workflow:** The research recommends that autonomous queries start `active=false` and activate after a quality gate. Whether that gate is "human reviews in a UI" or "automated quality check after N poll cycles" is a product decision not resolved in research. Needs clarification from stakeholders before Phase 4 is specced.
-- **Haiku 4.5 SWT output quality:** The model selection research recommends Haiku for cost reasons but notes that if categorical output quality proves insufficient in staging, upgrading to Sonnet is the fallback. This is a test-and-decide gap, not a research gap — verify Haiku quality on real hits in Phase 2 before committing to it for production.
+- **QuickChart.io free tier rate limits:** Two conflicting figures appear in QuickChart docs (60 vs 120 req/min). At projected usage (~50-200 charts/month) this is not a concern for v1, but confirm the actual limit before building batch chart generation for reports with many concurrent schedules. Validate in a Vercel staging deployment.
+- **SMTP transport configuration:** `nodemailer` is installed but no SMTP credentials are configured. Email delivery requires a decision on the SMTP provider (SendGrid SMTP, AWS SES, or Gmail OAuth2). This is a configuration/infrastructure decision, not a code decision, but it must be resolved before Phase 4 can be tested end-to-end.
+- **Slack Webhook URL availability:** `SLACK_WEBHOOK_URL` env var is referenced in architecture docs but may not be configured. Confirm with the team that a Slack workspace Incoming Webhook URL exists before starting Phase 5.
+- **Outlook testing access:** Pitfalls research flags Outlook (Word engine) as a critical compatibility concern for email templates. Access to a real Outlook inbox (not just Gmail) is needed to validate email rendering before shipping Phase 4.
+- **BenchmarkSnapshot vs KV cache:** ARCHITECTURE.md suggests either a `BenchmarkSnapshot` Prisma model or Vercel KV for pre-aggregated benchmarks. Recommend the DB model: it is more queryable, more durable, and avoids KV TTL expiration risks. Make this decision explicit in Phase 1 planning.
 
 ---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [Anthropic Structured Outputs docs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) — `output_config.format`, `zodOutputFormat` API shape, supported models
-- [Anthropic Models Overview](https://platform.claude.com/docs/en/about-claude/models/overview) — model IDs, pricing per MTok, Haiku 4.5 structured output support
-- [Anthropic SDK npm](https://www.npmjs.com/package/@anthropic-ai/sdk) — current version 0.78.0 confirmed
-- [Vercel Cron Jobs docs](https://vercel.com/docs/cron-jobs) — invocation behavior, plan limits, function duration
-- [Prisma createMany docs](https://www.prisma.io/docs/orm/prisma-client/queries/crud) — `skipDuplicates` PostgreSQL support
-- Codebase direct review — `lib/listening-scanner.js`, `lib/routers/listening.js`, `lib/ai.js`, `prisma/schema.prisma`, `app/api/cron/weekly-ai-insights/route.js`, `vercel.json`
+- [react-pdf.org compatibility docs](https://react-pdf.org/compatibility) — Next.js 14.1.1+ requirement, `serverExternalPackages` workaround, React 18/19 support
+- [npm: @react-pdf/renderer v4.3.2](https://www.npmjs.com/package/@react-pdf/renderer) — current version confirmed, pure Node.js, no Chromium
+- [QuickChart.io documentation](https://quickchart.io/documentation/) — POST API, Chart.js v4, PNG output, short URLs
+- [npm: @react-email/components v1.0.8](https://www.npmjs.com/package/@react-email/components) — email-client compatibility, React 18/19 support
+- [React Email docs: Nodemailer integration](https://react.email/docs/integrations/nodemailer) — `render()` + `transporter.sendMail()` pattern
+- [npm: @slack/webhook v7.0.7](https://www.npmjs.com/package/@slack/webhook) — Block Kit support, Node.js 18+ requirement (published 13 days ago)
+- [Slack Block Kit docs](https://docs.slack.dev/block-kit/) — `image` block type, fallback `text` requirement, Block Kit Builder
+- [Vercel Function Duration docs](https://vercel.com/docs/functions/configuring-functions/duration) — Fluid Compute 800s max on Pro, `maxDuration` syntax
+- [Vercel serverless size limit KB](https://vercel.com/kb/guide/troubleshooting-function-250mb-limit) — 250 MB unzipped / 50 MB compressed limit confirmed
+- [Vercel Cron Jobs docs](https://vercel.com/docs/cron-jobs) — duplicate delivery explicitly documented, production-only execution
+- [Nodemailer Embedded Images](https://nodemailer.com/message/embedded-images/) — CID attachment pattern
+- Codebase analysis: `package.json`, `vercel.json`, `prisma/schema.prisma`, `lib/routers/reports.js`, `lib/ai/reports.js`, `lib/redis.js`, `app/api/cron/` — confirmed installed versions, 10 existing cron routes, established patterns
 
 ### Secondary (MEDIUM confidence)
-- [G2: Best Enterprise Social Media Listening Tools 2026](https://www.g2.com/categories/social-media-listening-tools/enterprise) — competitive feature landscape
-- [The Social Intelligence Lab: State of Social Listening 2025](https://www.thesilab.com/state-of-social-listening) — AI overtrust patterns, query quality practitioner findings
-- [Upstash: Get Rid of Vercel Timeouts](https://upstash.com/blog/vercel-cost-workflow) — batching strategies for long-running serverless jobs
-- [Cognitive Today: Structured Output AI Reliability](https://www.cognitivetoday.com/2025/10/structured-output-ai-reliability/) — JSON schema enforcement, hallucination in structured outputs
+- Sprout Social, Hootsuite, Brandwatch, Buffer official support docs — competitor feature analysis; HIGH confidence on features documented in official docs
+- [QuickChart rate limits community](https://community.quickchart.io/t/rate-limits-for-quickchart-free-plan/722) — free tier is 60 req/min (conflicting figure of 120 req/min in a separate doc; needs staging validation)
+- [Gmail 102 KB clipping guide](https://www.maildesigner365.com/common-email-rendering-issues-and-fixes/) — Gmail and Yahoo clip thresholds
+- [Outlook dual rendering engine 2025](https://mailsoftly.com/blog/why-does-my-outlook-look-different/) — Word engine vs new Chromium Outlook coexistence through 2027-2028
+- react-pdf font loading GitHub issues (#409, #2675, #2460) — relative path failures on Vercel, variable font incompatibility, silent failures
 
-### Tertiary (LOW confidence)
-- [LLMs in Computational Social Science — Springer](https://link.springer.com/article/10.1007/s13278-025-01428-9) — LLM annotation reliability limits (context for SWT categorization quality expectations)
+### Tertiary (LOW confidence / needs validation)
+- QuickChart free tier image count (100K/month vs 60 req/min) — two different limit types from different docs; validate before building batch chart generation at scale
+- SMTP provider selection — not researched; team infrastructure decision required
 
 ---
-*Research completed: 2026-03-14*
+
+*Research completed: 2026-03-15*
 *Ready for roadmap: yes*

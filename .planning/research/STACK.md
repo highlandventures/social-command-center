@@ -1,22 +1,24 @@
 # Stack Research
 
-**Domain:** Autonomous social listening query management + structured SWT insight categorization
-**Researched:** 2026-03-14
-**Confidence:** HIGH (Anthropic SDK: HIGH via official docs; Prisma patterns: HIGH; Vercel cron: HIGH; structured outputs: HIGH via official docs)
+**Domain:** Report Center — scheduled generation, PDF export, server-side chart rendering, email HTML templates, Slack Block Kit delivery
+**Researched:** 2026-03-15
+**Confidence:** HIGH (all critical claims verified via official docs, npm registry, or Vercel docs)
 
 ---
 
 ## Context
 
-This is an additive milestone on an existing Next.js 14 / Prisma 5.14 / tRPC 10 / Vercel platform. No framework changes are needed. The research question is: **what specific libraries, APIs, and patterns are needed for the two new capabilities** — autonomous query coverage auditing and SWT-categorized AI insights — that do not yet exist in the codebase?
+This is an additive milestone on an existing Next.js 14 / Prisma 5.14 / tRPC 10 / Vercel platform. The existing stack requires no framework changes. The research question is: **what specific libraries, patterns, and constraints govern the five new capabilities** — scheduled report generation, PDF export, server-side chart rendering, email HTML templates, and Slack Block Kit delivery.
 
-The existing system already has:
-- `@anthropic-ai/sdk@^0.24.0` (needs upgrade — see below)
-- `generateInsight()` in `lib/ai.js` as the central AI call wrapper
-- `lib/ai/sentiment.js` with `extractThemes()` that produces generic summaries
-- `AIInsight` model in Prisma with `InsightType` enum
-- Cron infrastructure via Vercel (cron jobs in `vercel.json`, pattern already used by 8+ routes)
-- `ListeningTopic`, `ListeningQuery`, `ListeningHit` schema — no schema changes blocked by missing tech
+**Existing stack (do not re-research):**
+- `next@^14.2.0`, `@trpc/server@^10.45.0`, `@prisma/client@^5.14.0`
+- `recharts@^2.12.0` (in-app charting only — cannot render server-side)
+- `nodemailer@^7.0.13` (installed but unused — the sending transport is ready)
+- `@vercel/kv@^2.0.0`, `@vercel/blob@^0.23.0` (infrastructure already wired)
+- `@anthropic-ai/sdk` (report generation already works via existing `generateInsight()`)
+- Vercel Cron infrastructure (10 cron routes already defined in `vercel.json`)
+
+**Critical platform constraint:** Vercel serverless with Fluid Compute enabled (the default). With Fluid Compute, the Pro plan allows up to 800s max duration — relevant for long-running report generation. Without Fluid Compute it would be 300s max. Bundle size limit is 250 MB unzipped / ~50 MB compressed per serverless function.
 
 ---
 
@@ -26,43 +28,57 @@ The existing system already has:
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| `@anthropic-ai/sdk` | `^0.78.0` | Structured AI outputs for SWT analysis and query generation | Current version (0.78.0 vs installed 0.24.0) adds `client.messages.parse()`, `zodOutputFormat()` helper, and `output_config.format` (the non-deprecated API shape). These are required for schema-guaranteed SWT JSON — without this, the current `parseAIJSON()` workaround is the only option, which is fragile for structured categorical data. HIGH confidence — verified via official Anthropic docs and npm registry. |
-| Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) | n/a | Query coverage gap analysis and SWT categorization of batched hits | $1/MTok input, $5/MTok output — ~5x cheaper than the Sonnet 4 model already in use for `generateQueries`. Haiku 4.5 has a 200k context window, sufficient to process 50–100 summarized hit texts. Use Haiku for: scheduled cron analysis that runs on accumulated data. Keep Sonnet 4 for user-facing interactive query generation where quality matters more than cost. HIGH confidence — verified against Anthropic model pricing page. |
-| Claude Sonnet 4.6 (`claude-sonnet-4-6`) | n/a | (Current default for query generation) — no change needed | The codebase already uses `claude-sonnet-4-20250514` for `generateQueries` and `refineTopicQueries`. Sonnet 4.6 is the current latest; migration is optional, not required for this milestone. |
-| `zod` | `^3.23.0` (already installed) | Schema definition for structured SWT output | Already in the project at the correct version. Use Zod schemas with `zodOutputFormat()` from the upgraded SDK to define `SWTAnalysis` schema — eliminates the current `parseAIJSON()` fallback chain. No new install needed. HIGH confidence. |
-| Prisma | `^5.14.0` (already installed) | Schema migrations for new `SWTInsight` model and `InsightType` enum extension | `createMany` with `skipDuplicates: true` is the correct pattern for deduplicating query coverage gap records. Postgres is already the database — `skipDuplicates` is fully supported. No version upgrade needed. HIGH confidence — verified via official Prisma docs. |
+| `@react-pdf/renderer` | `^4.3.2` | Server-side PDF generation | The only viable PDF library for Vercel serverless. Does NOT require Chromium or a headless browser — renders PDF from React component trees using its own layout engine (Yoga). v4.3.2 is current (published ~Jan 2026). Requires `serverExternalPackages` config in `next.config.js` to avoid bundling into the serverless function and hitting the 50 MB compressed limit. HIGH confidence — verified via official react-pdf.org compatibility docs and npm registry. |
+| QuickChart.io (external service) | API — no npm package | Server-side chart image generation for email and Slack | Recharts renders only in the browser via React/SVG — it cannot run in Node.js API routes. QuickChart.io generates Chart.js chart images from a URL or POST request. The resulting URL is a static PNG that can be embedded in `<img>` tags in email HTML or as Slack Block Kit `image` blocks. No npm install required — construct a URL and call it with `fetch`. Free tier: 60 requests/min + 1,000 charts/month; Pro plan removes limits. HIGH confidence — verified via quickchart.io official docs. |
+| `@react-email/components` | `^1.0.8` | React components for email HTML templates | The standard approach for building email HTML in a React/Next.js stack. Renders to valid, cross-client email HTML (tested against Gmail, Outlook, Apple Mail). Used with `@react-email/render` to produce the HTML string that nodemailer sends. React Email 5.0 (Nov 2025) adds dark mode, Tailwind 4, and React 19 support. HIGH confidence — verified via official react.email changelog. |
+| `@react-email/render` | `^2.0.4` | Convert React email components to HTML strings | The render utility that transforms `<EmailTemplate />` components into the HTML string that nodemailer's `html:` field accepts. Server-safe — runs in Node.js without a browser. Pair with `@react-email/components` for a complete email authoring system. HIGH confidence — verified via official react.email docs. |
+| `@slack/webhook` | `^7.0.7` | Slack Incoming Webhook delivery | Official Slack SDK package for posting to Incoming Webhook URLs. Supports Block Kit via a `blocks` array in the payload — pass an `image` block with a QuickChart.io URL for embedded chart images. No OAuth or Slack App Bot required — webhooks are configured per-channel and stored as an env var. Avoids the "Full Slack App" complexity that is explicitly out of scope. HIGH confidence — verified via official @slack/webhook npm page (published 13 days ago). |
 
 ### Supporting Libraries
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| `@vercel/kv` | `^2.0.0` (already installed) | Distributed lock / last-run timestamp for cron deduplication | Use to store `swt-analysis:last-run` and `query-audit:last-run` keys with TTL. Prevents double-execution when Vercel delivers a cron event twice (documented behavior). Already wired in `lib/redis.js`. No new install needed. |
-| Native `Date` / `Date.now()` | n/a | Time-windowing for batched hit aggregation | Already the pattern across all existing cron routes. Do not introduce a date library (no `date-fns`, no `dayjs`) — the existing approach of `new Date(Date.now() - N * 86400000)` is sufficient and consistent. |
+| `nodemailer` | `^7.0.13` (already installed) | SMTP email transport | Already installed. Wire it to SMTP credentials (e.g., SendGrid SMTP, AWS SES, or Gmail OAuth2). Use `nodemailer.createTransport()` + `transporter.sendMail({ html: renderedHtml })`. No upgrade needed — v7.0.13 is current and stable. |
+| `quickchart-js` | `^3.1.2` | JavaScript client for QuickChart.io URL construction | Optional convenience wrapper around the QuickChart REST API. Provides a `QuickChart` class with methods to set chart type, data, dimensions, and call `getUrl()` or `getShortUrl()`. Alternative: construct URLs manually via `fetch` — both work. Use `quickchart-js` if chart configs become complex; use raw `fetch` for simple bar/line charts. MEDIUM confidence — npm-verified but not official Slack/QuickChart documentation. |
 
 ### Development Tools
 
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| `prisma migrate dev` | Schema migration for new SWT models | Already used — no change to workflow. Run after adding `SWTInsight` model and extending `InsightType` enum. |
-| Vitest (already installed) | Unit tests for SWT prompt logic and query gap detection | Write tests for the gap-detection algorithm (which topics are missing queries, which queries score POOR health) before implementing — these are pure functions testable without DB. |
+| `next.config.js` `serverExternalPackages` | Prevent `@react-pdf/renderer` from being bundled into the serverless function | Add `serverExternalPackages: ['@react-pdf/renderer']` to prevent the yoga-layout dependency from inflating the serverless bundle past the 50 MB compressed limit. This is the official Next.js 14 config key (not `experimental.serverComponentsExternalPackages` which was renamed in 14.1.1+). |
+| `export const maxDuration = 60` in PDF API route | Extend the function timeout for PDF generation | PDF generation is CPU-intensive. Set `maxDuration = 60` (seconds) in the API route handler file. On Vercel Pro with Fluid Compute enabled, the ceiling is 800s — 60s is conservative and sufficient for a single report PDF. |
+| Vercel Cron (existing) | Trigger scheduled report generation | Already used across 10 routes in `vercel.json`. Add new cron entries for weekly, monthly, quarterly, and yearly report generation using the established pattern. No new infrastructure needed. |
+| `@vercel/blob` (already installed) | Store generated PDFs for on-demand download | Already installed. After generating a PDF with `@react-pdf/renderer`, stream or buffer the result and upload to Vercel Blob Storage. Return a signed URL for the download button. Avoids the 4.5 MB response body limit for PDF downloads. |
 
 ---
 
 ## Installation
 
-The only package that needs upgrading is `@anthropic-ai/sdk`. Everything else is already installed.
-
 ```bash
-# Upgrade Anthropic SDK to get structured outputs support
-npm install @anthropic-ai/sdk@^0.78.0
+# PDF generation
+npm install @react-pdf/renderer@^4.3.2
+
+# Email templates
+npm install @react-email/components@^1.0.8 @react-email/render@^2.0.4
+
+# Slack delivery
+npm install @slack/webhook@^7.0.7
+
+# Optional: QuickChart URL builder (or use raw fetch calls)
+npm install quickchart-js@^3.1.2
 ```
 
-Verify the upgrade with:
-```bash
-node -e "const a = require('@anthropic-ai/sdk'); console.log(a.VERSION)"
-```
+`nodemailer`, `@vercel/blob`, and `@vercel/kv` are already installed — no changes needed.
 
-No other new packages are required for this milestone.
+**Required config change to `next.config.js`:**
+```js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  serverExternalPackages: ['@react-pdf/renderer'],
+};
+
+module.exports = nextConfig;
+```
 
 ---
 
@@ -70,11 +86,12 @@ No other new packages are required for this milestone.
 
 | Recommended | Alternative | When to Use Alternative |
 |-------------|-------------|-------------------------|
-| Native Anthropic structured outputs via `client.messages.parse()` | Continue with `parseAIJSON()` workaround | Only if the SDK upgrade is blocked by a breaking change elsewhere. `parseAIJSON()` works but requires testing the fallback path and cannot guarantee schema shape — acceptable for lower-stakes summaries, not for SWT where missing a `category` field breaks the UI filter. |
-| Claude Haiku 4.5 for scheduled SWT analysis | Claude Sonnet 4.6 for everything | If SWT quality with Haiku is insufficient during testing. Run Haiku first in staging; upgrade to Sonnet only if the categorical output quality is demonstrably worse. Sonnet is ~3-5x more expensive per token. |
-| Vercel KV for distributed lock | Prisma-based lock (a `JobLock` table) | Only if the project moved off Vercel KV. KV is already used in `lib/redis.js` and is the lowest-friction option. |
-| Prisma `createMany` + `skipDuplicates` for coverage gap records | Upsert loop | `createMany` with `skipDuplicates: true` is a single DB roundtrip vs N roundtrips for N upserts. Use for inserting batches of detected gap records. Use individual `upsert` only when you need to update an existing row (e.g., updating a query's `generatedBy` field). |
-| Extend existing `AIInsight` model with new `InsightType` values | Create a separate `SWTInsight` model | A separate model gives cleaner querying (no `WHERE insightType IN (...)` filter required) and allows per-brand foreign keys. However, extending `AIInsight` with `topicId` nullable field + new enum values is lower migration risk for a first version. Start with extension; extract to separate model if query complexity grows. |
+| `@react-pdf/renderer` | Puppeteer / `@sparticuz/chromium-min` + Playwright | Only if exact HTML-fidelity PDF is required (pixel-perfect screenshot of the report page). Puppeteer/Playwright with `@sparticuz/chromium-min` can run on Vercel but requires careful bundle size management and adds ~100 MB to the function size. For structured data reports, `@react-pdf/renderer`'s component model produces cleaner, more maintainable PDFs than a screenshot. |
+| `@react-pdf/renderer` | Dedicated PDF microservice (AWS EC2 or Railway) | Only if Vercel bundle size limits become a real problem after deploying. The `serverExternalPackages` workaround should prevent the bundle issue — validate in staging before considering a microservice. |
+| QuickChart.io (external service) | `chart.js` + `canvas` + `node-canvas` | `node-canvas` compiles native C++ bindings (Cairo/Pango) which are not available in Vercel serverless. QuickChart.io is a hosted service that avoids native binaries entirely. Use `node-canvas` only on a dedicated Node.js server, never on Vercel serverless. |
+| `@react-email/components` + `@react-email/render` | MJML / `mjml-react` | MJML is battle-tested for responsive email (especially Outlook) but uses its own DSL — developers cannot write standard JSX/CSS. React Email v5's component set (2025) covers the standard components needed for report emails. Choose MJML only if Outlook rendering fidelity is a critical requirement and React Email's output fails Litmus tests. |
+| `@slack/webhook` + raw Block Kit JSON | Full Slack App with `@slack/bolt` and OAuth | The PROJECT.md explicitly defers the full Slack App to a future milestone. `@slack/webhook` + Incoming Webhooks is the correct scope: one URL per channel, no bot OAuth, no event subscriptions. If interactive Slack messages (buttons, modals) are needed later, migrate to `@slack/bolt`. |
+| `@vercel/blob` for PDF storage | Stream PDF directly in response body | Vercel Functions have a 4.5 MB response body limit. A multi-page report PDF can exceed this. Upload to Blob Storage and return a URL instead of streaming the binary. |
 
 ---
 
@@ -82,35 +99,47 @@ No other new packages are required for this milestone.
 
 | Avoid | Why | Use Instead |
 |-------|-----|-------------|
-| `langchain` / `llamaindex` | These frameworks add abstraction layers that obscure cost tracking — the project already has a precise `APICallLog` table and `generateInsight()` wrapper. Introducing an agent framework would bypass both. Cost visibility would be lost. | Direct Anthropic SDK calls via the existing `generateInsight()` pattern |
-| `openai` SDK or any non-Anthropic LLM | The project is already committed to Claude (system prompts reference Figure/FIGR context extensively). Mixing providers creates prompt maintenance burden and cost tracking complexity. | `@anthropic-ai/sdk` only |
-| Streaming responses for cron analysis | Streaming (SSE) adds complexity and doesn't benefit scheduled batch jobs that write to DB. Streaming is for interactive UX only. | Standard `messages.create()` / `messages.parse()` for all cron routes |
-| `output_format` (deprecated parameter) | Anthropic has deprecated `output_format` in favor of `output_config.format`. Amazon Bedrock already rejects the old parameter entirely. Using it creates silent failures on Bedrock and a migration cliff later. | `output_config: { format: zodOutputFormat(schema) }` via SDK 0.78+ |
-| `p-queue` or custom concurrency primitives | For Vercel serverless, each cron invocation is isolated — there is no shared in-process queue. Use Vercel KV for cross-invocation coordination instead. | Vercel KV distributed lock pattern |
-| Per-hit SWT classification | Classifying each `ListeningHit` individually as it arrives is ~100x more expensive than batching. At 50 hits/day per topic, that's 50 API calls/day just for categorization. | Scheduled batch analysis: aggregate hits into a window (e.g., last 7 days), run one Claude call per topic per week |
+| Puppeteer / `puppeteer-core` | Ships a Chromium binary (~170 MB) that exceeds Vercel's 250 MB unzipped function limit. Generates cryptic 504 Gateway Timeout errors with no useful stack trace. Architecturally wrong for serverless. | `@react-pdf/renderer` for structured PDFs |
+| `node-canvas` / `canvas` npm package | Requires native C++ bindings (Cairo/Pango) that are not available in the Vercel serverless runtime. Will silently fail or produce build errors. | QuickChart.io for chart images |
+| Recharts for server-side chart images | Recharts is a React DOM renderer — it requires a browser environment. It cannot run in Node.js API routes or cron handlers. Importing it server-side throws errors or produces no output. | QuickChart.io for images used in email and Slack |
+| Inline base64 chart images in email | Some email clients (notably Outlook 365, Gmail) strip or block base64-encoded `<img src="data:image/png;base64,...">` tags for security. | QuickChart.io URLs as `<img src="https://...">` — served over HTTPS, email-safe |
+| `html-pdf` / `pdf-creator-node` | Both use PhantomJS (deprecated, security-vulnerable) or wkhtmltopdf (requires system libraries unavailable on Vercel). Will fail at build or runtime on serverless. | `@react-pdf/renderer` |
+| Resend (email service) | Introduces a paid third-party email API when `nodemailer` is already installed and SMTP transport is standard. If the team already has SMTP credentials (SendGrid, SES), Resend adds cost and vendor lock-in for no benefit. | `nodemailer` with existing SMTP transport |
+| QuickChart short URLs for reports | Short URLs on the free tier expire after ~3 days. Report emails may be reopened days or weeks later. Embedded chart images would break. | Use full QuickChart GET URLs (constructed via `quickchart-js` or manual URL encoding) — these do not expire. For long configs, use POST to the QuickChart API and cache the chart URL in the Report DB record. |
 
 ---
 
 ## Stack Patterns by Variant
 
-**For the SWT insight generation cron job:**
-- Use `claude-haiku-4-5-20251001` (cheapest model with structured output support)
-- Group hits by `topicId`, limit to last 7 days, take top 50 by `heuristicScore`
-- Use `client.messages.parse()` with `zodOutputFormat(SWTSchema)` to guarantee categorical output
-- Store result in `AIInsight` table with new `insightType: 'SWT_ANALYSIS'` and `topicId` (nullable FK)
-- Cache last analysis timestamp in Vercel KV (`swt-analysis:{topicId}:last-run`) with 6-day TTL to prevent redundant re-analysis
+**For scheduled report generation (cron-triggered):**
+- Add cron entries to `vercel.json` (e.g., `"schedule": "0 7 * * 1"` for Monday 7am UTC weekly)
+- Cron handler: fetch metrics for the time window, call Claude via existing `generateInsight()` to produce the report text, assemble the `Report` Prisma record with status `GENERATING` → `READY`
+- Generate chart URLs via QuickChart.io and store them on the Report record (so they are consistent across email, Slack, and PDF)
+- Set `export const maxDuration = 60` in the cron API route
 
-**For the autonomous query coverage audit cron job:**
-- No new AI model needed — this is algorithmic, not AI-driven
-- Algorithm: fetch all `ListeningTopic` records + their `ListeningQuery` records; compare query strings against a known entity list (brand names, product names, tickers, common misspellings stored in DB or config); identify topics where coverage is thin (fewer than 2 active queries per platform, or all queries grade POOR/INSUFFICIENT_DATA)
-- When gaps detected: call existing `generateQueries` logic (already in `lib/routers/listening.js`) or the same Claude prompt used by `refineTopicQueries`, but in an automated context
-- Store generated queries with `generatedBy: 'ai-autonomous'` to distinguish from human-initiated AI generation
-- Run weekly (e.g., Sunday 3am UTC) — not on every poll cycle
+**For PDF export:**
+- Create a dedicated API route `app/api/reports/[id]/pdf/route.js`
+- Import `@react-pdf/renderer` only in this route (isolated — prevents bundle bloat to other routes)
+- Use `renderToBuffer()` to produce a Buffer, upload to `@vercel/blob`, and return the blob URL
+- Set `export const maxDuration = 60` in this route
+- Add `serverExternalPackages: ['@react-pdf/renderer']` to `next.config.js`
 
-**If structured outputs cause issues with existing `generateInsight()` wrapper:**
-- Add a separate `generateStructuredInsight(type, context, schema, options)` function in `lib/ai.js` alongside the existing `generateInsight()`
-- Use `client.messages.parse()` internally — keep cost tracking via `APICallLog`
-- Do not refactor existing `generateInsight()` — it works, backward compatibility matters
+**For email delivery:**
+- Build `ReportEmailTemplate` component using `@react-email/components`
+- Render to HTML string: `const html = await render(<ReportEmailTemplate report={report} />)`
+- Embed QuickChart.io URLs in `<Img>` components — no base64, no inline SVG
+- Send via existing `nodemailer` transport: `transporter.sendMail({ html, subject, to })`
+
+**For Slack delivery:**
+- Initialize `IncomingWebhook` with `SLACK_WEBHOOK_URL` env var
+- Build Block Kit payload: `section` blocks for text, `image` blocks for each QuickChart.io chart URL, `divider` blocks between sections
+- Send: `await webhook.send({ blocks: [...], text: fallbackText })`
+- Always include `text` as a fallback for clients that do not render Block Kit
+
+**For QuickChart.io chart URL construction:**
+- Use `quickchart-js` or raw URL construction: `https://quickchart.io/chart?c=${encodeURIComponent(JSON.stringify(chartConfig))}&width=600&height=300`
+- For complex configs (Recharts-equivalent bar + line combinations), use the POST endpoint and cache the result in the Report DB record to avoid re-generation on each email or PDF render
+- Format: `png` for email and Slack (JPEG artifacts on charts), `svg` for in-PDF embedding via `@react-pdf/renderer`'s `<Image>` component
 
 ---
 
@@ -118,23 +147,34 @@ No other new packages are required for this milestone.
 
 | Package | Compatible With | Notes |
 |---------|-----------------|-------|
-| `@anthropic-ai/sdk@^0.78.0` | Node.js 18+, Next.js 14.2 | The SDK is ESM-first but supports CommonJS interop. Existing `import Anthropic from '@anthropic-ai/sdk'` syntax works unchanged. `zodOutputFormat` helper is in `@anthropic-ai/sdk/helpers/zod`. |
-| `@anthropic-ai/sdk@^0.78.0` | `zod@^3.23.0` | The `zodOutputFormat` helper requires Zod 3.x. Already installed at compatible version — no conflict. |
-| `claude-haiku-4-5-20251001` | Structured outputs | Haiku 4.5 supports structured outputs per Anthropic model docs. |
-| Prisma `5.14` + `createMany skipDuplicates` | PostgreSQL (Vercel Postgres) | `skipDuplicates` is supported on PostgreSQL. Not supported on SQLite/MongoDB/SQL Server — irrelevant here. |
+| `@react-pdf/renderer@^4.3.2` | Next.js 14.1.1+ | Before 14.1.1, the App Router crashed when importing react-pdf. The project is on `^14.2.0` — this constraint is satisfied. Requires `serverExternalPackages: ['@react-pdf/renderer']` in `next.config.js` to prevent bundle size overflow on Vercel. |
+| `@react-pdf/renderer@^4.3.2` | React 18 | Supported since v4.1.0 added React 19 support — v4 is backwards-compatible with React 18 (the project's current version). |
+| `@react-email/render@^2.0.4` | `nodemailer@^7.0.13` | No conflict. `render()` returns an HTML string; nodemailer accepts any HTML string in `sendMail({ html: '...' })`. |
+| `@react-email/components@^1.0.8` | React 18 | Compatible. React Email 5.x supports React 18 and React 19. |
+| `@slack/webhook@^7.0.7` | Node.js 18+ | The project runs on Vercel which uses Node 18+ runtime by default. No conflict. |
+| `quickchart-js@^3.1.2` | Any Node.js version | Pure JavaScript, zero native dependencies. No compatibility concerns. |
 
 ---
 
 ## Sources
 
-- [Anthropic Structured Outputs docs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) — verified `output_config.format`, supported models, `zodOutputFormat` API shape. HIGH confidence.
-- [Anthropic Models Overview](https://platform.claude.com/docs/en/about-claude/models/overview) — verified model IDs `claude-haiku-4-5-20251001`, `claude-sonnet-4-6`, pricing per MTok. HIGH confidence.
-- [Anthropic SDK npm page](https://www.npmjs.com/package/@anthropic-ai/sdk) — current version 0.78.0 confirmed. HIGH confidence.
-- [Vercel Cron Jobs docs](https://vercel.com/docs/cron-jobs) — confirmed 100 cron jobs/project on all plans, Pro invocation precision within the minute, max 800s function duration. HIGH confidence.
-- [Prisma createMany docs](https://www.prisma.io/docs/orm/prisma-client/queries/crud) — `skipDuplicates` supported on PostgreSQL. HIGH confidence.
-- Existing codebase audit (`lib/ai.js`, `lib/routers/listening.js`, `prisma/schema.prisma`) — confirmed installed SDK version 0.24.0, existing `generateInsight()` pattern, `AIInsight` model shape. HIGH confidence.
+- [react-pdf.org compatibility docs](https://react-pdf.org/compatibility) — verified Next.js 14.1.1+ requirement, React 18/19 compatibility, and `serverComponentsExternalPackages` workaround. HIGH confidence.
+- [npm: @react-pdf/renderer](https://www.npmjs.com/package/@react-pdf/renderer) — confirmed current version 4.3.2 published ~Jan 2026. HIGH confidence.
+- [QuickChart.io documentation](https://quickchart.io/documentation/) — verified URL format, POST endpoint, chart types (Chart.js-based), chart-in-email approach. HIGH confidence.
+- [QuickChart: send charts in email](https://quickchart.io/documentation/send-charts-in-email/) — verified `<img src="url">` embedding method, short URL recommendation, language-agnostic construction. HIGH confidence.
+- [QuickChart: rate limits (community)](https://community.quickchart.io/t/rate-limits-for-quickchart-free-plan/722) — free tier is 60 req/min + 1,000 charts/month per official FAQ. MEDIUM confidence (two conflicting figures — 60 and 120 req/min — in different docs; FAQ page preferred).
+- [npm: react-email](https://www.npmjs.com/package/react-email) — confirmed v5.2.9. HIGH confidence.
+- [npm: @react-email/components](https://www.npmjs.com/package/@react-email/components) — confirmed v1.0.8. HIGH confidence.
+- [npm: @react-email/render](https://www.npmjs.com/package/@react-email/render) — confirmed v2.0.4. HIGH confidence.
+- [React Email docs: Nodemailer integration](https://react.email/docs/integrations/nodemailer) — verified `render()` + `transporter.sendMail()` pattern. HIGH confidence.
+- [npm: @slack/webhook](https://www.npmjs.com/package/@slack/webhook?activeTab=versions) — confirmed v7.0.7 (published 13 days ago), Node 18+ requirement, Block Kit support via `blocks` array. HIGH confidence.
+- [Slack Block Kit docs](https://docs.slack.dev/block-kit/) — verified `image` block type, fallback `text` field requirement for non-Block-Kit surfaces. HIGH confidence.
+- [Vercel Functions duration docs](https://vercel.com/docs/functions/configuring-functions/duration) — confirmed: Fluid Compute (default on Pro) allows up to 800s max duration; without Fluid Compute, Pro max is 300s; `export const maxDuration` syntax for Next.js App Router. HIGH confidence.
+- [Vercel serverless size limit](https://vercel.com/kb/guide/troubleshooting-function-250mb-limit) — confirmed 250 MB unzipped / ~50 MB compressed limit per function. HIGH confidence.
+- GitHub issue: [react-pdf exceeds 50 MB on Vercel](https://github.com/wojtekmaj/react-pdf/issues/1504) — confirmed `serverExternalPackages` is the standard mitigation. HIGH confidence (community-verified, multiple reporters).
+- Existing codebase audit (`package.json`, `vercel.json`, `next.config.js`) — confirmed installed versions, 10 existing cron routes, bare `next.config.js` (needs `serverExternalPackages` added). HIGH confidence.
 
 ---
 
-*Stack research for: autonomous social listening query management + SWT categorized insights (additive milestone on existing Next.js/Prisma/Claude platform)*
-*Researched: 2026-03-14*
+*Stack research for: Report Center v1.1 — scheduled generation, PDF export, server-side charts, email templates, Slack delivery (additive milestone on existing Next.js 14 / Prisma / Vercel platform)*
+*Researched: 2026-03-15*

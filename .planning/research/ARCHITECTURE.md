@@ -1,285 +1,500 @@
 # Architecture Research
 
-**Domain:** Autonomous Query Management + Structured SWT Insight Engine (Listening Intelligence)
-**Researched:** 2026-03-14
-**Confidence:** HIGH — derived directly from codebase analysis + existing pipeline understanding
+**Domain:** Report Center — scheduled generation, conversational scoping, server-side charts, PDF export, multi-channel distribution
+**Researched:** 2026-03-15
+**Confidence:** HIGH — derived from direct codebase analysis, official Vercel/QuickChart/Slack/Nodemailer docs, and community-verified patterns
 
 ---
 
 ## System Overview
 
-The existing listening pipeline is a 3-tier cron-driven pipeline: platform APIs fetch raw posts → scanner scores and deduplicates → hits land in the database. The two new systems — Query Expansion Engine and SWT Insight Engine — are additive layers that plug in at different points without disrupting the existing flow.
+The report center is an additive layer on an existing Next.js 14 / tRPC / Prisma / Vercel pipeline. Four new subsystems must integrate with the existing `Report` model, `reports` tRPC router, and cron infrastructure. None replace existing pieces — they extend them.
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  SCHEDULED CRONS (Vercel Cron, vercel.json)                             │
-│                                                                         │
-│  ┌─────────────────────┐  ┌──────────────────────┐  ┌────────────────┐ │
-│  │ poll-listening      │  │ expand-queries (NEW) │  │ swt-analysis  │ │
-│  │ every 10 min        │  │ nightly / weekly     │  │ (NEW) daily   │ │
-│  └────────┬────────────┘  └──────────┬───────────┘  └───────┬────────┘ │
-│           │                          │                       │          │
-└───────────┼──────────────────────────┼───────────────────────┼──────────┘
-            │                          │                       │
-            ▼                          ▼                       │
-┌───────────────────────────────────────────────────────┐      │
-│  LISTENING PIPELINE (existing lib/listening-scanner)  │      │
-│                                                       │      │
-│  X / Reddit APIs → raw hits                           │      │
-│         ↓                                             │      │
-│  Dedup + negative keyword filter                      │      │
-│         ↓                                             │      │
-│  Heuristic score (60% content, 25% engagement,        │      │
-│                   15% followers)                      │      │
-│         ↓                                             │      │
-│  Sentiment (keyword heuristic → Claude upgrade)       │      │
-│         ↓                                             │      │
-│  ListeningHit written to DB                           │      │
-│         ↓                                             │      │
-│  High-score hits → InboxItem                          │      │
-└───────────────────────────────────────────────────────┘      │
-            │                                                   │
-            ▼                                                   ▼
-┌───────────────────────────────────────────────────────────────────────┐
-│  DATABASE (Vercel Postgres / Prisma)                                  │
-│                                                                       │
-│  ListeningTopic → ListeningQuery → ListeningHit (existing)            │
-│  Competitor → CompetitorKeyword (existing)                            │
-│  AIInsight (existing, insightType enum — needs SWT_ANALYSIS added)    │
-│  QueryExpansionLog (NEW — tracks autonomous query changes)            │
-└───────────────────────────────────────────────────────────────────────┘
-            │                                                   │
-            ▼                                                   ▼
-┌───────────────────────────────────────────────────────────────────────┐
-│  tRPC API LAYER (lib/routers/listening.js — existing)                 │
-│                                                                       │
-│  Existing: topics.list, hits.list, queryPerformance, extractThemes    │
-│  New procedures to add:                                               │
-│  - listening.swtInsights (read latest per-brand SWT)                  │
-│  - listening.queryExpansionLog (audit trail for autonomous changes)   │
-└───────────────────────────────────────────────────────────────────────┘
-            │
-            ▼
-┌───────────────────────────────────────────────────────────────────────┐
-│  FRONTEND (app/(dashboard)/listening/page.jsx)                        │
-│                                                                       │
-│  Existing: hits feed, topic list, query performance panel             │
-│  New UI surfaces:                                                     │
-│  - SWT insight panel (per-brand tabs: Strengths / Weaknesses /        │
-│    Threats, with representative hit excerpts)                         │
-│  - Query expansion changelog (what was auto-added/retired, why)       │
-└───────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│  TRIGGERS                                                                    │
+│                                                                              │
+│  ┌─────────────────────────┐   ┌───────────────────────────────────────┐    │
+│  │  Vercel Cron (vercel.json)│  │  User Action (tRPC mutation / button) │    │
+│  │  weekly / monthly /      │  │  "Send now" / "Export PDF"            │    │
+│  │  quarterly / yearly       │  │  / "Save to repository"               │    │
+│  └────────────┬─────────────┘  └───────────────────┬───────────────────┘    │
+│               │                                    │                        │
+└───────────────┼────────────────────────────────────┼────────────────────────┘
+                │                                    │
+                ▼                                    ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│  REPORT GENERATION ENGINE  (lib/report-engine.js — new)                     │
+│                                                                              │
+│  1. Data Aggregation  →  pulls PostMetrics, CompetitorMetrics,               │
+│                          ListeningHit, AccountMetrics from Prisma            │
+│  2. Benchmark Comparison  →  WoW / MoM / QoQ / YoY deltas                   │
+│  3. Claude AI (Haiku)  →  executive summary, KPI narrative, recommendations  │
+│  4. Chart Spec Builder  →  builds Chart.js config objects for each chart     │
+│                                                                              │
+│  Called by: cron routes + reports.generate tRPC mutation                    │
+└────────────────────────────────┬─────────────────────────────────────────────┘
+                                 │
+                                 ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│  CHART RENDERING  (lib/chart-renderer.js — new)                             │
+│                                                                              │
+│  QuickChart.io HTTP API  →  POST Chart.js config  →  receive PNG buffer      │
+│  Returns: { chartId, imageUrl, base64 } per chart spec                      │
+│                                                                              │
+│  Used by: PDF builder + email distributor + report persistence               │
+└────────────────────────────────┬─────────────────────────────────────────────┘
+                                 │
+                    ┌────────────┼────────────────┐
+                    ▼            ▼                ▼
+┌─────────────┐  ┌──────────┐  ┌──────────────────────────────────────────────┐
+│  PDF EXPORT │  │  DB      │  │  DISTRIBUTION ENGINE  (lib/distributor.js)   │
+│             │  │  Persist │  │                                              │
+│ @react-pdf/ │  │          │  │  ┌──────────────┐  ┌───────────────────────┐ │
+│ renderer    │  │  Report  │  │  │ Email         │  │ Slack                 │ │
+│             │  │  row     │  │  │ (nodemailer) │  │ (Incoming Webhooks)   │ │
+│ Server-side │  │  updated │  │  │ CID-inlined  │  │ Block Kit + image     │ │
+│ PDF stream  │  │  with    │  │  │ chart PNGs   │  │ blocks                │ │
+│ Vercel Blob │  │  charts  │  │  └──────────────┘  └───────────────────────┘ │
+│ storage     │  │  stored  │  │                                              │
+└─────────────┘  └──────────┘  └──────────────────────────────────────────────┘
+                    │
+                    ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│  DATABASE (Prisma / Vercel Postgres)                                        │
+│                                                                              │
+│  Report (existing — needs schema additions)                                  │
+│  ReportSchedule (new — cadence config: weekly/monthly/quarterly/yearly)     │
+│  ReportDelivery  (new — per-send log: channel, status, sentAt, error)       │
+│                                                                              │
+│  PostMetrics / CompetitorMetrics / ListeningHit / AccountMetrics (existing) │
+└──────────────────────────────────────────────────────────────────────────────┘
+                    │
+                    ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│  tRPC API LAYER  (lib/routers/reports.js — existing, extended)              │
+│                                                                              │
+│  Existing: reports.list, reports.generate, reports.getBenchmarks            │
+│  New:                                                                        │
+│  - reports.createSchedule / listSchedules / deleteSchedule                  │
+│  - reports.chat (streaming, multi-turn AI scoping conversation)             │
+│  - reports.exportPdf (returns Blob URL or stream)                           │
+│  - reports.distribute (manual send → email + Slack)                         │
+│  - reports.getWithCharts (enriched report with rendered chart URLs)         │
+└──────────────────────────────────────────────────────────────────────────────┘
+                    │
+                    ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│  FRONTEND  (app/(dashboard)/reports/page.jsx — existing, enhanced)          │
+│                                                                              │
+│  Existing tabs: AI Report Builder | Report Repository | Historical Benchmarks│
+│  New/enhanced:                                                               │
+│  - Conversational scoping chat interface (in Builder tab)                   │
+│  - Scheduled reports management (new sub-tab or modal)                      │
+│  - Rich report viewer with inline charts                                    │
+│  - PDF export button (triggers reports.exportPdf)                           │
+│  - Email/Slack distribution controls                                        │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## Component Boundaries
 
-### Component 1: Query Expansion Engine
+### Component 1: Report Generation Engine (`lib/report-engine.js`)
 
-**What it owns:** Autonomous detection of query coverage gaps across all active topics. Adds missing queries, retires high-noise queries, ensures competitor topic parity with owned-brand topics.
+**What it owns:** Orchestration of all data gathering, AI generation, and chart spec building. This is the single reusable function called by both cron routes and the tRPC `generate` mutation.
 
-**What it does NOT own:** Polling (that stays in `listening-scanner.js`). It only modifies `ListeningQuery` rows.
-
-**Location:** `app/api/cron/expand-queries/route.js` + shared logic in `lib/query-expander.js`
+**What it does NOT own:** Chart rendering (that's `chart-renderer.js`), PDF serialization, email or Slack delivery.
 
 **Communicates with:**
-- `prisma.listeningTopic` (reads all active topics + their queries)
-- `prisma.listeningQuery` (reads performance metrics; creates/deactivates queries)
-- `prisma.competitor` + `prisma.competitorKeyword` (reads known competitor terms for parity checks)
-- `lib/ai.js` → `generateInsight()` (calls Claude Sonnet 4 with performance context)
-- `prisma.queryExpansionLog` (NEW — writes audit trail of every autonomous change)
+- `lib/db.js` (Prisma) — reads PostMetrics, AccountMetrics, CompetitorMetrics, ListeningHit within the report's time window
+- `lib/ai.js` → `generateInsight()` — calls Claude Haiku with batched data context
+- `lib/chart-renderer.js` — receives chart specs, returns PNG buffers/URLs
+- `prisma.report` — creates/updates the Report row on completion
 
-**Trigger:** Vercel Cron, once daily at off-peak (e.g., 01:00 UTC). Does NOT run every poll cycle.
-
-**Inputs to Claude:**
-- Topic name + description
-- Existing queries with performance counters (totalHits, actionableRate, noiseRate, health grade)
-- Known brand/product/ticker vocabulary (same company context already in `generateQueries`)
-- Competitor keyword list from `CompetitorKeyword` table
-- Instruction: identify gaps, propose additions, flag retirements
-
-**Output from Claude:**
-- `queriesToAdd[]` — new query objects (same schema as existing `ListeningQuery`)
-- `queriesToRetire[]` — query IDs that should be deactivated (high noise, zero hits)
-- `rationale` — human-readable explanation per change (written to expansion log)
+**Key input:** `{ reportType, dateStart, dateEnd, benchmarkConfig, scheduleId? }`
+**Key output:** `{ reportId, content: { executiveSummary, keyMetrics, topContent, recommendations, charts[] }, chartUrls[] }`
 
 ---
 
-### Component 2: SWT Insight Engine
+### Component 2: Chart Renderer (`lib/chart-renderer.js`)
 
-**What it owns:** Categorized AI analysis of accumulated listening hits. Produces per-brand/competitor Strengths / Weaknesses / Threats analysis stored in `AIInsight`.
+**What it owns:** All communication with QuickChart.io. Converts Chart.js config objects into PNG image buffers or hosted URLs. Handles error fallback (no chart vs broken chart).
 
-**What it does NOT own:** Fetching hits (scanner does that), displaying hits (frontend does that).
-
-**Location:** `app/api/cron/swt-analysis/route.js` + shared logic in `lib/swt-analyzer.js`
+**What it does NOT own:** Report data, AI narratives, PDF structure, delivery.
 
 **Communicates with:**
-- `prisma.listeningHit` (reads recent high-quality hits, grouped by topicId)
-- `prisma.listeningTopic` (maps topicId → brand/competitor name)
-- `lib/ai.js` → `generateInsight()` (calls Claude Sonnet 4 with batched hit summaries)
-- `prisma.aIInsight` (writes new records with `insightType: 'SWT_ANALYSIS'`)
+- QuickChart.io HTTPS API (POST to `https://quickchart.io/chart`) — external HTTP
+- `@vercel/blob` — optionally stores rendered PNGs for persistent URLs in PDFs/emails
 
-**Trigger:** Vercel Cron, once daily (e.g., 03:30 UTC, after `poll-competitors` at 03:00). Can also be triggered on-demand via tRPC mutation for the admin panel.
+**Pattern:** Accepts an array of chart specs. Renders in parallel via `Promise.all()`. Returns array of `{ specId, buffer, dataUri }`.
 
-**Data window:** Last 7 days of hits per topic (configurable), filtered to non-dismissed hits with `aiRelevance` of HIGH or MEDIUM. Minimum threshold of 10 qualifying hits before generating analysis (avoids noise-only outputs).
+**Constraint:** Free tier is 100,000 images/month. At ~5 charts/report and an estimated 50-200 reports/month, this comfortably fits the free tier. Professional tier ($40/month) adds dedicated infrastructure if needed.
 
-**Inputs to Claude:**
-- Topic name + brand context
-- Up to 60 hit excerpts (content + sentiment + heuristicScore), top-scored first
-- Instruction: categorize patterns into Strengths / Weaknesses / Threats with evidence
-
-**Output structure (stored in `AIInsight.content`):**
-```json
+**API shape used:**
+```javascript
+// POST https://quickchart.io/chart
 {
-  "topicId": "...",
-  "topicName": "Figure Markets",
-  "dataWindow": { "from": "...", "to": "...", "hitCount": 42 },
-  "strengths": [
-    { "theme": "...", "evidence": "...", "hitCount": 8, "confidence": "HIGH" }
-  ],
-  "weaknesses": [...],
-  "threats": [
-    { "theme": "...", "evidence": "...", "hitCount": 3, "confidence": "MEDIUM", "urgency": "HIGH" }
-  ]
+  chart: { type: 'bar', data: { labels: [...], datasets: [...] } },
+  width: 600,
+  height: 300,
+  backgroundColor: 'white',
+  format: 'png',
+  version: 4  // Chart.js v4
 }
+// Returns: PNG binary buffer
 ```
-
-**Caching:** Latest SWT record per topic is cached in Vercel KV (TTL 24h) keyed by `swt:topic:{topicId}`. The tRPC read procedure checks KV before hitting Postgres.
 
 ---
 
-### Component 3: Schema Additions (Prisma)
+### Component 3: PDF Exporter (`lib/pdf-exporter.js`)
 
-**New enum value:** Add `SWT_ANALYSIS` to `InsightType` enum.
+**What it owns:** Assembling a `@react-pdf/renderer` document from a report's structured content and pre-rendered chart images (as base64 data URIs). Returning a PDF buffer or stream.
 
-**New model:** `QueryExpansionLog` — audit trail for all autonomous query changes.
+**What it does NOT own:** Chart rendering (passes base64 from chart-renderer), delivery.
 
-```
-QueryExpansionLog {
-  id             String   (cuid)
-  topicId        String   → ListeningTopic
-  action         String   ("ADD_QUERY" | "RETIRE_QUERY" | "ADD_TOPIC")
-  queryId        String?  → ListeningQuery (for retirements)
-  queryString    String?  (for additions — before creation)
-  platform       Platform?
-  rationale      String
-  generatedBy    String   @default("auto-expand")
-  createdAt      DateTime
-}
+**Key constraint on Vercel:** `@react-pdf/renderer` is pure Node.js with no Chromium dependency. Works natively in serverless functions. Puppeteer/Chromium is explicitly excluded — the 50MB Lambda limit and cold start behavior make it unsuitable for on-demand PDF generation.
+
+**For chart embedding:** `@react-pdf/renderer`'s `<Image>` component accepts base64 data URIs directly. The chart renderer returns `{ dataUri }` per chart; the PDF assembler passes these as `<Image src={chart.dataUri} />`.
+
+**Function configuration:**
+```javascript
+// app/api/reports/export-pdf/route.js
+export const maxDuration = 60; // PDFs are fast with @react-pdf/renderer
 ```
 
-**No other schema changes.** Existing `ListeningQuery` fields (`generatedBy`, `active`, performance counters) are already sufficient for the expansion engine to read and write.
+**Output:** PDF Buffer written to Vercel Blob, returns a temporary signed URL valid for download.
 
 ---
 
-### Component 4: tRPC Procedure Additions
+### Component 4: Distribution Engine (`lib/distributor.js`)
 
-**`listening.swtInsights`** — Returns latest SWT analysis per topic. Checks KV cache first. Input: optional `topicIds[]` for filtering.
+**What it owns:** Sending completed reports via email (nodemailer) and Slack (Incoming Webhooks). Writing `ReportDelivery` rows for each send attempt.
 
-**`listening.triggerSwtAnalysis`** — Admin-only on-demand trigger. Calls `lib/swt-analyzer.js` directly (same pattern as `triggerScan`).
+**What it does NOT own:** Report generation, chart rendering, PDF creation.
 
-**`listening.queryExpansionLog`** — Paginated read of expansion history. Shows what was auto-added/retired and why.
+**Communicates with:**
+- `nodemailer` (already installed) — sends HTML email with CID-referenced inline chart PNGs
+- Slack Incoming Webhook URL (from env var `SLACK_WEBHOOK_URL`) — POSTs Block Kit payload
+- `prisma.reportDelivery` — writes per-send logs with status, timestamp, error message
 
-**`listening.triggerExpansion`** — Admin-only on-demand trigger for query expansion.
+**Email pattern:** Each chart PNG is attached with a unique `cid` and referenced as `<img src="cid:chart-engagement@report">` in HTML. This avoids base64-in-src (blocked by email clients) and external URL blocking.
 
-These are additive to `lib/routers/listening.js`. No existing procedures need modification.
+**Slack pattern:** Block Kit `section` blocks for text + KPI stats; `image` blocks for charts using QuickChart-hosted URLs. Charts sent to Slack must be externally accessible URLs — use the QuickChart hosted URL (not a local buffer). If report chart URLs are stored in Vercel Blob, those work too.
 
 ---
 
-### Component 5: Frontend SWT Panel
+### Component 5: Conversational AI Scoping (`lib/report-chat.js` + tRPC streaming)
 
-**Location:** Extension of `app/(dashboard)/listening/page.jsx`
+**What it owns:** Multi-turn Claude Sonnet conversation that collects report parameters from the user. Produces a structured `ReportSpec` when the user confirms.
 
-**What it adds:**
-- SWT tab or section alongside the existing hits feed
-- Brand/competitor selector (reuses existing multi-select filter pattern)
-- Three columns: Strengths | Weaknesses | Threats
-- Each column shows 2-5 themes with evidence snippets and hit counts
-- "Last analyzed" timestamp + "Analyze now" button (calls `triggerSwtAnalysis`)
+**What it does NOT own:** Report generation (passes spec to report-engine).
 
-**What it reads:** `trpc.listening.swtInsights.useQuery({ topicIds })` — React Query handles caching client-side.
+**Pattern:** Stateless from the server's perspective. Chat history is maintained client-side (React state) and sent with each turn. Server calls Claude Sonnet with the accumulated conversation + system prompt that knows the available metrics, date ranges, and report types.
+
+**Trigger for generation:** When Claude determines the spec is complete (or user says "generate"), the procedure returns `{ done: true, spec: ReportSpec }`. The client then calls `reports.generate` with the spec.
+
+**Model selection:** Claude Sonnet (not Haiku) for the scoping conversation — this is interactive, quality matters more than cost. Haiku for the actual batch report generation where cost scales with cron frequency.
+
+---
+
+### Component 6: Scheduler (`lib/report-scheduler.js` + Vercel Cron)
+
+**What it owns:** Determining which `ReportSchedule` records are due for a given cron invocation and triggering report generation for each.
+
+**Communicates with:**
+- `prisma.reportSchedule` — reads schedules, writes `lastRunAt`
+- `lib/report-engine.js` — calls `generateReport(spec)` for each due schedule
+- `lib/distributor.js` — calls `distributeReport(reportId)` after generation if `autoDistribute: true`
+
+**Cron schedule for the scheduler cron:**
+```json
+// vercel.json addition
+{ "path": "/api/cron/generate-scheduled-reports", "schedule": "0 7 * * 1" }
+```
+A weekly Monday morning run covers all cadences. The route checks each `ReportSchedule` and generates only those due (weekly every run, monthly on 1st, quarterly on first of quarter month, yearly on Jan 1).
+
+**Timeout handling:** Report generation per schedule can take 15-30 seconds (data fetch + Claude + QuickChart). With up to 10 schedules, total cron duration could reach 5 minutes. Use `export const maxDuration = 300` (confirmed working in existing `backfill-history` cron).
+
+---
+
+### Component 7: Schema Additions (Prisma)
+
+**Additions to existing `Report` model:**
+```
+scheduleId      String?           -- FK to ReportSchedule (null for manual)
+chartUrls       Json?             -- Array of { specId, url, label }
+pdfUrl          String?           -- Vercel Blob URL for exported PDF
+coveragePeriod  Json?             -- { start, end } explicit date range
+benchmarkPeriod Json?             -- { start, end } comparison period
+```
+
+**New `ReportSchedule` model:**
+```
+id              String    (cuid)
+cadence         Enum      (WEEKLY | MONTHLY | QUARTERLY | YEARLY)
+reportType      ReportType
+title           String
+autoDistribute  Boolean   @default(false)
+emailRecipients String[]
+slackWebhook    String?
+lastRunAt       DateTime?
+nextRunAt       DateTime
+createdById     String
+createdAt       DateTime
+active          Boolean   @default(true)
+```
+
+**New `ReportDelivery` model:**
+```
+id              String    (cuid)
+reportId        String    → Report
+channel         Enum      (EMAIL | SLACK)
+recipient       String    -- email address or slack channel name
+status          Enum      (SENT | FAILED | PENDING)
+sentAt          DateTime?
+error           String?
+createdAt       DateTime
+```
 
 ---
 
 ## Data Flow
 
-### Flow 1: Autonomous Query Expansion (nightly)
+### Flow 1: Scheduled Report Auto-Generation
 
 ```
-Vercel Cron (01:00 UTC)
+Vercel Cron (Monday 7 AM UTC)
     ↓
-app/api/cron/expand-queries/route.js
+app/api/cron/generate-scheduled-reports/route.js
     ↓
-lib/query-expander.js
+lib/report-scheduler.js
     ↓ reads
-prisma.listeningTopic (all active, with queries + hit counters)
-prisma.competitor + competitorKeyword (brand vocabulary)
-    ↓ calls
-generateInsight('auto-expand', { topics, vocabulary, competitors }, { model: claude-sonnet-4 })
-    ↓ returns
-{ queriesToAdd[], queriesToRetire[], rationale }
-    ↓ writes
-prisma.listeningQuery.create() for each addition
-prisma.listeningQuery.update({ active: false }) for each retirement
-prisma.queryExpansionLog.create() for each change (audit trail)
-```
-
-**Cost:** 1 Claude call per expansion run, batching ALL topics into a single prompt. At ~3K tokens input + ~1K output per run, this costs ~$0.02/day. Token budget managed by summarizing query performance data rather than sending raw hit content.
-
----
-
-### Flow 2: SWT Analysis (daily)
-
-```
-Vercel Cron (03:30 UTC)
+prisma.reportSchedule.findMany({ where: { active: true, nextRunAt: { lte: now } } })
+    ↓ for each due schedule
+lib/report-engine.js (generateReport(spec))
+    ↓ parallel
+  [1] prisma queries: PostMetrics, AccountMetrics, CompetitorMetrics, ListeningHit
+  [2] benchmark queries: same tables for prior period
     ↓
-app/api/cron/swt-analysis/route.js
+generateInsight() → Claude Haiku → { executiveSummary, keyMetrics, recommendations }
     ↓
-lib/swt-analyzer.js
-    ↓ reads
-prisma.listeningTopic (all active topics)
-For each topic:
-  prisma.listeningHit (last 7d, non-dismissed, aiRelevance IN ['HIGH','MEDIUM'], take: 60)
-    ↓ if >= 10 qualifying hits
-generateInsight('swt-analysis/{topicName}', { hits, topicContext }, { model: claude-sonnet-4 })
-    ↓ returns
-{ strengths[], weaknesses[], threats[] }
-    ↓ writes
-prisma.aIInsight.create({ insightType: 'SWT_ANALYSIS', content: {...} })
-kv.set('swt:topic:{topicId}', result, { ex: 86400 })  ← cache for 24h
-```
-
-**Cost control:** One Claude call per topic with qualifying hits. ~10 topics × ~$0.03/call = ~$0.30/day. Hit content is truncated to 150 chars per excerpt to limit token usage. Topics with < 10 qualifying hits are skipped (no Claude call).
-
----
-
-### Flow 3: User Views SWT Insights
-
-```
-User loads listening page → selects brand filter
+lib/chart-renderer.js
+    ↓ parallel via Promise.all()
+  QuickChart.io POST per chart spec → PNG buffer
+  @vercel/blob.put(buffer) → hosted URL
     ↓
-trpc.listening.swtInsights.useQuery({ topicIds: ['...'] })
+prisma.report.create({ content, chartUrls, scheduleId })
+    ↓ if autoDistribute
+lib/distributor.js
+    ↓ parallel
+  nodemailer.send() → HTML email with CID charts
+  fetch(slackWebhookUrl, Block Kit payload with chart image URLs)
     ↓
-Server: check kv.get('swt:topic:{topicId}')
-    → HIT: return cached result (< 1ms)
-    → MISS: query prisma.aIInsight (latest by generatedAt per topicId)
-              → return + populate KV cache
+prisma.reportDelivery.createMany([...email, ...slack logs])
+    ↓
+prisma.reportSchedule.update({ lastRunAt: now, nextRunAt: computed })
 ```
 
 ---
 
-### Flow 4: Query Expansion Log Read
+### Flow 2: Conversational Ad Hoc Report Creation
 
 ```
-User opens "Query Health" panel → clicks "Expansion History"
+User opens Report Builder tab → types message
     ↓
-trpc.listening.queryExpansionLog.useQuery({ topicId?, limit: 20 })
+trpc.reports.chat.mutate({ messages: [...], context: { availableMetrics, dateRange } })
     ↓
-prisma.queryExpansionLog.findMany({ orderBy: { createdAt: 'desc' } })
+lib/report-chat.js
     ↓
-Rendered as timeline: date / action / query string / rationale
+Claude Sonnet (multi-turn with accumulated history)
+    → returns { reply, done: false } if still clarifying
+    → returns { reply, done: true, spec: ReportSpec } when complete
+    ↓
+Client: show AI reply in chat UI
+    → if done=false: show next message input
+    → if done=true: show "Generate Report" CTA button with confirmed spec
+    ↓ (user clicks Generate)
+trpc.reports.generate.mutate(spec)
+    ↓
+lib/report-engine.js (same path as scheduled generation)
+    ↓
+Report created → displayed in report preview
 ```
+
+---
+
+### Flow 3: PDF Export
+
+```
+User clicks "Export PDF" on a saved report
+    ↓
+trpc.reports.exportPdf.mutate({ reportId })
+    ↓ (or GET /api/reports/export-pdf?reportId=...)
+lib/pdf-exporter.js
+    ↓
+prisma.report.findUnique() → content + chartUrls
+    ↓ for each chartUrl
+fetch(chartUrl) → ArrayBuffer → base64 dataUri
+    ↓
+@react-pdf/renderer: renderToBuffer(<ReportDocument content={...} charts={...} />)
+    ↓
+@vercel/blob.put('reports/{id}.pdf', pdfBuffer)  → signed URL
+    ↓
+prisma.report.update({ pdfUrl })
+    ↓
+return { downloadUrl: signedUrl }
+Client: window.open(downloadUrl)
+```
+
+---
+
+### Flow 4: Manual Distribution
+
+```
+User clicks "Send via Email" or "Share to Slack"
+    ↓
+trpc.reports.distribute.mutate({ reportId, channels: ['email', 'slack'], recipients: [...] })
+    ↓
+lib/distributor.js
+    ↓
+prisma.report.findUnique() → content + chartUrls
+    ↓ parallel
+  Email path:
+    for each chartUrl: fetch() → Buffer
+    nodemailer.sendMail({
+      html: renderEmailHtml(report, charts),
+      attachments: charts.map(c => ({ cid: c.id, content: c.buffer, contentType: 'image/png' }))
+    })
+  Slack path:
+    fetch(SLACK_WEBHOOK_URL, { method: 'POST', body: buildBlockKit(report) })
+    // Block Kit uses hosted chartUrls directly (no buffer needed)
+    ↓
+prisma.reportDelivery.createMany([delivery records])
+    ↓
+return { sent: true, deliveries: [...] }
+```
+
+---
+
+## Recommended Project Structure
+
+```
+lib/
+├── report-engine.js        # Core orchestrator: data → AI → chart specs → Report row
+├── chart-renderer.js       # QuickChart.io integration, returns PNG buffers + hosted URLs
+├── pdf-exporter.js         # @react-pdf/renderer document assembly, Blob upload
+├── distributor.js          # nodemailer email + Slack Block Kit dispatch
+├── report-chat.js          # Multi-turn Claude Sonnet scoping conversation
+├── report-scheduler.js     # Checks which schedules are due, calls report-engine
+│
+├── routers/
+│   └── reports.js          # Extended: chat, exportPdf, distribute, createSchedule, getWithCharts
+│
+└── ai/
+    └── reports.js          # Extended: generateCadenceReport() for scheduled types
+
+app/
+└── api/
+    ├── cron/
+    │   └── generate-scheduled-reports/route.js  # New cron handler
+    └── reports/
+        └── export-pdf/route.js                  # PDF generation endpoint (maxDuration=60)
+
+components/
+├── ReportViewer.jsx         # Rich report display with inline charts (server-rendered imgs)
+├── ReportChatInterface.jsx  # Multi-turn conversation UI
+└── ReportScheduleManager.jsx# CRUD for ReportSchedule records
+```
+
+---
+
+## Architectural Patterns
+
+### Pattern 1: Shared Logic Module (existing codebase pattern)
+
+**What:** Core logic lives in `lib/*.js` module, called by both the cron route handler and a tRPC procedure.
+
+**Why:** Cron runs autonomously on schedule; tRPC procedure lets users trigger on-demand. Same generation code, two entry points. No duplication.
+
+**Existing precedent:** `lib/listening-scanner.js` called by both `app/api/cron/poll-listening/route.js` and `trpc.listening.triggerScan`.
+
+**Apply to:** `lib/report-engine.js` called by `generate-scheduled-reports` cron AND `reports.generate` tRPC mutation.
+
+---
+
+### Pattern 2: Chart-as-URL, Not Chart-as-Component
+
+**What:** All chart rendering happens server-side via HTTP to QuickChart.io before the report is persisted. Charts are stored as URLs (Vercel Blob) in `Report.chartUrls[]`. The frontend displays `<img src={chartUrl}>` — no Recharts rendering needed in reports.
+
+**Why:** Recharts requires a browser DOM for rendering. Server-side reports (PDFs, emails, Slack) cannot use Recharts. QuickChart.io provides a browser-independent Chart.js renderer. Storing URLs instead of raw chart data means the rendered chart is consistent across every viewer (in-app, email, PDF, Slack).
+
+**Trade-off:** QuickChart.io is a dependency (external service). Mitigated by free tier being generous and the fallback being a text-only report if chart rendering fails.
+
+---
+
+### Pattern 3: CID-Inline Images for Email
+
+**What:** For email delivery, chart PNG buffers are attached with unique `cid` values and referenced in HTML as `<img src="cid:chart-eng-rate@report">`.
+
+**Why:** Raw base64 in HTML `src` is blocked by most email clients. External URLs require the recipient to "load images." CID-inline attachments travel inside the email and display immediately without network requests.
+
+**How nodemailer handles it:**
+```javascript
+attachments: [
+  { filename: 'engagement-chart.png', content: chartBuffer, cid: 'engagement-chart@report' }
+]
+// In HTML body:
+// <img src="cid:engagement-chart@report" width="600" alt="Engagement Rate">
+```
+
+---
+
+### Pattern 4: Block Kit for Slack, Not Plain Text
+
+**What:** Slack messages use Block Kit with `header`, `section`, `divider`, and `image` blocks. KPI stats go in `section` fields (two-column layout). Charts go in `image` blocks with the QuickChart-hosted URL.
+
+**Why:** Plain text Slack messages feel like error logs. Block Kit makes reports visually scannable with headers, dividers, and inline images. Incoming Webhooks support the full `blocks` array — no bot token required.
+
+**Constraint:** Slack `image` blocks require a publicly accessible URL. Use Vercel Blob URLs (publicly readable) or the QuickChart-hosted short URL (`https://quickchart.io/chart/render/...`). Do not pass PNG buffers — Slack cannot accept binary payloads in webhook messages.
+
+---
+
+### Pattern 5: Stateless Chat, Client-Maintained History
+
+**What:** The `reports.chat` tRPC procedure receives the full message history with each call. Server is stateless — no session storage needed.
+
+**Why:** Vercel serverless functions have no persistent in-process state between invocations. Storing chat history in Redis adds a dependency. The report scoping conversation is short (3-7 turns) — sending the full history each turn is negligible overhead at this scale.
+
+---
+
+## Integration Points with Existing Codebase
+
+### External Services
+
+| Service | Integration Pattern | Notes |
+|---------|---------------------|-------|
+| QuickChart.io | `fetch()` POST to `https://quickchart.io/chart` with Chart.js config JSON | Free tier: 100K images/month. Returns PNG binary. No SDK needed. |
+| Claude Haiku (Anthropic) | Existing `lib/ai.js` → `generateInsight()` wrapper | No change to AI call pattern. Use `claude-3-5-haiku-20241022` for batch generation. |
+| Claude Sonnet (Anthropic) | Existing `lib/ai.js` → `generateInsight()` | Use Sonnet for chat scoping only (interactive, quality matters). |
+| nodemailer | Already installed (`nodemailer@^7.0.13`). Create transporter in `lib/distributor.js` using `SMTP_HOST/USER/PASS` env vars. | Configure via Vercel env vars. Transport is instantiated per send (serverless — no persistent connections). |
+| Slack Incoming Webhooks | `fetch(process.env.SLACK_WEBHOOK_URL, { method: 'POST', body: JSON.stringify(blockKit) })` | No SDK needed. Webhook URL is workspace-specific. Block Kit supports `image` blocks with external URLs. |
+| Vercel Blob | `@vercel/blob` already installed. Use `put('reports/{id}/chart-{n}.png', buffer, { access: 'public' })` for chart PNGs and `put('reports/{id}.pdf', pdfBuffer, { access: 'public' })` for PDFs. | Blob URLs are publicly readable by default — safe for Slack image blocks. |
+
+---
+
+### Internal Boundaries
+
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| `report-engine.js` ↔ `reports` tRPC router | Direct import | Engine is called from both tRPC mutation and cron handler |
+| `report-engine.js` ↔ `chart-renderer.js` | Direct import | Engine builds chart specs; renderer calls QuickChart and returns buffers |
+| `chart-renderer.js` ↔ Vercel Blob | Direct import (`@vercel/blob`) | Renderer optionally stores PNGs to Blob for persistent URLs |
+| `pdf-exporter.js` ↔ `chart-renderer.js` | Receives pre-fetched base64 from engine output | Exporter does not call QuickChart directly |
+| `distributor.js` ↔ existing `Report` row | Reads from DB by `reportId` | Distributor fetches chart URLs from `Report.chartUrls` |
+| New cron ↔ `vercel.json` | Add one new cron entry | Follows existing pattern of 10 cron entries in vercel.json |
+| New tRPC procedures ↔ `lib/routers/app.js` | `reportsRouter` already registered | No change to `appRouter` needed — extend `reportsRouter` only |
 
 ---
 
@@ -287,179 +502,131 @@ Rendered as timeline: date / action / query string / rationale
 
 Dependencies between components dictate this order:
 
-**1. Schema first** — Add `SWT_ANALYSIS` to `InsightType` enum and create `QueryExpansionLog` model. This unblocks everything else. One migration.
+**1. Schema migrations first** — Add `ReportSchedule`, `ReportDelivery`, and extend `Report` model with `chartUrls`, `pdfUrl`, `coveragePeriod`, `benchmarkPeriod`. One migration unblocks all downstream work.
 
-**2. SWT Analyzer next** — The `lib/swt-analyzer.js` module + `swt-analysis` cron is the highest-value deliverable and has zero dependencies on the expansion engine. Build and validate it in isolation before touching query management.
+**2. Chart Renderer** — `lib/chart-renderer.js` has no dependencies on other new components. Build and verify with a standalone test (POST to QuickChart.io, receive PNG) before integrating. This is the most externally-dependent piece — validate it works in Vercel's network before building on top of it.
 
-**3. tRPC read procedures** — Once the analyzer cron can write `AIInsight` records, add `listening.swtInsights` and cache layer so the frontend can read them.
+**3. Report Engine (core)** — Extend `lib/ai/reports.js` with richer content schemas (inline KPI blocks, benchmark deltas). Build `lib/report-engine.js` orchestrator calling existing data queries + Claude + chart renderer. Wire into the existing `reports.generate` tRPC mutation first to validate end-to-end before adding scheduling.
 
-**4. Frontend SWT panel** — Once the tRPC procedure returns real data, build the UI. This can be stubbed with mock data during development.
+**4. Distribution Engine** — `lib/distributor.js` with email and Slack. Build email first (nodemailer is already installed; it's lower risk). Add Slack after email is validated. Test against real Slack webhook before wiring into the cron.
 
-**5. Query Expansion Engine** — Build `lib/query-expander.js` + cron last, because it depends on the existing query performance data being reliable. It also carries more risk (autonomous writes), so having SWT working first means the milestone delivers value even if expansion needs more tuning.
+**5. PDF Exporter** — `lib/pdf-exporter.js` using `@react-pdf/renderer`. This requires charts to be rendered as base64 first (depends on step 2). Validate PDF output in an isolated API route before integrating the export button.
 
-**6. Expansion log UI** — Lowest priority, cosmetic. Add after expansion engine is validated.
+**6. Conversational Chat** — `reports.chat` tRPC procedure with `lib/report-chat.js`. Can be built in parallel with distribution (no dependencies between them). Connect to the frontend chat UI last.
 
----
+**7. Scheduler and Cron** — `lib/report-scheduler.js` + `generate-scheduled-reports` cron. This depends on the report engine working correctly. Build last because it's autonomous — bugs in early iterations won't affect manually-triggered reports.
 
-## Patterns to Follow
-
-### Pattern 1: Shared Logic Module (existing)
-
-**What:** Core logic in `lib/*.js` module, called by both the cron handler and a tRPC trigger.
-
-**Why:** The cron runs autonomously; the tRPC trigger lets admins test on-demand. Same code, two entry points.
-
-**Existing example:** `lib/listening-scanner.js` called by both `app/api/cron/poll-listening/route.js` and `trpc.listening.triggerScan`.
-
-**Apply to:** `lib/swt-analyzer.js` (called by cron + `triggerSwtAnalysis`), `lib/query-expander.js` (called by cron + `triggerExpansion`).
+**8. Frontend enrichment** — Enhance `reports/page.jsx` with `ReportViewer`, chat interface, schedule management. Can be layered on as each backend piece completes.
 
 ---
 
-### Pattern 2: Batch-then-Persist (existing for weekly-ai-insights)
+## Vercel Serverless Constraints
 
-**What:** Accumulate data window → single AI call → persist result. Never call AI per-hit.
-
-**Why:** Costs $0.02-$0.30/day instead of $5-$50/day if called per-hit.
-
-**Apply to:** Both SWT analyzer (batch hits per topic) and expansion engine (batch all topics).
-
----
-
-### Pattern 3: KV Cache for AI Results (existing for platform reads)
-
-**What:** AI outputs are expensive and change slowly. Cache for 24h. Invalidate when a new analysis runs.
-
-**Why:** SWT reads happen every time the listening page loads. Hitting Postgres (or worse, Claude) on every page load is wasteful. KV read is ~1ms.
-
-**Key pattern:**
-```javascript
-const cached = await kv.get(`swt:topic:${topicId}`);
-if (cached) return cached;
-const fresh = await prisma.aIInsight.findFirst(...);
-await kv.set(`swt:topic:${topicId}`, fresh, { ex: 86400 });
-return fresh;
-```
-
----
-
-### Pattern 4: Minimum Data Gate Before AI Call
-
-**What:** Check hit count before calling Claude. Skip analysis if insufficient data.
-
-**Why:** Claude returns poor quality output on 2-3 hits. The minimum threshold (10 hits) prevents noise masquerading as insight.
-
-**Apply to:** SWT analyzer skips topics with < 10 qualifying hits. Query expander skips topics with no performance data (generatedBy='manual', zero hits — can't assess if queries need refinement).
-
----
-
-### Pattern 5: Audit Log for Autonomous Writes
-
-**What:** Every time the expansion engine modifies `ListeningQuery`, write a `QueryExpansionLog` record explaining why.
-
-**Why:** Autonomous systems that silently modify data erode operator trust. The log creates an auditable "AI did X because Y" trail.
-
-**Fields that matter:** `action`, `queryString`, `rationale`, `createdAt`. Human-readable rationale from Claude's output must be preserved verbatim (not truncated).
+| Constraint | Impact | Mitigation |
+|------------|--------|------------|
+| Default function timeout (Fluid Compute enabled) | 300s default on Pro | Report generation (data + AI + charts) typically completes in 20-40s. Well within limit. |
+| Scheduled cron generating 10 reports | Could approach 5 min | Use `export const maxDuration = 300` (already used in `backfill-history`). Run charts in `Promise.all()`. |
+| No persistent in-process state | Can't keep chat sessions in memory | Client sends full message history each turn. Stateless server. |
+| Serverless function cold starts | First PDF request after idle period may be slow | `@react-pdf/renderer` has no Chromium download on cold start — cold start is fast (~200ms). Puppeteer would have a cold start penalty of 2-10s; it is excluded for this reason. |
+| Vercel Blob public access | Chart PNGs stored in Blob must be publicly accessible for Slack | Use `access: 'public'` in Blob `put()` calls for chart images. PDF files can use signed URLs. |
+| No shared filesystem | Cannot write chart PNGs to `/tmp` and read from another function | Use Vercel Blob as the shared layer. All function instances read from the same Blob store. |
 
 ---
 
 ## Anti-Patterns to Avoid
 
-### Anti-Pattern 1: Per-Hit SWT Classification
+### Anti-Pattern 1: Puppeteer/Chromium for PDF Generation
 
-**What people do:** Call Claude for each new `ListeningHit` to classify it as S/W/T on ingestion.
+**What people do:** Use Puppeteer to render a Next.js page as HTML and screenshot it to PDF.
 
-**Why it's wrong:** At 50-200 hits/day across all topics, this costs $5-$50/day in Claude calls. More importantly, individual hits rarely have enough context to classify — the S/W/T signal emerges from patterns across many hits.
+**Why it's wrong for this project:** The Lambda limit for Vercel is 50MB; Chromium binaries are 30-40MB. `@sparticuz/chromium` strips it down but still adds cold start penalty (2-10s Chromium launch). For an internal tool doing at most ~200 PDFs/month, `@react-pdf/renderer` produces higher-quality typographic output at zero marginal infra cost with no cold start.
 
-**Do this instead:** Batch analysis on accumulated hits (7-day window), run once daily. Classification is post-hoc, not inline.
-
----
-
-### Anti-Pattern 2: Running Expansion on Every Poll Cycle
-
-**What people do:** Check for query gaps every time the scanner runs (every 10 minutes).
-
-**Why it's wrong:** Query gaps don't change at 10-minute intervals. Running Claude every 10 minutes on query quality is 144 calls/day instead of 1. The existing query performance counters only become meaningful after hundreds of hits, which takes days.
-
-**Do this instead:** Nightly cron, off-peak. Expansion engine reads the last 7-day performance window, not the last 10 minutes.
+**Do this instead:** `@react-pdf/renderer` with charts pre-rendered as base64 data URIs from QuickChart.io. The PDF layout is code-defined, not HTML-captured.
 
 ---
 
-### Anti-Pattern 3: Replacing All Queries on Each Expansion Run
+### Anti-Pattern 2: Recharts in Server-Side Reports
 
-**What people do:** Delete all queries for a topic and regenerate fresh.
+**What people do:** Try to render Recharts components in API routes or emails to generate chart images.
 
-**Why it's wrong:** Destroys `totalHits`, `actionableHits`, `spamHits`, and `avgHeuristic` counters that the health scoring depends on. Also loses manually curated queries.
+**Why it's wrong:** Recharts requires `window`, `document`, and canvas APIs. These do not exist in Node.js serverless functions. Using `jsdom` or `canvas` as shims adds complexity and produces lower-quality output.
 
-**Do this instead:** Additive-only expansion (create new queries with `generatedBy: 'auto-expand'`). Retirements set `active: false` — never delete. Performance counters accumulate indefinitely.
-
----
-
-### Anti-Pattern 4: Single Monolithic SWT Prompt for All Topics
-
-**What people do:** Send all topics' hits in one giant prompt to save API calls.
-
-**Why it's wrong:** At 60 hits × 150 chars × 10+ topics, the context window becomes enormous, costs more, and the per-brand analysis quality degrades as Claude tries to separate signal for each brand.
-
-**Do this instead:** One Claude call per topic with qualifying data. The loop cost is trivially parallelizable with `Promise.all()` and total daily cost remains low (each call is small).
+**Do this instead:** Keep Recharts for the interactive in-app benchmarks view (where it already works). Use QuickChart.io for all server-side chart rendering — it is browser-independent.
 
 ---
 
-### Anti-Pattern 5: SWT Stored Only in KV (not Postgres)
+### Anti-Pattern 3: Base64 Images Directly in Email HTML
 
-**What people do:** Write SWT results only to Redis, no Postgres record.
+**What people do:** Embed chart images as `<img src="data:image/png;base64,...">` in email HTML bodies.
 
-**Why it's wrong:** KV is ephemeral and has no history. Can't show trend ("threats increased this week"), can't audit what the AI said, can't recover from KV eviction without re-running expensive Claude call.
+**Why it's wrong:** Gmail, Outlook, and most enterprise email clients strip or block inline base64 images. The recipient sees broken image placeholders.
 
-**Do this instead:** Always write to `AIInsight` (Postgres, permanent) first, then populate KV cache as a read-acceleration layer. KV miss → Postgres → repopulate KV.
+**Do this instead:** Use CID-referenced attachments via Nodemailer. The chart PNG travels as an attachment with `cid: 'chart-id@report'`, and the HTML references `<img src="cid:chart-id@report">`. Widely supported across all email clients.
 
 ---
 
-## Integration Points
+### Anti-Pattern 4: External Image URLs in Emails
 
-### External Services
+**What people do:** Use QuickChart.io direct chart URLs in email HTML (`<img src="https://quickchart.io/chart?c=...">`).
 
-| Service | Integration | Notes |
-|---------|-------------|-------|
-| Claude Sonnet 4 | `lib/ai.js` → `generateInsight()` | Existing wrapper handles cost logging, JSON parsing, retries |
-| Vercel Cron | `vercel.json` crons array | Add two new entries: `expand-queries` (daily) and `swt-analysis` (daily) |
-| Vercel KV | `lib/redis.js` → `kv.get/set` | Already used for platform rate limits and Reddit scan throttle |
+**Why it's wrong:** Many corporate email clients block external images by default. The recipient sees a "click to load images" prompt, which most users ignore. Report charts never appear.
 
-### Internal Boundaries
+**Do this instead:** CID-inline the charts (see above). The PNG is fetched at send time (not at view time) and attached to the message.
 
-| Boundary | Communication | Notes |
-|----------|---------------|-------|
-| Expansion Engine ↔ Listening Scanner | Shared DB (ListeningQuery) | Expansion writes queries; scanner reads them. No direct coupling. |
-| SWT Analyzer ↔ Listening Scanner | Shared DB (ListeningHit) | Analyzer reads hits scanner wrote. No direct coupling. |
-| SWT Analyzer ↔ tRPC | Shared DB (AIInsight) + KV | Cron writes; tRPC reads. KV decouples read latency. |
-| Expansion Engine ↔ tRPC | Shared DB (QueryExpansionLog) | Cron writes; tRPC reads audit log. |
-| Both new crons ↔ lib/ai.js | Direct import | Use existing `generateInsight()` wrapper — no new Claude client setup. |
+---
+
+### Anti-Pattern 5: Per-Report Cron Jobs
+
+**What people do:** Create one cron entry per report schedule (e.g., one cron for weekly, one for monthly, one per account).
+
+**Why it's wrong:** The vercel.json cron limit is 100 per project; 11 are already used. More importantly, per-report crons can't share data fetching, making each run independently expensive.
+
+**Do this instead:** One `generate-scheduled-reports` cron runs on the most frequent cadence (weekly). The cron queries `ReportSchedule` records to determine what is due. All data fetching for co-located schedules can share Prisma queries.
+
+---
+
+### Anti-Pattern 6: Chat History Stored Server-Side (Redis)
+
+**What people do:** Persist conversation state in Redis with a session key, allowing short-lived stateless payloads.
+
+**Why it's wrong for this use case:** The scoping conversation is 3-7 turns and completes within a single user session. Adding Redis as session storage introduces a dependency that's not needed — the client already has the full message history in React state. Sending history with each request is idiomatic for LLM APIs.
+
+**Do this instead:** Client maintains message history in React state. Each `reports.chat` call receives the full array of `[{role, content}]`. Server is stateless.
 
 ---
 
 ## Scaling Considerations
 
-| Concern | Current scale (~10 topics) | If topics grow to 50+ |
-|---------|---------------------------|----------------------|
-| SWT analysis cost | ~$0.30/day | ~$1.50/day — still acceptable |
-| SWT analysis duration | ~30s total | ~2-3 min — still within Vercel 5-min cron limit |
-| Expansion engine | 1 batched call/day | May need per-topic calls if prompt gets too large |
-| Hit volume per topic | 10-100/day | May need tighter hit selection (top 30 by heuristic instead of 60) |
-| Vercel function timeout | 30s default | Both crons should use `maxDuration: 300` in route config |
-
-**First bottleneck:** Vercel's 30s default function timeout if topic count grows and SWT runs sequentially. Mitigation: set `export const maxDuration = 300` in the cron route handlers (already used by other crons in the codebase).
+| Concern | Current scale (~10 schedules) | If scale grows to 100+ reports/month |
+|---------|-------------------------------|--------------------------------------|
+| QuickChart.io free tier | 100K images/month; at 5 charts × 10 reports = 50 images/month — 0.05% of limit | Still within free tier at 500 images/month. Professional tier ($40/mo) if needed. |
+| Cron duration | 10 reports × ~30s each = 300s — at the limit | Parallelize generations with `Promise.all()`. With parallel execution, 10 reports × ~30s concurrently fits in 60-90s wall time. |
+| Claude API costs | Haiku at ~$0.05/report × 10 schedules = $0.50/week | Still cheap at 100 reports. |
+| Vercel Blob storage | Each report: 5 charts × ~30KB + 1 PDF × ~200KB = ~350KB. 10 reports/week = ~3.5MB/week | Implement retention policy: delete Blob files after 90 days. Reports older than 90 days → generate on-demand from DB content. |
+| PDF export contention | One PDF per user click — low volume | PDF generation is on-demand, not queued. No bottleneck until concurrent users exceed ~10. |
 
 ---
 
 ## Sources
 
-- Codebase: `/lib/listening-scanner.js` — existing pipeline, scoring, and Reddit throttle patterns
-- Codebase: `/lib/routers/listening.js` — existing tRPC procedures, `generateQueries`, `refineTopicQueries`
-- Codebase: `/app/api/cron/weekly-ai-insights/route.js` — existing pattern for batch AI + AIInsight persistence
-- Codebase: `/prisma/schema.prisma` — existing data model constraints
-- Codebase: `/vercel.json` — cron scheduling slots and timing
-- Codebase: `/lib/ai.js` — `generateInsight()` wrapper used by all AI calls
+- Codebase: `lib/routers/reports.js` — existing tRPC procedures, data query patterns
+- Codebase: `lib/ai.js` — `generateInsight()` wrapper, cost logging
+- Codebase: `app/api/cron/weekly-ai-insights/route.js` — cron pattern with `force-dynamic`, cron auth
+- Codebase: `app/api/cron/backfill-history/route.js` — `export const maxDuration = 300` precedent
+- Codebase: `prisma/schema.prisma` — Report model, existing data models
+- Codebase: `vercel.json` — 10 existing cron entries, scheduling patterns
+- Codebase: `package.json` — confirms `nodemailer@7.0.13`, `@vercel/blob@0.23.0` already installed
+- [QuickChart.io Documentation](https://quickchart.io/documentation/) — POST API, Chart.js v4 support, PNG output
+- [QuickChart.io Pricing](https://quickchart.io/pricing) — 100K free images/month, $40/mo Professional
+- [Vercel Function Duration](https://vercel.com/docs/functions/configuring-functions/duration) — 800s max with Fluid Compute on Pro
+- [Vercel Cron Jobs](https://vercel.com/docs/cron-jobs) — no retries, same timeout as functions
+- [Nodemailer Embedded Images](https://nodemailer.com/message/embedded-images/) — CID attachment pattern
+- [@react-pdf/renderer npm](https://www.npmjs.com/package/@react-pdf/renderer) — v4.3.2, React 18/19 compatible, pure Node.js
+- [react-pdf Next.js 14 integration](https://benhur-martins.medium.com/nextjs-14-and-react-pdf-integration-ccd38b1fd515) — `serverComponentsExternalPackages` config if needed
+- [Slack Incoming Webhooks docs](https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/) — Block Kit support, image blocks require external URLs
+- [Slack Block Kit layouts](https://api.slack.com/messaging/composing/layouts) — modern block types, deprecation of attachments
 
 ---
 
-*Architecture research for: Autonomous Query Management + SWT Insight Engine on Social Command*
-*Researched: 2026-03-14*
+*Architecture research for: Report Center milestone — scheduled generation, conversational scoping, server-side charts, PDF export, email + Slack distribution on Next.js/tRPC/Prisma/Vercel*
+*Researched: 2026-03-15*
