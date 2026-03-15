@@ -94,9 +94,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 05-01: Foundation -- Prisma schema extension, QuickChart.io chart renderer, report content schema
-- [ ] 05-02: Report engine orchestrator -- KPIs, comparison deltas, AI summary, sentiment themes, tRPC wiring
-- [ ] 05-03: Frontend -- ReportViewer component, KPI cards, inline charts, report detail page
+- [x] 05-01: Foundation -- Prisma schema extension, QuickChart.io chart renderer, report content schema
+- [x] 05-02: Report engine orchestrator -- KPIs, comparison deltas, AI summary, sentiment themes, tRPC wiring
+- [x] 05-03: Frontend -- ReportViewer component, KPI cards, inline charts, report detail page
 
 ### Phase 6: Export + Distribution
 **Goal**: Team can export any report as a formatted PDF and distribute reports via email with full visual content inline
@@ -107,11 +107,11 @@ Plans:
   2. Scheduled reports auto-deliver via email to configured recipients with the full visual report rendered inline (not just a link)
   3. Team can configure which email recipients receive reports for each schedule or on-demand share
   4. Every delivery (email send, PDF export) is logged with status (sent/failed), recipient, and timestamp, visible in the report detail UI
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 06-01: TBD
-- [ ] 06-02: TBD
+- [ ] 06-01: PDF export -- branded PDF renderer, API route, Export PDF button
+- [ ] 06-02: Email distribution -- email template, sender, recipient modal, delivery tracking UI
 
 ### Phase 7: Scheduling + Ad Hoc Reports
 **Goal**: Reports generate automatically on configured cadences without manual intervention, and team can create custom ad hoc reports through a guided AI conversation
@@ -156,6 +156,6 @@ Phases execute in numeric order: 5 -> 5.1 -> 6 -> 6.1 -> 7 -> 8
 | 3. Audience Questions | v1.0 | 2/2 | Complete | 2026-03-15 |
 | 4. Content Co-Pilot | v1.0 | 0/3 | Deferred | - |
 | 5. Report Engine + Charts | 3/3 | Complete   | 2026-03-15 | - |
-| 6. Export + Distribution | v1.1 | 0/? | Not started | - |
+| 6. Export + Distribution | v1.1 | 0/2 | Not started | - |
 | 7. Scheduling + Ad Hoc Reports | v1.1 | 0/? | Not started | - |
 | 8. Benchmarking | v1.1 | 0/? | Not started | - |
