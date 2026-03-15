@@ -6,6 +6,7 @@ import { PlatformBadge, Skeleton } from '@/components/ui';
 import { useToast } from '@/components/ui';
 import PerformanceIntelPanel from '@/components/PerformanceIntelPanel';
 import CompetitorIntelPanel from '@/components/CompetitorIntelPanel';
+import AudienceQuestionsPanel from '@/components/AudienceQuestionsPanel';
 
 export default function ComposerPage() {
   const [selectedPlatform, setSelectedPlatform] = useState('X');
@@ -906,6 +907,8 @@ export default function ComposerPage() {
                 <PerformanceIntelPanel />
                 <div className="border-t border-border pt-3" />
                 <CompetitorIntelPanel />
+                <div className="border-t border-border pt-3" />
+                <AudienceQuestionsPanel />
               </div>
             ) : sidebarTab === 'drafts' ? (
               <div className="space-y-1.5">
