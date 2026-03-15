@@ -4,15 +4,15 @@
 
 See: .planning/PROJECT.md (updated 2026-03-14)
 
-**Core value:** Every relevant conversation about our brands and competitors is captured automatically, and the AI surfaces actionable patterns (strengths to amplify, weaknesses to address, threats to counter) — not just summaries.
-**Current focus:** Phase 1 — Schema Foundation
+**Core value:** Team can compose high-performing content informed by real data on what works, what competitors do, and what the audience needs.
+**Current focus:** Phase 1 -- Performance Intel
 
 ## Current Position
 
-Phase: 1 of 3 (Schema Foundation)
+Phase: 1 of 4 (Performance Intel)
 Plan: 0 of TBD in current phase
 Status: Ready to plan
-Last activity: 2026-03-14 — Roadmap created, milestone initialized
+Last activity: 2026-03-14 -- Roadmap created for Content Intelligence milestone
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -20,7 +20,7 @@ Progress: [░░░░░░░░░░] 0%
 
 **Velocity:**
 - Total plans completed: 0
-- Average duration: —
+- Average duration: --
 - Total execution time: 0 hours
 
 **By Phase:**
@@ -30,8 +30,8 @@ Progress: [░░░░░░░░░░] 0%
 | - | - | - | - |
 
 **Recent Trend:**
-- Last 5 plans: —
-- Trend: —
+- Last 5 plans: --
+- Trend: --
 
 *Updated after each plan completion*
 
@@ -42,9 +42,10 @@ Progress: [░░░░░░░░░░] 0%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- Schema first: `competitorId` FK and `QueryExpansionLog` are required by Phase 3 — building without the migration is impossible
-- SWT before query expansion: SWT has no write-side risk, delivers immediate user value, and validates the AI integration pattern before touching the sensitive query-modification path
-- Use Haiku 4.5 for SWT analysis, Sonnet 4.6 for query generation (quality/cost split)
+- Panels in composer sidebar (not separate pages): insights must be where content decisions happen
+- Build intel panels before co-pilot: co-pilot quality depends on intel data being available and tested
+- Use existing data pipelines: PostMetrics, CompetitorMetrics, ListeningHit already collect the right data
+- Claude Haiku for analysis tasks, Sonnet for co-pilot conversations (cost/quality split)
 
 ### Pending Todos
 
@@ -52,8 +53,7 @@ None yet.
 
 ### Blockers/Concerns
 
-- Entity glossary content (brand names, tickers, competitor terms) requires human curation from the Figure team — needed before Phase 3 gap detection has a source of truth; flag at Phase 1 planning time
-- Expansion staging approval workflow (human review UI vs. automated quality gate) is unresolved — needs product decision before Phase 3 is planned
+- COMP-01 requires capturing competitor post content (text, not just account metrics) -- existing CompetitorMetrics only has aggregate stats. Need to determine API source for competitor posts (SocialData.tools or similar).
 
 ## Session Continuity
 

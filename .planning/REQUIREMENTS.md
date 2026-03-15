@@ -10,7 +10,7 @@ Requirements for this milestone. Each maps to roadmap phases.
 ### Performance Intel
 
 - [ ] **PERF-01**: Team can view published posts ranked by performance tier (top / average / poor) with engagement metrics
-- [ ] **PERF-02**: Team can see pattern analysis — which topics, content formats (thread vs post vs article), and posting times correlate with high performance
+- [ ] **PERF-02**: Team can see pattern analysis -- which topics, content formats (thread vs post vs article), and posting times correlate with high performance
 - [ ] **PERF-03**: Team can view engagement trend sparklines per post showing trajectory over time
 - [ ] **PERF-04**: Insights are displayed as reusable cards in the composer sidebar (e.g., "Threads about RWA outperform single posts by 3.2x")
 
@@ -56,10 +56,10 @@ Deferred to future release. Tracked but not in current roadmap.
 
 | Feature | Reason |
 |---------|--------|
-| Automated posting without human review | Humans decide what gets published — co-pilot assists, doesn't publish |
+| Automated posting without human review | Humans decide what gets published -- co-pilot assists, doesn't publish |
 | Video/media content generation | Text-first for v1, media creation is a different problem |
 | Multi-language content | English only for now |
-| Real-time competitor alerts | Use existing scheduled cron — real-time adds cost and complexity |
+| Real-time competitor alerts | Use existing scheduled cron -- real-time adds cost and complexity |
 | Custom AI model training | Use Claude with few-shot examples, don't fine-tune |
 | A/B testing | High complexity, defer to v2 |
 
@@ -69,29 +69,29 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| PERF-01 | — | Pending |
-| PERF-02 | — | Pending |
-| PERF-03 | — | Pending |
-| PERF-04 | — | Pending |
-| COMP-01 | — | Pending |
-| COMP-02 | — | Pending |
-| COMP-03 | — | Pending |
-| COMP-04 | — | Pending |
-| AUDQ-01 | — | Pending |
-| AUDQ-02 | — | Pending |
-| AUDQ-03 | — | Pending |
-| AUDQ-04 | — | Pending |
-| CPLT-01 | — | Pending |
-| CPLT-02 | — | Pending |
-| CPLT-03 | — | Pending |
-| CPLT-04 | — | Pending |
-| CPLT-05 | — | Pending |
+| PERF-01 | Phase 1 | Pending |
+| PERF-02 | Phase 1 | Pending |
+| PERF-03 | Phase 1 | Pending |
+| PERF-04 | Phase 1 | Pending |
+| COMP-01 | Phase 2 | Pending |
+| COMP-02 | Phase 2 | Pending |
+| COMP-03 | Phase 2 | Pending |
+| COMP-04 | Phase 2 | Pending |
+| AUDQ-01 | Phase 3 | Pending |
+| AUDQ-02 | Phase 3 | Pending |
+| AUDQ-03 | Phase 3 | Pending |
+| AUDQ-04 | Phase 3 | Pending |
+| CPLT-01 | Phase 4 | Pending |
+| CPLT-02 | Phase 4 | Pending |
+| CPLT-03 | Phase 4 | Pending |
+| CPLT-04 | Phase 4 | Pending |
+| CPLT-05 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 17 total
-- Mapped to phases: 0
-- Unmapped: 17 ⚠️
+- Mapped to phases: 17
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-14*
-*Last updated: 2026-03-14 after initial definition*
+*Last updated: 2026-03-14 after roadmap creation*
