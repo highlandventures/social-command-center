@@ -107,11 +107,12 @@ Plans:
   2. Scheduled reports auto-deliver via email to configured recipients with the full visual report rendered inline (not just a link)
   3. Team can configure which email recipients receive reports for each schedule or on-demand share
   4. Every delivery (email send, PDF export) is logged with status (sent/failed), recipient, and timestamp, visible in the report detail UI
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
-- [ ] 06-01: PDF export -- branded PDF renderer, API route, Export PDF button
-- [ ] 06-02: Email distribution -- email template, sender, recipient modal, delivery tracking UI
+- [ ] 06-00-PLAN.md -- Wave 0 test scaffolds (pdf-renderer + email-sender stubs)
+- [ ] 06-01-PLAN.md -- PDF export: branded PDF renderer, API route, Export PDF button
+- [ ] 06-02-PLAN.md -- Email distribution: email template, sender, recipient modal, delivery tracking UI
 
 ### Phase 7: Scheduling + Ad Hoc Reports
 **Goal**: Reports generate automatically on configured cadences without manual intervention, and team can create custom ad hoc reports through a guided AI conversation
@@ -156,6 +157,6 @@ Phases execute in numeric order: 5 -> 5.1 -> 6 -> 6.1 -> 7 -> 8
 | 3. Audience Questions | v1.0 | 2/2 | Complete | 2026-03-15 |
 | 4. Content Co-Pilot | v1.0 | 0/3 | Deferred | - |
 | 5. Report Engine + Charts | 3/3 | Complete   | 2026-03-15 | - |
-| 6. Export + Distribution | v1.1 | 0/2 | Not started | - |
+| 6. Export + Distribution | v1.1 | 0/3 | Not started | - |
 | 7. Scheduling + Ad Hoc Reports | v1.1 | 0/? | Not started | - |
 | 8. Benchmarking | v1.1 | 0/? | Not started | - |
