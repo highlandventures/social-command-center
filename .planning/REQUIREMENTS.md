@@ -67,15 +67,15 @@
 
 ### Export
 
-- [ ] **EXPT-01**: Team can export any report as a formatted PDF with KPI cards, executive summary, and chart images
-- [ ] **EXPT-02**: PDF includes topline stats, executive summary, all chart visualizations, and key recommendations
+- [x] **EXPT-01**: Team can export any report as a formatted PDF with KPI cards, executive summary, and chart images
+- [x] **EXPT-02**: PDF includes topline stats, executive summary, all chart visualizations, and key recommendations
 
 ### Distribution
 
-- [ ] **DIST-01**: Scheduled reports auto-deliver via email to configured recipients
-- [ ] **DIST-02**: Email contains full visual report inline (executive summary, KPI table, chart images, recommendations)
-- [ ] **DIST-03**: Team can configure email recipients per schedule
-- [ ] **DIST-04**: Delivery status is logged and visible (sent, failed, recipient, timestamp)
+- [x] **DIST-01**: Scheduled reports auto-deliver via email to configured recipients
+- [x] **DIST-02**: Email contains full visual report inline (executive summary, KPI table, chart images, recommendations)
+- [x] **DIST-03**: Team can configure email recipients per schedule
+- [x] **DIST-04**: Delivery status is logged and visible (sent, failed, recipient, timestamp)
 
 ### Benchmarking
 
@@ -155,12 +155,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | RCNT-05 | Phase 5 | Complete |
 | RCNT-06 | Phase 5 | Complete |
 | RCNT-07 | Phase 5 | Complete |
-| EXPT-01 | Phase 6 | Pending |
-| EXPT-02 | Phase 6 | Pending |
-| DIST-01 | Phase 6 | Pending |
-| DIST-02 | Phase 6 | Pending |
-| DIST-03 | Phase 6 | Pending |
-| DIST-04 | Phase 6 | Pending |
+| EXPT-01 | Phase 6 | Complete |
+| EXPT-02 | Phase 6 | Complete |
+| DIST-01 | Phase 6 | Complete |
+| DIST-02 | Phase 6 | Complete |
+| DIST-03 | Phase 6 | Complete |
+| DIST-04 | Phase 6 | Complete |
 | SCHED-01 | Phase 7 | Pending |
 | SCHED-02 | Phase 7 | Pending |
 | SCHED-03 | Phase 7 | Pending |
