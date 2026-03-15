@@ -12,7 +12,7 @@ Transform the composer from a publishing tool into an intelligence-driven conten
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Performance Intel** - Surface our post performance data as actionable insight cards in the composer sidebar
+- [x] **Phase 1: Performance Intel** - Surface our post performance data as actionable insight cards in the composer sidebar
 - [ ] **Phase 2: Competitor Intel** - Capture competitor post content and extract strategic patterns via AI analysis
 - [ ] **Phase 3: Audience Questions** - Extract, cluster, and score questions from listening hits as content opportunities
 - [ ] **Phase 4: Content Co-Pilot** - Conversational AI agent in the composer with full context on performance, competitors, and audience
@@ -31,8 +31,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md -- Backend API: performanceIntel tRPC router with tier ranking, pattern analysis, sparkline data, and AI insight card generation
-- [ ] 01-02-PLAN.md -- Frontend UI: PerformanceIntelPanel component in composer sidebar with tiered posts, patterns, sparklines, and insight cards
+- [x] 01-01-PLAN.md -- Backend API: performanceIntel tRPC router with tier ranking, pattern analysis, sparkline data, and AI insight card generation
+- [x] 01-02-PLAN.md -- Frontend UI: PerformanceIntelPanel component in composer sidebar with tiered posts, patterns, sparklines, and insight cards
 
 ### Phase 2: Competitor Intel
 **Goal**: Team can understand competitor content strategies -- what they post about, which formats work for them, and how we compare
@@ -43,11 +43,11 @@ Plans:
   2. Team can open a competitor intel panel in the composer and see AI-extracted themes with frequency counts showing what competitors talk about most
   3. Team can see which content formats competitors use and which formats drive their highest engagement
   4. Team can view a per-competitor strategy card showing posting cadence, top themes, and engagement benchmarks compared to our accounts
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
+- [ ] 02-01-PLAN.md -- Backend: CompetitorPost schema, cron stores post content, competitorIntel tRPC router with themes/formatAnalysis/strategyCards
+- [ ] 02-02-PLAN.md -- Frontend: CompetitorIntelPanel component in composer sidebar with strategy cards, themes, and format breakdown
 
 ### Phase 3: Audience Questions
 **Goal**: Team can discover what the audience wants to know and use those questions as content fuel
@@ -87,7 +87,7 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Performance Intel | 0/2 | Planning complete | - |
-| 2. Competitor Intel | 0/0 | Not started | - |
+| 1. Performance Intel | 2/2 | ✅ Complete | 2026-03-14 |
+| 2. Competitor Intel | 0/2 | Planning complete | - |
 | 3. Audience Questions | 0/0 | Not started | - |
 | 4. Content Co-Pilot | 0/0 | Not started | - |
