@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { trpc } from '@/lib/trpc-client';
 import { PlatformBadge, Skeleton } from '@/components/ui';
 import { useToast } from '@/components/ui';
+import PerformanceIntelPanel from '@/components/PerformanceIntelPanel';
 
 export default function ComposerPage() {
   const [selectedPlatform, setSelectedPlatform] = useState('X');
@@ -870,6 +871,7 @@ export default function ComposerPage() {
             {[
               { key: 'drafts', label: 'Drafts', count: drafts.length },
               { key: 'queue', label: 'Queue', count: scheduledPosts.length },
+              { key: 'intel', label: 'Intel' },
               { key: 'ideas', label: 'AI Ideas' },
             ].map((t) => (
               <button
@@ -894,6 +896,8 @@ export default function ComposerPage() {
                   <Skeleton key={i} className="h-16 w-full rounded-lg" />
                 ))}
               </div>
+            ) : sidebarTab === 'intel' ? (
+              <PerformanceIntelPanel />
             ) : sidebarTab === 'drafts' ? (
               <div className="space-y-1.5">
                 {drafts.map((d) => (
