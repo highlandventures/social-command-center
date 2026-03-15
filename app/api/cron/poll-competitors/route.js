@@ -83,20 +83,20 @@ export async function GET(request) {
             postsCount += tweets.length;
 
             for (const tweet of tweets) {
-              const pm = tweet.public_metrics || tweet.metrics || {};
-              const eng =
-                (pm.like_count || pm.likes || 0) +
-                (pm.retweet_count || pm.retweets || 0) +
-                (pm.reply_count || pm.replies || 0) +
-                (pm.quote_count || pm.quotes || 0);
+              // TwitterAPI.io returns metrics at top level (likeCount, retweetCount, etc.)
+              const likes = tweet.likeCount || tweet.like_count || tweet.public_metrics?.like_count || 0;
+              const retweets = tweet.retweetCount || tweet.retweet_count || tweet.public_metrics?.retweet_count || 0;
+              const replies = tweet.replyCount || tweet.reply_count || tweet.public_metrics?.reply_count || 0;
+              const quotes = tweet.quoteCount || tweet.quote_count || tweet.public_metrics?.quote_count || 0;
+              const eng = likes + retweets + replies + quotes;
               totalEngagement += eng;
               tweetCount++;
 
               // Store individual post content + metrics
               const tweetText = tweet.text || tweet.full_text || '';
               const tweetId = tweet.id || tweet.id_str || '';
-              const postedAt = tweet.created_at ? new Date(tweet.created_at) : new Date();
-              const impressionsCount = pm.impression_count || pm.impressions || 0;
+              const postedAt = tweet.createdAt || tweet.created_at ? new Date(tweet.createdAt || tweet.created_at) : new Date();
+              const impressionsCount = tweet.viewCount || tweet.impressionCount || tweet.public_metrics?.impression_count || 0;
               const followersForRate = followersX || 1;
 
               if (tweetId && tweetText) {
@@ -108,10 +108,10 @@ export async function GET(request) {
                     },
                   },
                   update: {
-                    likes: pm.like_count || pm.likes || 0,
-                    retweets: pm.retweet_count || pm.retweets || 0,
-                    replies: pm.reply_count || pm.replies || 0,
-                    quotes: pm.quote_count || pm.quotes || 0,
+                    likes,
+                    retweets,
+                    replies,
+                    quotes,
                     impressions: impressionsCount,
                     engagementRate: followersForRate > 0 ? (eng / followersForRate) * 100 : 0,
                   },
@@ -123,10 +123,10 @@ export async function GET(request) {
                     contentType: 'POST',
                     authorUsername: acct.username,
                     postedAt,
-                    likes: pm.like_count || pm.likes || 0,
-                    retweets: pm.retweet_count || pm.retweets || 0,
-                    replies: pm.reply_count || pm.replies || 0,
-                    quotes: pm.quote_count || pm.quotes || 0,
+                    likes,
+                    retweets,
+                    replies,
+                    quotes,
                     impressions: impressionsCount,
                     engagementRate: followersForRate > 0 ? (eng / followersForRate) * 100 : 0,
                   },
