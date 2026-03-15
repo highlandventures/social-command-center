@@ -1,64 +1,67 @@
-# Requirements: Listening Intelligence
+# Requirements: Content Intelligence System
 
 **Defined:** 2026-03-14
-**Core Value:** Every relevant conversation about our brands and competitors is captured automatically, and the AI surfaces actionable patterns (strengths to amplify, weaknesses to address, threats to counter) — not just summaries.
+**Core Value:** Team can compose high-performing content informed by real data on what works, what competitors do, and what the audience needs.
 
 ## v1 Requirements
 
 Requirements for this milestone. Each maps to roadmap phases.
 
-### Query Autonomy
+### Performance Intel
 
-- [ ] **QAUT-01**: System runs a daily coverage gap detection audit comparing known brands/products/tickers against active queries per platform
-- [ ] **QAUT-02**: System auto-generates new queries for detected coverage gaps (new queries start inactive for safety)
-- [ ] **QAUT-03**: System flags competitors with fewer active queries than owned brands (parity check)
-- [ ] **QAUT-04**: System auto-triggers query refinement when a query's health grade drops to POOR
-- [ ] **QAUT-05**: System enforces a per-topic query ceiling (8-12 active queries) to prevent proliferation
-- [ ] **QAUT-06**: All autonomous query changes are logged with rationale (audit trail)
+- [ ] **PERF-01**: Team can view published posts ranked by performance tier (top / average / poor) with engagement metrics
+- [ ] **PERF-02**: Team can see pattern analysis — which topics, content formats (thread vs post vs article), and posting times correlate with high performance
+- [ ] **PERF-03**: Team can view engagement trend sparklines per post showing trajectory over time
+- [ ] **PERF-04**: Insights are displayed as reusable cards in the composer sidebar (e.g., "Threads about RWA outperform single posts by 3.2x")
 
-### SWT Analysis
+### Competitor Intel
 
-- [ ] **SWT-01**: System runs batch SWT analysis categorizing listening hits into Strengths, Weaknesses, and Threats per brand/competitor
-- [ ] **SWT-02**: Strengths identify what consumers value most about each brand (perceived differentiation)
-- [ ] **SWT-03**: Weaknesses identify consumer-perceived gaps and areas for improvement
-- [ ] **SWT-04**: Threats surface crisis signals: negative narratives gaining traction, emerging competitors, PR risks
-- [ ] **SWT-05**: User can filter SWT insights by individual brand or competitor
-- [ ] **SWT-06**: SWT analysis runs on a scheduled batch cadence (not per-hit) for cost efficiency
-- [ ] **SWT-07**: Each SWT insight shows freshness timestamp ("based on N hits as of [date]")
+- [ ] **COMP-01**: System captures competitor post content (not just account-level metrics) from X and Reddit
+- [ ] **COMP-02**: AI extracts themes and topics competitors are posting about with frequency analysis
+- [ ] **COMP-03**: AI identifies content formats competitors use and which formats get highest engagement
+- [ ] **COMP-04**: Team can view a per-competitor strategy summary (posting cadence, top themes, engagement benchmarks vs ours)
 
-### Infrastructure
+### Audience Questions
 
-- [ ] **INFR-01**: Upgrade Anthropic SDK to support structured outputs (zodOutputFormat)
-- [ ] **INFR-02**: Schema migration adds competitorId FK to ListeningTopic for reliable parity auditing
-- [ ] **INFR-03**: Schema adds QueryExpansionLog model for autonomous change tracking
-- [ ] **INFR-04**: SWT analysis uses Haiku 4.5 for cost efficiency; query generation keeps Sonnet 4
+- [ ] **AUDQ-01**: System extracts questions from listening hits (filtering intent = "question" from mentions, replies, comments)
+- [ ] **AUDQ-02**: Questions are clustered by topic (e.g., "tokenization questions", "staking questions", "Figure vs competitor")
+- [ ] **AUDQ-03**: Unanswered/recurring questions are surfaced as content opportunities
+- [ ] **AUDQ-04**: Each question cluster has a content opportunity score based on volume and engagement
+
+### Content Co-Pilot
+
+- [ ] **CPLT-01**: Chat interface in composer for multi-turn content co-creation conversations
+- [ ] **CPLT-02**: Co-pilot has access to all 3 intel panels as context (performance patterns, competitor themes, audience questions)
+- [ ] **CPLT-03**: Co-pilot learns brand voice from top-performing published posts (uses them as few-shot examples)
+- [ ] **CPLT-04**: Co-pilot can predict performance of drafted content before publishing
+- [ ] **CPLT-05**: Co-pilot can insert drafted content directly into the composer editor
 
 ## v2 Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
 
-### Entity Management
+### Advanced Analytics
 
-- **ENTY-01**: Structured entity glossary of brands, tickers, products, competitor names, and variants
-- **ENTY-02**: Fintech/crypto-aware vocabulary (tickers like $HASH, $YLDS, RWA terminology, community slang)
-- **ENTY-03**: Auto-detect missing common misspellings and name variants
+- **ADVN-01**: A/B test framework for content variants
+- **ADVN-02**: Cross-platform content adaptation (auto-convert X thread to Reddit post)
+- **ADVN-03**: Audience demographic analysis beyond engagement counts
 
-### Extended Analysis
+### Automation
 
-- **EXTD-01**: Cost-per-insight tracking (Claude API cost per SWT analysis run)
-- **EXTD-02**: Real-time threat alerting via push/email notifications
-- **EXTD-03**: Predictive trend forecasting from SWT history
+- **AUTO-01**: Automated content calendar suggestions based on optimal posting patterns
+- **AUTO-02**: Real-time competitor activity alerts
+- **AUTO-03**: Auto-generated weekly content strategy reports
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Real-time SWT on every hit | 10-50x more expensive than batched; low signal on individual hits |
-| Auto-publishing counter-narratives | Crisis response requires human judgment; automated responses can escalate |
-| Custom SWT frameworks (SWOT, PESTLE) | Complexity explosion; validate SWT first before adding extensibility |
-| Per-hit NLP entity extraction | Expensive and inaccurate for niche fintech terms; use query-level scoping instead |
-| Autonomous query deletion | Destroys historical hit associations; deactivate instead |
-| Multi-language queries | English only for now |
+| Automated posting without human review | Humans decide what gets published — co-pilot assists, doesn't publish |
+| Video/media content generation | Text-first for v1, media creation is a different problem |
+| Multi-language content | English only for now |
+| Real-time competitor alerts | Use existing scheduled cron — real-time adds cost and complexity |
+| Custom AI model training | Use Claude with few-shot examples, don't fine-tune |
+| A/B testing | High complexity, defer to v2 |
 
 ## Traceability
 
@@ -66,23 +69,23 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| QAUT-01 | — | Pending |
-| QAUT-02 | — | Pending |
-| QAUT-03 | — | Pending |
-| QAUT-04 | — | Pending |
-| QAUT-05 | — | Pending |
-| QAUT-06 | — | Pending |
-| SWT-01 | — | Pending |
-| SWT-02 | — | Pending |
-| SWT-03 | — | Pending |
-| SWT-04 | — | Pending |
-| SWT-05 | — | Pending |
-| SWT-06 | — | Pending |
-| SWT-07 | — | Pending |
-| INFR-01 | — | Pending |
-| INFR-02 | — | Pending |
-| INFR-03 | — | Pending |
-| INFR-04 | — | Pending |
+| PERF-01 | — | Pending |
+| PERF-02 | — | Pending |
+| PERF-03 | — | Pending |
+| PERF-04 | — | Pending |
+| COMP-01 | — | Pending |
+| COMP-02 | — | Pending |
+| COMP-03 | — | Pending |
+| COMP-04 | — | Pending |
+| AUDQ-01 | — | Pending |
+| AUDQ-02 | — | Pending |
+| AUDQ-03 | — | Pending |
+| AUDQ-04 | — | Pending |
+| CPLT-01 | — | Pending |
+| CPLT-02 | — | Pending |
+| CPLT-03 | — | Pending |
+| CPLT-04 | — | Pending |
+| CPLT-05 | — | Pending |
 
 **Coverage:**
 - v1 requirements: 17 total
