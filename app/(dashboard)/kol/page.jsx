@@ -121,6 +121,9 @@ export default function KOLPage() {
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [showAddModal, setShowAddModal] = useState(false);
   const [addForm, setAddForm] = useState(EMPTY_KOL_FORM);
+  const [collapsedSections, setCollapsedSections] = useState({});
+  const [editingKOL, setEditingKOL] = useState(null);
+  const [editForm, setEditForm] = useState({});
 
   // ── tRPC queries ──────────────────────────────────────────
   const kolsQ = trpc.kol.list.useQuery(undefined, { staleTime: 30_000, keepPreviousData: true });
@@ -139,7 +142,7 @@ export default function KOLPage() {
     onSuccess: () => { kolsQ.refetch(); setShowAddModal(false); setAddForm(EMPTY_KOL_FORM); },
   });
   const updateMutation = trpc.kol.update.useMutation({
-    onSuccess: () => kolsQ.refetch(),
+    onSuccess: () => { kolsQ.refetch(); setEditingKOL(null); },
   });
   const deactivateMutation = trpc.kol.deactivate.useMutation({
     onSuccess: () => kolsQ.refetch(),
@@ -173,6 +176,23 @@ export default function KOLPage() {
   const kolActivations = activationsQ.data ?? [];
   const kolPerformanceData = metricsHistoryQ.data ?? [];
   const discoveries = discoverQ.data ?? [];
+
+  const toggleSection = useCallback((sectionType) => {
+    setCollapsedSections((prev) => ({ ...prev, [sectionType]: !prev[sectionType] }));
+  }, []);
+
+  const openEditModal = useCallback((kol) => {
+    setEditForm({
+      name: kol.name,
+      username: kol.username,
+      relationshipType: kol.rawType,
+      cohortId: kol.cohort?.id || '',
+      compensationMonthly: kol.compRaw || '',
+      baselineFollowers: kol.followersRaw || '',
+      baselineEngRate: kol.baselineEngRate || '',
+    });
+    setEditingKOL(kol);
+  }, []);
 
   // ── KOL detail drill-down ─────────────────────────────────
   if (selectedKOL) {
@@ -235,10 +255,30 @@ export default function KOLPage() {
                 </div>
               </div>
             </div>
-            <div className="text-right">
-              <ScoreBadge score={kol.score} />
-              <p className="text-sm text-content-muted mt-1">{kol.scoreLabel}</p>
-              <TrendArrow trend={kol.trend} />
+            <div className="flex items-start gap-3">
+              <div className="flex flex-col gap-1.5">
+                <button
+                  onClick={() => openEditModal(kol)}
+                  className="px-3 py-1.5 bg-surface-secondary text-content-secondary text-xs rounded-lg font-medium hover:bg-surface-tertiary transition-colors"
+                >
+                  Edit Profile
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm(`Remove ${kol.name} from the KOL roster? This can be undone later.`)) {
+                      deactivateMutation.mutate({ kolId: kol.id }, { onSuccess: () => setSelectedKOL(null) });
+                    }
+                  }}
+                  className="px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs rounded-lg font-medium hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                >
+                  Remove KOL
+                </button>
+              </div>
+              <div className="text-right">
+                <ScoreBadge score={kol.score} />
+                <p className="text-sm text-content-muted mt-1">{kol.scoreLabel}</p>
+                <TrendArrow trend={kol.trend} />
+              </div>
             </div>
           </div>
         </div>
@@ -471,6 +511,88 @@ export default function KOLPage() {
             })}
           </div>
         </div>
+
+        {/* Edit KOL Modal (detail view) */}
+        {editingKOL && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setEditingKOL(null)}>
+            <div className="bg-surface-card rounded-xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+              <h2 className="text-lg font-semibold text-content-primary mb-4">Edit KOL &mdash; {editingKOL.name}</h2>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                updateMutation.mutate({
+                  kolId: editingKOL.id,
+                  name: editForm.name,
+                  username: editForm.username.replace(/^@/, ''),
+                  relationshipType: editForm.relationshipType,
+                  ...(editForm.cohortId ? { cohortId: editForm.cohortId } : { cohortId: null }),
+                  compensationMonthly: editForm.compensationMonthly ? Number(editForm.compensationMonthly) : null,
+                  baselineFollowers: editForm.baselineFollowers ? parseInt(editForm.baselineFollowers) : null,
+                  baselineEngRate: editForm.baselineEngRate ? parseFloat(editForm.baselineEngRate) : null,
+                });
+              }} className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-content-secondary mb-1">Name</label>
+                    <input type="text" required value={editForm.name} onChange={(e) => setEditForm(f => ({ ...f, name: e.target.value }))}
+                      className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-content-secondary mb-1">Username</label>
+                    <input type="text" required value={editForm.username} onChange={(e) => setEditForm(f => ({ ...f, username: e.target.value }))}
+                      className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-content-secondary mb-1">Relationship Type</label>
+                  <select value={editForm.relationshipType} onChange={(e) => setEditForm(f => ({ ...f, relationshipType: e.target.value }))}
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-surface-card">
+                    {Object.entries(TYPE_LABELS).filter(([k]) => k !== 'ALL').map(([k, v]) => (
+                      <option key={k} value={k}>{v.replace(/s$/, '')}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-content-secondary mb-1">Cohort</label>
+                  <select value={editForm.cohortId} onChange={(e) => setEditForm(f => ({ ...f, cohortId: e.target.value }))}
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-surface-card">
+                    <option value="">No cohort</option>
+                    {(cohortsQ.data || []).map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-content-secondary mb-1">Comp ($/mo)</label>
+                    <input type="number" value={editForm.compensationMonthly} onChange={(e) => setEditForm(f => ({ ...f, compensationMonthly: e.target.value }))}
+                      className="w-full px-3 py-2 border border-border rounded-lg text-sm" placeholder="0" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-content-secondary mb-1">Followers</label>
+                    <input type="number" value={editForm.baselineFollowers} onChange={(e) => setEditForm(f => ({ ...f, baselineFollowers: e.target.value }))}
+                      className="w-full px-3 py-2 border border-border rounded-lg text-sm" placeholder="0" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-content-secondary mb-1">Eng. Rate %</label>
+                    <input type="number" step="0.1" value={editForm.baselineEngRate} onChange={(e) => setEditForm(f => ({ ...f, baselineEngRate: e.target.value }))}
+                      className="w-full px-3 py-2 border border-border rounded-lg text-sm" placeholder="0.0" />
+                  </div>
+                </div>
+                {updateMutation.error && (
+                  <p className="text-sm text-red-600">{updateMutation.error.message}</p>
+                )}
+                <div className="flex justify-end gap-2 pt-2">
+                  <button type="button" onClick={() => setEditingKOL(null)}
+                    className="px-4 py-2 text-sm text-content-secondary hover:text-content-primary">Cancel</button>
+                  <button type="submit" disabled={updateMutation.isLoading}
+                    className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm rounded-lg hover:bg-gray-800 disabled:opacity-50">
+                    {updateMutation.isLoading ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -567,11 +689,15 @@ export default function KOLPage() {
 
                   return (
                     <div key={sectionType} className="bg-surface-card rounded-xl border border-border overflow-x-auto">
-                      {/* Section header */}
-                      <div className={`px-5 py-3 border-b border-border-secondary flex items-center justify-between`}>
+                      {/* Section header — clickable accordion */}
+                      <button
+                        type="button"
+                        onClick={() => toggleSection(sectionType)}
+                        className={`w-full px-5 py-3 ${collapsedSections[sectionType] ? '' : 'border-b border-border-secondary'} flex items-center justify-between cursor-pointer hover:bg-surface-hover transition-colors`}
+                      >
                         <div className="flex items-center gap-3">
                           <span className="text-lg">{TYPE_ICONS[sectionType]}</span>
-                          <div>
+                          <div className="text-left">
                             <h3 className="text-sm font-semibold text-content-primary">{TYPE_LABELS[sectionType]}</h3>
                             <p className="text-xs text-content-muted">{TYPE_DESCRIPTIONS[sectionType]}</p>
                           </div>
@@ -580,10 +706,11 @@ export default function KOLPage() {
                           <span><strong className="text-content-primary">{sectionKols.length}</strong> KOLs</span>
                           <span><strong className="text-content-primary">{sectionActivations}</strong> activations</span>
                           <span><strong className="text-content-primary">{sectionAvgEng}%</strong> avg eng.</span>
+                          <svg className={`w-4 h-4 text-content-muted transition-transform ${collapsedSections[sectionType] ? '' : 'rotate-180'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                         </div>
-                      </div>
-                      {/* Section table */}
-                      <table className="w-full text-sm min-w-[900px]">
+                      </button>
+                      {/* Section table — collapsible */}
+                      {!collapsedSections[sectionType] && <table className="w-full text-sm min-w-[900px]">
                         <thead>
                           <tr className="border-b border-border-secondary bg-surface-page/50">
                             {['KOL', 'Platform', 'Followers', 'Activations', 'Avg Eng.', 'Impressions', 'Sentiment', 'ROI', 'Actions'].map((h) => (
@@ -659,7 +786,7 @@ export default function KOLPage() {
                             </tr>
                           ))}
                         </tbody>
-                      </table>
+                      </table>}
                     </div>
                   );
                 })}
@@ -824,6 +951,88 @@ export default function KOLPage() {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Edit KOL Modal */}
+      {editingKOL && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setEditingKOL(null)}>
+          <div className="bg-surface-card rounded-xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-content-primary mb-4">Edit KOL &mdash; {editingKOL.name}</h2>
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              updateMutation.mutate({
+                kolId: editingKOL.id,
+                name: editForm.name,
+                username: editForm.username.replace(/^@/, ''),
+                relationshipType: editForm.relationshipType,
+                ...(editForm.cohortId ? { cohortId: editForm.cohortId } : { cohortId: null }),
+                compensationMonthly: editForm.compensationMonthly ? Number(editForm.compensationMonthly) : null,
+                baselineFollowers: editForm.baselineFollowers ? parseInt(editForm.baselineFollowers) : null,
+                baselineEngRate: editForm.baselineEngRate ? parseFloat(editForm.baselineEngRate) : null,
+              });
+            }} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-content-secondary mb-1">Name</label>
+                  <input type="text" required value={editForm.name} onChange={(e) => setEditForm(f => ({ ...f, name: e.target.value }))}
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-content-secondary mb-1">Username</label>
+                  <input type="text" required value={editForm.username} onChange={(e) => setEditForm(f => ({ ...f, username: e.target.value }))}
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-content-secondary mb-1">Relationship Type</label>
+                <select value={editForm.relationshipType} onChange={(e) => setEditForm(f => ({ ...f, relationshipType: e.target.value }))}
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-surface-card">
+                  {Object.entries(TYPE_LABELS).filter(([k]) => k !== 'ALL').map(([k, v]) => (
+                    <option key={k} value={k}>{v.replace(/s$/, '')}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-content-secondary mb-1">Cohort</label>
+                <select value={editForm.cohortId} onChange={(e) => setEditForm(f => ({ ...f, cohortId: e.target.value }))}
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm bg-surface-card">
+                  <option value="">No cohort</option>
+                  {(cohortsQ.data || []).map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-content-secondary mb-1">Comp ($/mo)</label>
+                  <input type="number" value={editForm.compensationMonthly} onChange={(e) => setEditForm(f => ({ ...f, compensationMonthly: e.target.value }))}
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm" placeholder="0" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-content-secondary mb-1">Followers</label>
+                  <input type="number" value={editForm.baselineFollowers} onChange={(e) => setEditForm(f => ({ ...f, baselineFollowers: e.target.value }))}
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm" placeholder="0" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-content-secondary mb-1">Eng. Rate %</label>
+                  <input type="number" step="0.1" value={editForm.baselineEngRate} onChange={(e) => setEditForm(f => ({ ...f, baselineEngRate: e.target.value }))}
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm" placeholder="0.0" />
+                </div>
+              </div>
+              {updateMutation.error && (
+                <p className="text-sm text-red-600">{updateMutation.error.message}</p>
+              )}
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setEditingKOL(null)}
+                  className="px-4 py-2 text-sm text-content-secondary hover:text-content-primary">Cancel</button>
+                <button type="submit" disabled={updateMutation.isLoading}
+                  className="px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm rounded-lg hover:bg-gray-800 disabled:opacity-50">
+                  {updateMutation.isLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
