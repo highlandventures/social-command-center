@@ -17,6 +17,8 @@ import { ticketsRouter } from './tickets';
 import { copilotRouter } from './copilot';
 import { schedulesRouter } from './schedules';
 import { adhocReportsRouter } from './adhoc-reports';
+import { approvalsRouter } from './approvals';
+import { milestonesRouter } from './milestones';
 
 export const appRouter = router({
   accounts: accountsRouter,
@@ -37,6 +39,8 @@ export const appRouter = router({
   copilot: copilotRouter,
   schedules: schedulesRouter,
   adhocReports: adhocReportsRouter,
+  approvals: approvalsRouter,
+  milestones: milestonesRouter,
 });
 
 /** @typedef {typeof appRouter} AppRouter */

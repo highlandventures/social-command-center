@@ -27,15 +27,16 @@ model User {
   lastActiveAt DateTime?
 
   // Relations
-  sessions       Session[]
-  accountAccess  UserAccountAccess[]
-  approvalsMade  ApprovalRequest[]   @relation("reviewer")
-  auditLogs      AuditLog[]
-  posts          Post[]              @relation("createdBy")
-  alertRules     AlertRule[]
-  aiInsights     AIInsight[]
-  tickets        Ticket[]
-  copilotThreads CopilotThread[]
+  sessions           Session[]
+  accountAccess      UserAccountAccess[]
+  approvalsRequested ApprovalRequest[] @relation("approvalRequester")
+  approvalsMade      ApprovalRequest[] @relation("reviewer")
+  auditLogs          AuditLog[]
+  posts              Post[]            @relation("createdBy")
+  alertRules         AlertRule[]
+  aiInsights         AIInsight[]
+  tickets            Ticket[]
+  copilotThreads     CopilotThread[]
 
   @@map("users")
 }
@@ -136,6 +137,7 @@ model Post {
   subreddit      String? // Reddit only
   flairId        String? // Reddit only
   articleTitle   String? // X Articles only
+  notionPageId   String? // Notion page ID for L&C review integration
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
@@ -703,10 +705,28 @@ model ApprovalRequest {
   requestedAt     DateTime       @default(now())
   reviewedAt      DateTime?
 
-  post     Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
-  reviewer User? @relation("reviewer", fields: [reviewedById], references: [id])
+  post        Post              @relation(fields: [postId], references: [id], onDelete: Cascade)
+  requestedBy User              @relation("approvalRequester", fields: [requestedById], references: [id])
+  reviewer    User?             @relation("reviewer", fields: [reviewedById], references: [id])
+  comments    ApprovalComment[]
 
+  @@index([status])
   @@map("approval_requests")
+}
+
+model ApprovalComment {
+  id                String   @id @default(cuid())
+  approvalRequestId String
+  authorName        String
+  content           String
+  source            String   @default("app") // "app" | "notion"
+  notionCommentId   String? // For dedup during Notion sync
+  createdAt         DateTime @default(now())
+
+  approvalRequest ApprovalRequest @relation(fields: [approvalRequestId], references: [id], onDelete: Cascade)
+
+  @@index([approvalRequestId])
+  @@map("approval_comments")
 }
 
 enum ApprovalStatus {
@@ -978,4 +998,22 @@ model AdHocReportMessage {
 
   @@index([adHocId, createdAt])
   @@map("adhoc_report_messages")
+}
+
+// ============================================================
+// MILESTONES (Benchmarking)
+// ============================================================
+
+model Milestone {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([startDate, endDate])
+  @@map("milestones")
 }
