@@ -72,9 +72,9 @@
 
 ### Distribution
 
-- [x] **DIST-01**: Scheduled reports auto-deliver via email to configured recipients
+- [ ] **DIST-01**: Scheduled reports auto-deliver via email to configured recipients *(moved to Phase 7 — depends on scheduling infrastructure)*
 - [x] **DIST-02**: Email contains full visual report inline (executive summary, KPI table, chart images, recommendations)
-- [x] **DIST-03**: Team can configure email recipients per schedule
+- [ ] **DIST-03**: Team can configure email recipients per schedule *(moved to Phase 7 — depends on scheduling infrastructure)*
 - [x] **DIST-04**: Delivery status is logged and visible (sent, failed, recipient, timestamp)
 
 ### Benchmarking

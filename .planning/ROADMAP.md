@@ -101,23 +101,22 @@ Plans:
 ### Phase 6: Export + Distribution
 **Goal**: Team can export any report as a formatted PDF and distribute reports via email with full visual content inline
 **Depends on**: Phase 5
-**Requirements**: EXPT-01, EXPT-02, DIST-01, DIST-02, DIST-03, DIST-04
+**Requirements**: EXPT-01, EXPT-02, DIST-02, DIST-04
 **Success Criteria** (what must be TRUE):
   1. Team can click "Export PDF" on any report and download a formatted PDF containing KPI cards, executive summary, chart images, and recommendations
-  2. Scheduled reports auto-deliver via email to configured recipients with the full visual report rendered inline (not just a link)
-  3. Team can configure which email recipients receive reports for each schedule or on-demand share
-  4. Every delivery (email send, PDF export) is logged with status (sent/failed), recipient, and timestamp, visible in the report detail UI
+  2. Team can send any report via email with branded HTML content inline (KPI summary, executive summary, View Full Report CTA) and PDF attached
+  3. Every delivery (email send, PDF export) is logged with status (sent/failed), recipient, and timestamp, visible in the report detail UI
 **Plans**: 3 plans
 
 Plans:
-- [ ] 06-00-PLAN.md -- Wave 0 test scaffolds (pdf-renderer + email-sender stubs)
-- [ ] 06-01-PLAN.md -- PDF export: branded PDF renderer, API route, Export PDF button
-- [ ] 06-02-PLAN.md -- Email distribution: email template, sender, recipient modal, delivery tracking UI
+- [x] 06-00-PLAN.md -- Wave 0 test scaffolds (pdf-renderer + email-sender stubs)
+- [x] 06-01-PLAN.md -- PDF export: branded PDF renderer, API route, Export PDF button
+- [x] 06-02-PLAN.md -- Email distribution: email template, sender, recipient modal, delivery tracking UI
 
 ### Phase 7: Scheduling + Ad Hoc Reports
 **Goal**: Reports generate automatically on configured cadences without manual intervention, and team can create custom ad hoc reports through a guided AI conversation
 **Depends on**: Phase 6
-**Requirements**: SCHED-01, SCHED-02, SCHED-03, SCHED-04, ADHC-01, ADHC-02, ADHC-03, ADHC-04, ADHC-05
+**Requirements**: SCHED-01, SCHED-02, SCHED-03, SCHED-04, DIST-01, DIST-03, ADHC-01, ADHC-02, ADHC-03, ADHC-04, ADHC-05
 **Success Criteria** (what must be TRUE):
   1. Team can create a report schedule selecting weekly, monthly, quarterly, or yearly cadence, and reports auto-generate at that cadence without manual intervention
   2. Team can view, enable/disable, edit, and delete report schedules, and see schedule status showing next run, last run, and a link to the latest generated report
