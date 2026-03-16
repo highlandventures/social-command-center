@@ -9,6 +9,7 @@ import {
 } from 'recharts';
 import { trpc } from '@/lib/trpc-client';
 import { MetricCard, SectionTitle, TabButton, PlatformBadge, Skeleton, useChartColors } from '@/components/ui';
+import TicketsTab from '@/components/admin/TicketsTab';
 
 // ── Static roadmap data (internal planning, not from API) ───
 // Last updated: Mar 15, 2026 — v1.1 Report Center milestone
@@ -246,6 +247,7 @@ function AdminContent() {
       <div className="flex items-center gap-2 mb-6 border-b border-border pb-3">
         {[
           { key: 'settings', label: 'Settings' },
+          { key: 'tickets', label: 'Tickets' },
           { key: 'costs', label: 'Cost Tracker' },
           { key: 'roadmap', label: 'Roadmap' },
         ].map((t) => (
@@ -549,6 +551,11 @@ function AdminContent() {
           </div>
         </div>
       )}
+
+      {/* ══════════════════════════════════════════════════════════
+          TICKETS TAB — bug reports & feature requests
+         ══════════════════════════════════════════════════════════ */}
+      {subTab === 'tickets' && <TicketsTab />}
 
       {/* ══════════════════════════════════════════════════════════
           COST TRACKER TAB — real data only
@@ -902,8 +909,72 @@ function AdminContent() {
               </div>
             );
           })}
+
+          {/* ── User-Requested Features ────────────────────────── */}
+          <UserRequestedFeatures />
         </div>
       )}
+    </div>
+  );
+}
+
+// ── User-Requested Features (roadmap integration) ──────────
+function UserRequestedFeatures() {
+  const featureQ = trpc.tickets.featureRequests.useQuery(undefined, { staleTime: 30_000 });
+  const features = featureQ.data;
+
+  if (!features?.length) return null;
+
+  const grouped = {
+    OPEN: features.filter((f) => f.status === 'OPEN' || f.status === 'IN_PROGRESS'),
+    DEFERRED: features.filter((f) => f.status === 'DEFERRED'),
+    RESOLVED: features.filter((f) => f.status === 'RESOLVED'),
+  };
+
+  const priorityColor = {
+    LOW: 'bg-gray-300',
+    MEDIUM: 'bg-blue-400',
+    HIGH: 'bg-orange-400',
+    CRITICAL: 'bg-red-400',
+  };
+
+  return (
+    <div className="mt-8">
+      <div className="flex items-center gap-3 mb-4">
+        <h3 className="text-lg font-bold text-content-primary">User-Requested Features</h3>
+        <span className="px-2.5 py-0.5 text-xs font-medium rounded-full border bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800">
+          {features.length} request{features.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+
+      {Object.entries(grouped).map(([status, items]) => {
+        if (!items.length) return null;
+        const statusLabels = { OPEN: 'Active Requests', DEFERRED: 'Deferred', RESOLVED: 'Completed' };
+        return (
+          <div key={status} className="bg-surface-card rounded-xl border border-border p-5 mb-3">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="font-semibold text-content-primary">{statusLabels[status]}</h4>
+              <span className="text-sm text-content-muted">{items.length} item{items.length !== 1 ? 's' : ''}</span>
+            </div>
+            <div className="space-y-2">
+              {items.map((item) => (
+                <div key={item.id} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-surface-hover">
+                  <div className="flex items-center gap-3">
+                    <span className={`w-2 h-2 rounded-full ${priorityColor[item.priority]}`} />
+                    <span className="text-sm text-content-primary">{item.title}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-content-muted">{item.createdBy?.name || item.createdBy?.email}</span>
+                    <span className="px-2 py-0.5 text-xs rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                      {item.priority}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

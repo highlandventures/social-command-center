@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Report Center
 status: executing
-stopped_at: Completed 04-00-PLAN.md
-last_updated: "2026-03-16T17:43:45.988Z"
-last_activity: 2026-03-15 -- Completed 06-02 (Email Distribution)
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-03-16T17:47:58.420Z"
+last_activity: 2026-03-16 -- Completed 04-00 (Wave 0 Test Scaffolds)
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 15
-  completed_plans: 13
-  percent: 80
+  completed_plans: 14
+  percent: 87
 ---
 
 # Project State
@@ -59,6 +59,7 @@ Progress: [█████████░] 87% (13/15 plans complete)
 | Phase 06 P01 | 6min | 2 tasks | 7 files |
 | Phase 06 P02 | 8min | 3 tasks | 6 files |
 | Phase 04 P00 | 2min | 1 tasks | 4 files |
+| Phase 04 P01 | 5min | 2 tasks | 12 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,8 @@ Recent decisions affecting current work:
 - [Phase 06]: Email failures logged as FAILED ReportDelivery records (never silently lost)
 - [Phase 06]: Recipient defaults stored in localStorage, pre-filled on modal open
 - [Phase 04]: Wave 0 test stubs use describe.skip with dynamic imports for pre-implementation scaffolding
+- [Phase 04]: Hybrid architecture: streaming via plain API route, CRUD via tRPC (v10 lacks SSE)
+- [Phase 04]: Vercel AI SDK streamText + onFinish for message persistence and cost logging
 
 ### Pending Todos
 
@@ -103,6 +106,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T17:43:45.986Z
-Stopped at: Completed 04-00-PLAN.md
+Last session: 2026-03-16T17:47:58.417Z
+Stopped at: Completed 04-01-PLAN.md
 Resume file: None

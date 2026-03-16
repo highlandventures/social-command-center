@@ -28,7 +28,7 @@
 
 ### Content Co-Pilot
 
-- [ ] **CPLT-01**: Chat interface in composer for multi-turn content co-creation conversations
+- [x] **CPLT-01**: Chat interface in composer for multi-turn content co-creation conversations
 - [x] **CPLT-02**: Co-pilot has access to all 3 intel panels as context (performance patterns, competitor themes, audience questions)
 - [x] **CPLT-03**: Co-pilot learns brand voice from top-performing published posts (uses them as few-shot examples)
 - [x] **CPLT-04**: Co-pilot can predict performance of drafted content before publishing
