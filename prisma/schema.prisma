@@ -34,6 +34,8 @@ model User {
   posts         Post[]              @relation("createdBy")
   alertRules    AlertRule[]
   aiInsights    AIInsight[]
+  tickets       Ticket[]
+  copilotThreads CopilotThread[]
 
   @@map("users")
 }
@@ -767,6 +769,39 @@ enum ReportStatus {
 }
 
 // ============================================================
+// COPILOT (Content Co-Pilot)
+// ============================================================
+
+model CopilotThread {
+  id        String   @id @default(cuid())
+  userId    String
+  accountId String?
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages CopilotMessage[]
+
+  @@index([userId, updatedAt])
+  @@map("copilot_threads")
+}
+
+model CopilotMessage {
+  id        String   @id @default(cuid())
+  threadId  String
+  role      String
+  content   String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  thread CopilotThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+  @@map("copilot_messages")
+}
+
+// ============================================================
 // AUDIT LOG
 // ============================================================
 
@@ -820,4 +855,65 @@ model CacheEntry {
 
   @@index([expiresAt])
   @@map("cache_entries")
+}
+
+// ============================================================
+// TICKETS (Bug Reports & Feature Requests)
+// ============================================================
+
+model Ticket {
+  id            String          @id @default(cuid())
+  type          TicketType
+  status        TicketStatus    @default(OPEN)
+  priority      TicketPriority  @default(MEDIUM)
+  title         String
+  description   String
+  screenshots   Json?           // [{ url, filename }]
+  createdById   String
+  aiAnalysis    Json?           // { summary, suggestedFix, filesAffected, confidence }
+  resolution    String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  resolvedAt    DateTime?
+
+  createdBy     User            @relation(fields: [createdById], references: [id])
+  comments      TicketComment[]
+
+  @@index([type, status])
+  @@index([createdById])
+  @@map("tickets")
+}
+
+model TicketComment {
+  id         String   @id @default(cuid())
+  ticketId   String
+  authorName String   // user name or "Claude AI"
+  content    String
+  createdAt  DateTime @default(now())
+
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@map("ticket_comments")
+}
+
+enum TicketType {
+  BUG
+  FEATURE_REQUEST
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  AI_REVIEWING
+  RESOLVED
+  WONT_FIX
+  DEFERRED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
