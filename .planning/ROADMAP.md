@@ -136,11 +136,12 @@ Plans:
   3. Team can open an in-app chat, describe what they want a report to cover, and the AI asks clarifying questions to scope the report before generating it
   4. Ad hoc reports support snapshot re-runs (re-check metrics at configured intervals) and manual re-trigger via a "Re-run" button
   5. Chat conversation state for ad hoc report scoping persists across page refreshes
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 07-01: TBD
-- [ ] 07-02: TBD
+- [ ] 07-00-PLAN.md -- Wave 0 test scaffolds (scheduling + ad hoc report stubs)
+- [ ] 07-01-PLAN.md -- Scheduling: Prisma schema, tRPC CRUD, cron route, email delivery, management UI
+- [ ] 07-02-PLAN.md -- Ad hoc reports: Prisma schema, AI chat scoping, param extraction, re-runs, snapshots, UI
 
 ### Phase 8: Benchmarking
 **Goal**: Team can compare report metrics against previous time periods and custom milestones to understand performance trends and event impact
@@ -168,7 +169,7 @@ Phases execute in numeric order: 5 -> 5.1 -> 6 -> 6.1 -> 7 -> 8
 | 2. Competitor Intel | v1.0 | 2/2 | Complete | 2026-03-14 |
 | 3. Audience Questions | v1.0 | 2/2 | Complete | 2026-03-15 |
 | 4. Content Co-Pilot | v1.0 | 3/3 | Complete | 2026-03-16 |
-| 5. Report Engine + Charts | 3/3 | Complete   | 2026-03-15 | - |
-| 6. Export + Distribution | 3/3 | Complete   | 2026-03-16 | - |
-| 7. Scheduling + Ad Hoc Reports | v1.1 | 0/? | Not started | - |
+| 5. Report Engine + Charts | v1.1 | 3/3 | Complete | 2026-03-15 |
+| 6. Export + Distribution | v1.1 | 3/3 | Complete | 2026-03-16 |
+| 7. Scheduling + Ad Hoc Reports | v1.1 | 0/3 | Planned | - |
 | 8. Benchmarking | v1.1 | 0/? | Not started | - |
