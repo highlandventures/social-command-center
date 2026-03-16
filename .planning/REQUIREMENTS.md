@@ -82,7 +82,7 @@
 - [x] **BNCH-01**: Team can compare report metrics against a previous equivalent period (WoW, MoM, QoQ, YoY)
 - [x] **BNCH-02**: Team can create named milestones (product launches, events) with start/end dates
 - [x] **BNCH-03**: Team can benchmark a report against a named milestone's time period
-- [ ] **BNCH-04**: Benchmark comparisons show absolute values and percentage deltas with directional indicators
+- [x] **BNCH-04**: Benchmark comparisons show absolute values and percentage deltas with directional indicators
 
 ## Future Requirements
 
@@ -173,7 +173,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BNCH-01 | Phase 8 | Complete |
 | BNCH-02 | Phase 8 | Complete |
 | BNCH-03 | Phase 8 | Complete |
-| BNCH-04 | Phase 8 | Pending |
+| BNCH-04 | Phase 8 | Complete |
 
 **Coverage:**
 - v1.0 requirements: 12 complete, 5 deferred
