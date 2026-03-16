@@ -42,10 +42,10 @@
 
 ### Scheduling
 
-- [ ] **SCHED-01**: Team can create a report schedule with weekly, monthly, quarterly, or yearly cadence
-- [ ] **SCHED-02**: Scheduled reports auto-generate at configured cadence without manual intervention
-- [ ] **SCHED-03**: Team can enable/disable, edit, and delete report schedules
-- [ ] **SCHED-04**: Team can view schedule status (next run, last run, link to latest report)
+- [x] **SCHED-01**: Team can create a report schedule with weekly, monthly, quarterly, or yearly cadence
+- [x] **SCHED-02**: Scheduled reports auto-generate at configured cadence without manual intervention
+- [x] **SCHED-03**: Team can enable/disable, edit, and delete report schedules
+- [x] **SCHED-04**: Team can view schedule status (next run, last run, link to latest report)
 
 ### Report Content
 
@@ -59,11 +59,11 @@
 
 ### Ad Hoc Reports
 
-- [ ] **ADHC-01**: Team can create ad hoc reports through an in-app chat interface
-- [ ] **ADHC-02**: AI asks clarifying questions to scope the report (time range, metrics focus, comparison baseline)
-- [ ] **ADHC-03**: Team can configure snapshot re-runs for ad hoc reports (e.g., at 24h mark, 48h mark)
-- [ ] **ADHC-04**: Team can manually re-trigger any ad hoc report with a "Re-run" button
-- [ ] **ADHC-05**: Chat conversation state persists across page refreshes
+- [x] **ADHC-01**: Team can create ad hoc reports through an in-app chat interface
+- [x] **ADHC-02**: AI asks clarifying questions to scope the report (time range, metrics focus, comparison baseline)
+- [x] **ADHC-03**: Team can configure snapshot re-runs for ad hoc reports (e.g., at 24h mark, 48h mark)
+- [x] **ADHC-04**: Team can manually re-trigger any ad hoc report with a "Re-run" button
+- [x] **ADHC-05**: Chat conversation state persists across page refreshes
 
 ### Export
 
@@ -72,9 +72,9 @@
 
 ### Distribution
 
-- [ ] **DIST-01**: Scheduled reports auto-deliver via email to configured recipients *(moved to Phase 7 — depends on scheduling infrastructure)*
+- [x] **DIST-01**: Scheduled reports auto-deliver via email to configured recipients *(moved to Phase 7 — depends on scheduling infrastructure)*
 - [x] **DIST-02**: Email contains full visual report inline (executive summary, KPI table, chart images, recommendations)
-- [ ] **DIST-03**: Team can configure email recipients per schedule *(moved to Phase 7 — depends on scheduling infrastructure)*
+- [x] **DIST-03**: Team can configure email recipients per schedule *(moved to Phase 7 — depends on scheduling infrastructure)*
 - [x] **DIST-04**: Delivery status is logged and visible (sent, failed, recipient, timestamp)
 
 ### Benchmarking
@@ -161,15 +161,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DIST-02 | Phase 6 | Complete |
 | DIST-03 | Phase 6 | Complete |
 | DIST-04 | Phase 6 | Complete |
-| SCHED-01 | Phase 7 | Pending |
-| SCHED-02 | Phase 7 | Pending |
-| SCHED-03 | Phase 7 | Pending |
-| SCHED-04 | Phase 7 | Pending |
-| ADHC-01 | Phase 7 | Pending |
-| ADHC-02 | Phase 7 | Pending |
-| ADHC-03 | Phase 7 | Pending |
-| ADHC-04 | Phase 7 | Pending |
-| ADHC-05 | Phase 7 | Pending |
+| SCHED-01 | Phase 7 | Complete |
+| SCHED-02 | Phase 7 | Complete |
+| SCHED-03 | Phase 7 | Complete |
+| SCHED-04 | Phase 7 | Complete |
+| ADHC-01 | Phase 7 | Complete |
+| ADHC-02 | Phase 7 | Complete |
+| ADHC-03 | Phase 7 | Complete |
+| ADHC-04 | Phase 7 | Complete |
+| ADHC-05 | Phase 7 | Complete |
 | BNCH-01 | Phase 8 | Pending |
 | BNCH-02 | Phase 8 | Pending |
 | BNCH-03 | Phase 8 | Pending |
