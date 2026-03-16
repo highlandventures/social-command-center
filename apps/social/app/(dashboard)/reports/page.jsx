@@ -76,6 +76,7 @@ export default function ReportsPage() {
           { key: 'benchmarks', label: 'Historical Benchmarks' },
           { key: 'schedules', label: 'Schedules', href: '/reports/schedules' },
           { key: 'adhoc', label: 'Ad Hoc', href: '/reports/adhoc' },
+          { key: 'milestones', label: 'Milestones', href: '/reports/milestones' },
         ].map((t) => (
           t.href ? (
             <Link key={t.key} href={t.href}>
