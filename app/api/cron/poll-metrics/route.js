@@ -1,12 +1,16 @@
 /**
- * Cron: Poll Post Metrics
+ * Cron: Poll Post Metrics + Discover New Tweets
  * Schedule: Every 15 minutes (* /15 * * * *)
  *
- * Adaptive polling: fetches engagement metrics for published posts based on age.
- *   - Posts <2h old: always poll
- *   - Posts 2-48h old: poll (within cycle)
- *   - Posts >48h but <7d: only if last fetched >6h ago
- *   - Posts >7d: skip
+ * Two responsibilities:
+ * 1. METRICS POLLING — adaptive engagement updates for tracked posts:
+ *      - Posts <2h old: always poll
+ *      - Posts 2-48h old: poll (within cycle)
+ *      - Posts >48h but <7d: only if last fetched >6h ago
+ *      - Posts >7d: skip
+ * 2. TWEET DISCOVERY — any tweet in the timeline response that isn't in the
+ *    database gets auto-imported as a PUBLISHED post with an initial metrics
+ *    snapshot. This keeps the dashboard current without running backfill.
  *
  * COST OPTIMIZATION: Uses TwitterAPI.io for reads (~$0.15/1K requests).
  * Fetches each user's timeline once per cycle, then matches post IDs
@@ -48,7 +52,7 @@ export async function GET(request) {
     return NextResponse.json({ error: 'TWITTERAPI_IO_API_KEY not configured' }, { status: 500 });
   }
 
-  const results = { metricsFetched: 0, postsProcessed: 0, apiCalls: 0, followerSnapshots: 0, errors: [] };
+  const results = { metricsFetched: 0, postsProcessed: 0, apiCalls: 0, followerSnapshots: 0, newPostsDiscovered: 0, errors: [] };
 
   try {
     const now = new Date();
@@ -97,6 +101,9 @@ export async function GET(request) {
         xPostsByAccount[account.id] = { account, posts: [] };
       }
     }
+
+    // System user for auto-discovered posts (queried once, not per-account)
+    const systemUser = await prisma.user.findFirst({ orderBy: { createdAt: 'asc' }, select: { id: true } });
 
     // --- FETCH VIA TwitterAPI.io (1 timeline request per account) ---
     for (const { account, posts } of Object.values(xPostsByAccount)) {
@@ -186,6 +193,71 @@ export async function GET(request) {
           } catch (postError) {
             console.error(`Error storing metrics for post ${post.id}:`, postError);
             results.errors.push({ postId: post.id, error: postError.message });
+          }
+        }
+
+        // --- Discover new tweets not yet in the database ---
+        // We already have the timeline response; check for tweets we don't track yet.
+        const knownPlatformIds = new Set(
+          (await prisma.post.findMany({
+            where: { accountId: account.id, platformPostId: { not: null } },
+            select: { platformPostId: true },
+          })).map((p) => p.platformPostId)
+        );
+
+        for (const tweet of tweets) {
+          const tweetId = String(tweet.id);
+          if (!tweetId || !tweet.text || knownPlatformIds.has(tweetId)) continue;
+
+          const publishedAt = tweet.createdAt ? new Date(tweet.createdAt) : null;
+          if (!publishedAt || isNaN(publishedAt.getTime())) continue;
+
+          try {
+            const newPost = await prisma.post.create({
+              data: {
+                accountId: account.id,
+                platform: 'X',
+                platformPostId: tweetId,
+                content: tweet.text,
+                contentType: 'POST',
+                status: 'PUBLISHED',
+                publishedAt,
+                createdById: systemUser.id,
+              },
+            });
+
+            // Create initial metrics snapshot
+            const impressions = tweet.viewCount || 0;
+            const likes = tweet.likeCount || 0;
+            const retweets = tweet.retweetCount || 0;
+            const replies = tweet.replyCount || 0;
+            const bookmarks = tweet.bookmarkCount || 0;
+            const quotes = tweet.quoteCount || 0;
+            const engagements = likes + retweets + replies + bookmarks + quotes;
+            const engagementRate = impressions > 0 ? (engagements / impressions) * 100 : 0;
+
+            await prisma.postMetrics.create({
+              data: {
+                postId: newPost.id,
+                accountId: account.id,
+                impressions,
+                engagements,
+                likes,
+                retweets,
+                replies,
+                bookmarks,
+                engagementRate,
+              },
+            });
+
+            results.newPostsDiscovered++;
+            knownPlatformIds.add(tweetId);
+          } catch (discoverError) {
+            // Skip duplicates from race conditions
+            if (!discoverError.message?.includes('Unique constraint')) {
+              console.error(`[poll-metrics] Error discovering tweet ${tweetId}:`, discoverError.message);
+              results.errors.push({ tweetId, error: discoverError.message });
+            }
           }
         }
       } catch (accountError) {
