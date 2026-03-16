@@ -142,49 +142,86 @@ describe.skip('run-schedules email delivery', () => {
 });
 
 // SCHED-02: computeNextRun helper
-describe.skip('computeNextRun', () => {
+describe('computeNextRun', () => {
   it('adds 7 days for WEEKLY cadence', async () => {
     const { computeNextRun } = await import('@/lib/scheduling/schedule-helpers.js');
     const base = new Date('2026-03-01T00:00:00Z');
-    const next = computeNextRun(base, 'WEEKLY');
+    const next = computeNextRun('WEEKLY', base);
     expect(next.toISOString()).toBe('2026-03-08T00:00:00.000Z');
   });
 
   it('adds 1 month for MONTHLY cadence', async () => {
     const { computeNextRun } = await import('@/lib/scheduling/schedule-helpers.js');
     const base = new Date('2026-03-01T00:00:00Z');
-    const next = computeNextRun(base, 'MONTHLY');
+    const next = computeNextRun('MONTHLY', base);
     expect(next.toISOString()).toBe('2026-04-01T00:00:00.000Z');
   });
 
   it('adds 3 months for QUARTERLY cadence', async () => {
     const { computeNextRun } = await import('@/lib/scheduling/schedule-helpers.js');
     const base = new Date('2026-03-01T00:00:00Z');
-    const next = computeNextRun(base, 'QUARTERLY');
+    const next = computeNextRun('QUARTERLY', base);
     expect(next.toISOString()).toBe('2026-06-01T00:00:00.000Z');
   });
 
   it('adds 1 year for YEARLY cadence', async () => {
     const { computeNextRun } = await import('@/lib/scheduling/schedule-helpers.js');
     const base = new Date('2026-03-01T00:00:00Z');
-    const next = computeNextRun(base, 'YEARLY');
+    const next = computeNextRun('YEARLY', base);
     expect(next.toISOString()).toBe('2027-03-01T00:00:00.000Z');
   });
 });
 
 // SCHED-02: computeDateRange helper
-describe.skip('computeDateRange', () => {
+describe('computeDateRange', () => {
   it('returns 7-day lookback for WEEKLY', async () => {
     const { computeDateRange } = await import('@/lib/scheduling/schedule-helpers.js');
-    const range = computeDateRange(new Date('2026-03-08T00:00:00Z'), 'WEEKLY');
-    expect(range).toHaveProperty('start');
-    expect(range).toHaveProperty('end');
+    const ref = new Date('2026-03-08T00:00:00Z');
+    const range = computeDateRange('WEEKLY', ref);
+    expect(range.dateStart.toISOString()).toBe('2026-03-01T00:00:00.000Z');
+    expect(range.dateEnd.toISOString()).toBe('2026-03-08T00:00:00.000Z');
   });
 
   it('returns 1-month lookback for MONTHLY', async () => {
     const { computeDateRange } = await import('@/lib/scheduling/schedule-helpers.js');
-    const range = computeDateRange(new Date('2026-04-01T00:00:00Z'), 'MONTHLY');
-    expect(range).toHaveProperty('start');
-    expect(range).toHaveProperty('end');
+    const ref = new Date('2026-04-01T00:00:00Z');
+    const range = computeDateRange('MONTHLY', ref);
+    expect(range.dateStart.toISOString()).toBe('2026-03-01T00:00:00.000Z');
+    expect(range.dateEnd.toISOString()).toBe('2026-04-01T00:00:00.000Z');
+  });
+
+  it('returns 3-month lookback for QUARTERLY', async () => {
+    const { computeDateRange } = await import('@/lib/scheduling/schedule-helpers.js');
+    const ref = new Date('2026-06-01T00:00:00Z');
+    const range = computeDateRange('QUARTERLY', ref);
+    expect(range.dateStart.toISOString()).toBe('2026-03-01T00:00:00.000Z');
+    expect(range.dateEnd.toISOString()).toBe('2026-06-01T00:00:00.000Z');
+  });
+
+  it('returns 1-year lookback for YEARLY', async () => {
+    const { computeDateRange } = await import('@/lib/scheduling/schedule-helpers.js');
+    const ref = new Date('2027-03-01T00:00:00Z');
+    const range = computeDateRange('YEARLY', ref);
+    expect(range.dateStart.toISOString()).toBe('2026-03-01T00:00:00.000Z');
+    expect(range.dateEnd.toISOString()).toBe('2027-03-01T00:00:00.000Z');
+  });
+});
+
+// cadenceToReportType helper
+describe('cadenceToReportType', () => {
+  it('maps WEEKLY to WEEKLY_PERFORMANCE', async () => {
+    const { cadenceToReportType } = await import('@/lib/scheduling/schedule-helpers.js');
+    expect(cadenceToReportType('WEEKLY')).toBe('WEEKLY_PERFORMANCE');
+  });
+
+  it('maps MONTHLY to MONTHLY_SUMMARY', async () => {
+    const { cadenceToReportType } = await import('@/lib/scheduling/schedule-helpers.js');
+    expect(cadenceToReportType('MONTHLY')).toBe('MONTHLY_SUMMARY');
+  });
+
+  it('maps QUARTERLY and YEARLY to CUSTOM', async () => {
+    const { cadenceToReportType } = await import('@/lib/scheduling/schedule-helpers.js');
+    expect(cadenceToReportType('QUARTERLY')).toBe('CUSTOM');
+    expect(cadenceToReportType('YEARLY')).toBe('CUSTOM');
   });
 });
