@@ -7,6 +7,7 @@ import { useToast } from '@/components/ui';
 import PerformanceIntelPanel from '@/components/PerformanceIntelPanel';
 import CompetitorIntelPanel from '@/components/CompetitorIntelPanel';
 import AudienceQuestionsPanel from '@/components/AudienceQuestionsPanel';
+import CopilotPanel from '@/components/CopilotPanel';
 
 export default function ComposerPage() {
   const [selectedPlatform, setSelectedPlatform] = useState('X');
@@ -124,12 +125,17 @@ export default function ComposerPage() {
     });
   }, [tweets, postMode, selectedPlatform, predictMutation]);
 
-  // ── Content Ideas ────────────────────────────────────────
-  const [showIdeas, setShowIdeas] = useState(false);
-  const ideasQuery = trpc.ai.suggestContent.useQuery(
-    { limit: 5 },
-    { enabled: showIdeas, staleTime: 5 * 60_000 },
-  );
+  // ── Draft insertion helper ──────────────────────────────
+  function parseDraftToTweets(draftText) {
+    // Try to split by numbered markers (1. / 2. / Tweet 1 / Post 1)
+    const numbered = draftText.split(/\n(?=\d+[.)]\s|Tweet \d|Post \d)/);
+    if (numbered.length > 1) return numbered.map(t => t.replace(/^\d+[.)]\s*/, '').trim()).filter(Boolean);
+    // Fallback: split by double newline
+    const paragraphs = draftText.split(/\n\n+/).filter(Boolean);
+    if (paragraphs.length > 1) return paragraphs;
+    // Single tweet
+    return [draftText.trim()];
+  }
 
   // ── Derived ───────────────────────────────────────────────
   const accounts = accountsQ.data ?? [];
@@ -979,13 +985,12 @@ export default function ComposerPage() {
               { key: 'drafts', label: 'Drafts', count: drafts.length },
               { key: 'queue', label: 'Queue', count: scheduledPosts.length },
               { key: 'intel', label: 'Intel' },
-              { key: 'ideas', label: 'AI Ideas' },
+              { key: 'copilot', label: 'Co-Pilot' },
             ].map((t) => (
               <button
                 key={t.key}
                 onClick={() => {
                   setSidebarTab(t.key);
-                  if (t.key === 'ideas') setShowIdeas(true);
                 }}
                 className={`flex-1 px-2 py-1 text-[10px] font-medium rounded-md transition-colors ${
                   sidebarTab === t.key ? 'bg-surface-card shadow-sm text-content-primary' : 'text-content-muted'
@@ -1107,69 +1112,42 @@ export default function ComposerPage() {
                   </div>
                 ))}
               </div>
+            ) : sidebarTab === 'copilot' ? (
+              <CopilotPanel
+                accountId={selectedAccountId}
+                postMode={postMode}
+                platform={selectedPlatform}
+                onInsertDraft={(draftText) => {
+                  if (postMode === 'thread') {
+                    const draftTweets = parseDraftToTweets(draftText);
+                    if (tweets.some(t => t.trim())) {
+                      if (window.confirm('Replace current thread draft? (Cancel to append)')) {
+                        setTweets(draftTweets);
+                      } else {
+                        setTweets([...tweets, ...draftTweets]);
+                      }
+                    } else {
+                      setTweets(draftTweets);
+                    }
+                  } else if (postMode === 'article') {
+                    if (articleBody.trim()) {
+                      if (window.confirm('Replace current article draft? (Cancel to append)')) {
+                        setArticleBody(draftText);
+                      } else {
+                        setArticleBody(articleBody + '\n\n' + draftText);
+                      }
+                    } else {
+                      setArticleBody(draftText);
+                    }
+                  } else {
+                    // Single post mode: treat as single tweet
+                    const draftTweets = parseDraftToTweets(draftText);
+                    setTweets(draftTweets.length > 0 ? [draftTweets[0]] : [draftText]);
+                  }
+                }}
+              />
             ) : (
-              /* AI Ideas tab */
-              <div className="space-y-2">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white text-[8px] font-bold flex-shrink-0">
-                    AI
-                  </div>
-                  <span className="text-[10px] font-semibold text-content-secondary">Content ideas from trends</span>
-                </div>
-                {ideasQuery.isLoading ? (
-                  <div className="space-y-2">
-                    {[1, 2, 3].map((i) => (
-                      <Skeleton key={i} className="h-20 w-full rounded-lg" />
-                    ))}
-                  </div>
-                ) : ideasQuery.error ? (
-                  <p className="text-[11px] text-red-500">Failed to load ideas. Try again later.</p>
-                ) : ideasQuery.data?.ideas?.length > 0 ? (
-                  ideasQuery.data.ideas.map((idea, i) => (
-                    <div
-                      key={i}
-                      className="p-2.5 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg cursor-pointer hover:shadow-sm transition-shadow"
-                      onClick={() => {
-                        if (idea.content) {
-                          setTweets([idea.content]);
-                          setPostMode('single');
-                          toast.success('Idea loaded into composer');
-                        }
-                      }}
-                    >
-                      <div className="flex items-center gap-1.5 mb-1">
-                        {idea.platform && <PlatformBadge platform={idea.platform} />}
-                        {idea.type && (
-                          <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded font-medium">
-                            {idea.type}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-content-primary leading-snug font-medium mb-0.5">
-                        {idea.title || idea.topic || 'Content Idea'}
-                      </p>
-                      <p
-                        className="text-[10px] text-content-secondary leading-relaxed"
-                        style={{
-                          display: '-webkit-box',
-                          WebkitLineClamp: 3,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        {idea.content || idea.description || idea.reasoning || ''}
-                      </p>
-                      {idea.expectedEngagement && (
-                        <span className="text-[9px] text-blue-600 font-medium mt-1 inline-block">
-                          Est. engagement: {idea.expectedEngagement}
-                        </span>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-[11px] text-content-muted">No ideas yet. AI will analyze your listening data and post history to suggest content.</p>
-                )}
-              </div>
+              <p className="text-[11px] text-content-muted">Select a tab above.</p>
             )}
           </div>
         </div>
