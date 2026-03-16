@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Report Center
 status: executing
-stopped_at: Completed 07-01-PLAN.md
-last_updated: "2026-03-16T18:59:10Z"
-last_activity: 2026-03-16 -- Completed 07-01 Scheduling system
+stopped_at: Completed 07-02-PLAN.md
+last_updated: "2026-03-16T19:02:00Z"
+last_activity: 2026-03-16 -- Completed 07-02 Ad hoc reports
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 19
-  completed_plans: 17
-  percent: 89
+  completed_plans: 18
+  percent: 95
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 ## Current Position
 
 Phase: 7 of 8 (Scheduling + Ad Hoc Reports)
-Plan: 2 of 4 in current phase
+Plan: 3 of 4 in current phase
 Status: Executing Phase 7
-Last activity: 2026-03-16 -- Completed 07-01 Scheduling system
+Last activity: 2026-03-16 -- Completed 07-02 Ad hoc reports
 
-Progress: [█████████░] 89% (17/19 plans complete)
+Progress: [█████████░] 95% (18/19 plans complete)
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [█████████░] 89% (17/19 plans complete)
 | Phase 04 P02 | 5min | 3 tasks | 6 files |
 | Phase 07 P00 | 2min | 1 tasks | 2 files |
 | Phase 07 P01 | 7min | 2 tasks | 9 files |
+| Phase 07 P02 | 10min | 2 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -103,6 +104,10 @@ Recent decisions affecting current work:
 - [Phase 07]: Scheduling module split: schedule-manager.js (CRUD+cron) and schedule-helpers.js (date math)
 - [Phase 07]: UTC date math for schedule computation (avoids DST shifts)
 - [Phase 07]: Cron batch cap at 3 + double-exec guard via lastRunAt
+- [Phase 07]: Ad hoc system prompt limits to ONE round of clarifying questions (2-3 max)
+- [Phase 07]: Param extraction via regex for code-fenced + raw JSON with action:generate
+- [Phase 07]: Ad hoc snapshots piggyback on run-schedules cron (no separate route)
+- [Phase 07]: useChat from @ai-sdk/react (not ai/react -- matching project convention)
 
 ### Pending Todos
 
@@ -115,6 +120,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T18:59:10Z
-Stopped at: Completed 07-01-PLAN.md
+Last session: 2026-03-16T19:02:00Z
+Stopped at: Completed 07-02-PLAN.md
 Resume file: None

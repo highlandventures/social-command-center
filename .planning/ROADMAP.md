@@ -89,7 +89,7 @@ Plans:
 
 - [x] **Phase 5: Report Engine + Charts** - Rich report generation with inline charts, KPI stats, executive summaries, and comparison deltas (completed 2026-03-15)
 - [x] **Phase 6: Export + Distribution** - PDF export and email delivery with full visual content inline (completed 2026-03-16)
-- [ ] **Phase 7: Scheduling + Ad Hoc Reports** - Automated cadence reports and conversational AI report scoping
+- [x] **Phase 7: Scheduling + Ad Hoc Reports** - Automated cadence reports and conversational AI report scoping (completed 2026-03-16)
 - [ ] **Phase 8: Benchmarking** - Period-over-period comparisons and custom milestone benchmarking
 
 ## Phase Details
@@ -171,5 +171,5 @@ Phases execute in numeric order: 5 -> 5.1 -> 6 -> 6.1 -> 7 -> 8
 | 4. Content Co-Pilot | v1.0 | 3/3 | Complete | 2026-03-16 |
 | 5. Report Engine + Charts | v1.1 | 3/3 | Complete | 2026-03-15 |
 | 6. Export + Distribution | v1.1 | 3/3 | Complete | 2026-03-16 |
-| 7. Scheduling + Ad Hoc Reports | 2/3 | In Progress|  | - |
+| 7. Scheduling + Ad Hoc Reports | 3/3 | Complete   | 2026-03-16 | - |
 | 8. Benchmarking | v1.1 | 0/? | Not started | - |
