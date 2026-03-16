@@ -138,5 +138,79 @@ export async function GET(request) {
     .filter((r) => r.status === 'rejected')
     .map((r) => ({ error: r.reason?.message || String(r.reason) }));
 
-  return NextResponse.json({ ok: true, processed, errors });
+  // ── Ad hoc snapshot re-runs ─────────────────────────────
+  const dueSnapshots = await prisma.adHocReport.findMany({
+    where: {
+      nextSnapshotAt: { lte: now },
+      status: 'READY',
+    },
+    take: 3,
+  });
+
+  const snapshotResults = await Promise.allSettled(
+    dueSnapshots.map(async (adHoc) => {
+      const params = adHoc.reportParams;
+      if (!params) return { adHocId: adHoc.id, skipped: true };
+
+      const report = await generateEnrichedReport({
+        reportType: params.reportType || 'CUSTOM',
+        dateStart: params.dateStart,
+        dateEnd: params.dateEnd,
+        benchmarkPeriod: null,
+      });
+
+      const savedReport = await prisma.report.create({
+        data: {
+          title: `${params.title || 'Ad Hoc Snapshot'} - ${now.toLocaleDateString()}`,
+          reportType:
+            params.reportType === 'WEEKLY_PERFORMANCE' ||
+            params.reportType === 'MONTHLY_SUMMARY' ||
+            params.reportType === 'COMPETITIVE_ANALYSIS' ||
+            params.reportType === 'KOL_REPORT'
+              ? params.reportType
+              : 'CUSTOM',
+          content: report,
+          aiPct: 100,
+          createdById: adHoc.createdById,
+          status: 'READY',
+          chartUrls:
+            report.charts?.map((c) => ({
+              id: c.id,
+              label: c.label,
+              imageUrl: c.imageUrl,
+            })) || [],
+          coveragePeriod: { start: params.dateStart, end: params.dateEnd },
+        },
+      });
+
+      // Compute next snapshot time
+      const intervals = Array.isArray(adHoc.snapshotIntervals) ? adHoc.snapshotIntervals : [];
+      let nextSnapshotAt = null;
+      if (intervals.length > 0) {
+        const minHours = Math.min(...intervals);
+        nextSnapshotAt = new Date(now.getTime() + minHours * 60 * 60 * 1000);
+      }
+
+      await prisma.adHocReport.update({
+        where: { id: adHoc.id },
+        data: { reportId: savedReport.id, nextSnapshotAt },
+      });
+
+      return { adHocId: adHoc.id, reportId: savedReport.id };
+    })
+  );
+
+  const snapshotsProcessed = snapshotResults.filter(
+    (r) => r.status === 'fulfilled' && !r.value?.skipped
+  ).length;
+  const snapshotErrors = snapshotResults
+    .filter((r) => r.status === 'rejected')
+    .map((r) => ({ error: r.reason?.message || String(r.reason) }));
+
+  return NextResponse.json({
+    ok: true,
+    processed,
+    snapshots: snapshotsProcessed,
+    errors: [...errors, ...snapshotErrors],
+  });
 }
