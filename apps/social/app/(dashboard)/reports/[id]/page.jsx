@@ -5,7 +5,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { trpc } from '@/lib/trpc-client';
 import ReportViewer from '@/components/ReportViewer';
 import EmailReportModal from '@/components/EmailReportModal';
-import { Skeleton, SectionTitle, useToast } from '@/components/ui';
+import BenchmarkSelector from '@/components/BenchmarkSelector';
+import { Skeleton, SectionTitle, KPICard, useToast } from '@/components/ui';
 
 export default function ReportDetailPage() {
   const { id } = useParams();
@@ -14,6 +15,7 @@ export default function ReportDetailPage() {
   const reportQ = trpc.reports.getById.useQuery({ id }, { staleTime: 30_000 });
   const [pdfLoading, setPdfLoading] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [benchmarkResult, setBenchmarkResult] = useState(null);
 
   if (reportQ.isLoading) return <LoadingSkeleton />;
   if (reportQ.error || !reportQ.data) return <NotFound onBack={() => router.push('/reports')} />;
@@ -85,6 +87,66 @@ export default function ReportDetailPage() {
           )}
         </div>
       </div>
+      {/* Benchmark Selector — only for enriched reports with coverage period */}
+      {report.content?.coveragePeriod && (
+        <BenchmarkSelector
+          reportId={id}
+          coveragePeriod={report.content.coveragePeriod}
+          onCompare={setBenchmarkResult}
+        />
+      )}
+
+      {/* Benchmark Results */}
+      {benchmarkResult && (
+        <div className="mb-6">
+          {benchmarkResult.noData ? (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-blue-800 dark:text-blue-200">No data available for the comparison period</p>
+                <p className="text-xs text-blue-600 dark:text-blue-300 mt-0.5">Try a different period or milestone.</p>
+              </div>
+              <button
+                onClick={() => setBenchmarkResult(null)}
+                className="text-xs text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100 font-medium px-3 py-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800/50 transition-colors"
+              >
+                Clear comparison
+              </button>
+            </div>
+          ) : (
+            <div className="bg-surface-card rounded-xl border border-border p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-content-primary">Benchmark Results</h3>
+                  {benchmarkResult.benchmarkPeriod && (
+                    <p className="text-xs text-content-muted mt-0.5">
+                      Compared against: {new Date(benchmarkResult.benchmarkPeriod.start).toLocaleDateString()} - {new Date(benchmarkResult.benchmarkPeriod.end).toLocaleDateString()}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => setBenchmarkResult(null)}
+                  className="text-xs text-content-muted hover:text-content-secondary font-medium px-3 py-1.5 rounded-lg hover:bg-surface-hover transition-colors"
+                >
+                  Clear comparison
+                </button>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                {(benchmarkResult.kpis || []).map((kpi, i) => (
+                  <KPICard
+                    key={kpi.label || i}
+                    label={kpi.label}
+                    value={kpi.value}
+                    format={kpi.format}
+                    delta={kpi.delta}
+                    direction={kpi.direction}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <ReportViewer report={report} />
 
       {/* Email Report Modal */}
