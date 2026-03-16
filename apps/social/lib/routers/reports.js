@@ -4,6 +4,7 @@ import { generateWeeklyReport, generateCompetitiveAnalysis, generateListeningSum
 import { generateEnrichedReport, getPreviousPeriod } from '../report-engine';
 import { renderReportPDF } from '../pdf-renderer.jsx';
 import { sendReportEmail } from '../email-sender';
+import { computeBenchmarkDeltas, resolveComparisonPeriod } from '../benchmark-compare';
 
 export const reportsRouter = router({
   /**
@@ -342,7 +343,7 @@ export const reportsRouter = router({
         const pdfBuffer = await renderReportPDF(report);
 
         // Determine app URL for CTA link
-        const appUrl = process.env.NEXTAUTH_URL || 'https://app.socialcommand.com';
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.socialcommand.com';
 
         // Send email
         await sendReportEmail({
@@ -393,5 +394,69 @@ export const reportsRouter = router({
         orderBy: { createdAt: 'desc' },
         take: 50,
       });
+    }),
+
+  /**
+   * reports.compareBenchmark
+   * Ephemeral benchmark comparison: computes KPI deltas between a report's
+   * coverage period and a comparison period (WoW/MoM/QoQ/YoY or milestone).
+   * Results are returned directly, not saved to the report record.
+   */
+  compareBenchmark: protectedProcedure
+    .input(
+      z.object({
+        reportId: z.string(),
+        comparisonType: z.enum(['WoW', 'MoM', 'QoQ', 'YoY', 'MILESTONE']),
+        milestoneId: z.string().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { prisma } = ctx;
+
+      // 1. Fetch the report to get coveragePeriod
+      const report = await prisma.report.findUnique({
+        where: { id: input.reportId },
+        select: { coveragePeriod: true },
+      });
+
+      if (!report || !report.coveragePeriod) {
+        throw new Error('Report not found or has no coverage period');
+      }
+
+      const coveragePeriod = {
+        start: new Date(report.coveragePeriod.start),
+        end: new Date(report.coveragePeriod.end),
+      };
+
+      // 2. Resolve the benchmark period
+      let benchmarkPeriod;
+
+      if (input.comparisonType === 'MILESTONE') {
+        if (!input.milestoneId) {
+          throw new Error('milestoneId is required for MILESTONE comparison');
+        }
+        const milestone = await prisma.milestone.findUnique({
+          where: { id: input.milestoneId },
+        });
+        if (!milestone) {
+          throw new Error('Milestone not found');
+        }
+        benchmarkPeriod = {
+          start: milestone.startDate,
+          end: milestone.endDate,
+        };
+      } else {
+        benchmarkPeriod = resolveComparisonPeriod(
+          coveragePeriod.start,
+          coveragePeriod.end,
+          input.comparisonType
+        );
+        if (!benchmarkPeriod) {
+          throw new Error('Could not resolve comparison period');
+        }
+      }
+
+      // 3. Compute deltas
+      return computeBenchmarkDeltas(coveragePeriod, benchmarkPeriod);
     }),
 });
