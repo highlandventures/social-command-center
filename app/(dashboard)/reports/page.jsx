@@ -74,10 +74,17 @@ export default function ReportsPage() {
           { key: 'builder', label: 'AI Report Builder' },
           { key: 'repository', label: 'Report Repository', badge: reportRepository.length || undefined },
           { key: 'benchmarks', label: 'Historical Benchmarks' },
+          { key: 'schedules', label: 'Schedules', href: '/reports/schedules' },
         ].map((t) => (
+          t.href ? (
+            <Link key={t.key} href={t.href}>
+              <TabButton active={false} badge={t.badge}>{t.label}</TabButton>
+            </Link>
+          ) : (
           <TabButton key={t.key} active={subTab === t.key} onClick={() => setSubTab(t.key)} badge={t.badge}>
             {t.label}
           </TabButton>
+          )
         ))}
       </div>
 
