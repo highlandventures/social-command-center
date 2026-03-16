@@ -15,7 +15,7 @@ function StrategyCardsSection() {
   if (isLoading) {
     return (
       <div className="space-y-2">
-        <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Strategy Cards</h4>
+        <h4 className="text-[10px] font-semibold text-content-muted uppercase tracking-wider">Strategy Cards</h4>
         {[1, 2].map((i) => (
           <Skeleton key={i} className="h-28 w-full rounded-lg" />
         ))}
@@ -26,7 +26,7 @@ function StrategyCardsSection() {
   if (error) {
     return (
       <div>
-        <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Strategy Cards</h4>
+        <h4 className="text-[10px] font-semibold text-content-muted uppercase tracking-wider mb-2">Strategy Cards</h4>
         <p className="text-[10px] text-red-500">Failed to load strategy cards.</p>
       </div>
     );
@@ -37,9 +37,9 @@ function StrategyCardsSection() {
   if (cards.length === 0) {
     return (
       <div>
-        <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Strategy Cards</h4>
-        <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-          <p className="text-[10px] text-gray-400 text-center">No competitor data yet -- run the daily cron to populate.</p>
+        <h4 className="text-[10px] font-semibold text-content-muted uppercase tracking-wider mb-2">Strategy Cards</h4>
+        <div className="p-3 bg-surface-secondary rounded-lg border border-border-secondary">
+          <p className="text-[10px] text-content-faint text-center">No competitor data yet -- run the daily cron to populate.</p>
         </div>
       </div>
     );
@@ -48,9 +48,9 @@ function StrategyCardsSection() {
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Strategy Cards</h4>
+        <h4 className="text-[10px] font-semibold text-content-muted uppercase tracking-wider">Strategy Cards</h4>
         {data?.lastUpdated && (
-          <span className="text-[9px] text-gray-400">
+          <span className="text-[9px] text-content-faint">
             {new Date(data.lastUpdated).toLocaleDateString()}
           </span>
         )}
@@ -66,11 +66,11 @@ function StrategyCardsSection() {
           return (
             <div
               key={i}
-              className="p-2.5 rounded-lg border border-gray-100 border-l-[3px] border-l-cyan-500 bg-cyan-50/30"
+              className="p-2.5 rounded-lg border border-border-secondary border-l-[3px] border-l-cyan-500 bg-cyan-50/30 dark:bg-cyan-950/30"
             >
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11px] font-semibold text-gray-900">{card.competitorName}</span>
-                <span className="text-[10px] font-bold text-gray-700">
+                <span className="text-[11px] font-semibold text-content-primary">{card.competitorName}</span>
+                <span className="text-[10px] font-bold text-content-secondary">
                   {typeof card.followerCount === 'number'
                     ? card.followerCount >= 1000
                       ? `${(card.followerCount / 1000).toFixed(1)}K`
@@ -80,15 +80,15 @@ function StrategyCardsSection() {
               </div>
 
               <div className="grid grid-cols-2 gap-x-3 gap-y-1 mb-1.5">
-                <div className="text-[10px] text-gray-600">
-                  <span className="text-gray-400">Cadence:</span> {card.postingCadence}
+                <div className="text-[10px] text-content-secondary">
+                  <span className="text-content-faint">Cadence:</span> {card.postingCadence}
                 </div>
-                <div className="text-[10px] text-gray-600">
-                  <span className="text-gray-400">Eng rate:</span>{' '}
+                <div className="text-[10px] text-content-secondary">
+                  <span className="text-content-faint">Eng rate:</span>{' '}
                   <span className="font-medium">{card.engagementRate}</span>
                 </div>
-                <div className="text-[10px] text-gray-600">
-                  <span className="text-gray-400">Format:</span> {card.formatMix}
+                <div className="text-[10px] text-content-secondary">
+                  <span className="text-content-faint">Format:</span> {card.formatMix}
                 </div>
               </div>
 
@@ -97,8 +97,8 @@ function StrategyCardsSection() {
                 {card.engagementBenchmark && (
                   <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
                     engBenchmarkPositive
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-red-100 text-red-700'
+                      ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+                      : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
                   }`}>
                     {card.engagementBenchmark}
                   </span>
@@ -106,19 +106,43 @@ function StrategyCardsSection() {
                 {card.followerBenchmark && (
                   <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
                     followerBenchmarkPositive
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-red-100 text-red-700'
+                      ? 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+                      : 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
                   }`}>
                     {card.followerBenchmark}
                   </span>
                 )}
               </div>
 
+              {/* 14-day trend indicators */}
+              {card.trend && (
+                <div className="flex gap-2 mb-1.5">
+                  {card.trend.followerGrowth14d && card.trend.followerGrowth14d !== 'No prior data' && (
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                      parseFloat(card.trend.followerGrowth14d) > 0
+                        ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
+                        : 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+                    }`}>
+                      Followers {parseFloat(card.trend.followerGrowth14d) > 0 ? '+' : ''}{card.trend.followerGrowth14d} (14d)
+                    </span>
+                  )}
+                  {card.trend.cadenceTrend && card.trend.cadenceTrend !== 'Steady' && (
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                      card.trend.cadenceTrend === 'Accelerating'
+                        ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300'
+                        : 'bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300'
+                    }`}>
+                      {card.trend.cadenceTrend}
+                    </span>
+                  )}
+                </div>
+              )}
+
               {/* Top themes */}
               {card.topThemes && card.topThemes.length > 0 && (
                 <div className="flex flex-wrap gap-1 mb-1">
                   {card.topThemes.map((theme, j) => (
-                    <span key={j} className="text-[9px] px-1.5 py-0.5 bg-cyan-100 text-cyan-700 rounded-full">
+                    <span key={j} className="text-[9px] px-1.5 py-0.5 bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 rounded-full">
                       {theme}
                     </span>
                   ))}
@@ -126,7 +150,7 @@ function StrategyCardsSection() {
               )}
 
               {card.keyInsight && (
-                <p className="text-[10px] text-gray-500 leading-snug mt-1">{card.keyInsight}</p>
+                <p className="text-[10px] text-content-muted leading-snug mt-1">{card.keyInsight}</p>
               )}
             </div>
           );
@@ -147,7 +171,7 @@ function ThemesSection() {
   if (isLoading) {
     return (
       <div className="space-y-2 mb-3">
-        <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Themes</h4>
+        <h4 className="text-[10px] font-semibold text-content-muted uppercase tracking-wider">Themes</h4>
         {[1, 2, 3].map((i) => (
           <Skeleton key={i} className="h-8 w-full rounded-lg" />
         ))}
@@ -158,7 +182,7 @@ function ThemesSection() {
   if (error) {
     return (
       <div className="mb-3">
-        <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Themes</h4>
+        <h4 className="text-[10px] font-semibold text-content-muted uppercase tracking-wider mb-2">Themes</h4>
         <p className="text-[10px] text-red-500">Failed to load themes.</p>
       </div>
     );
@@ -169,9 +193,9 @@ function ThemesSection() {
   if (themes.length === 0) {
     return (
       <div className="mb-3">
-        <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Themes</h4>
-        <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-          <p className="text-[10px] text-gray-400 text-center">No competitor data yet -- run the daily cron to populate.</p>
+        <h4 className="text-[10px] font-semibold text-content-muted uppercase tracking-wider mb-2">Themes</h4>
+        <div className="p-3 bg-surface-secondary rounded-lg border border-border-secondary">
+          <p className="text-[10px] text-content-faint text-center">No competitor data yet -- run the daily cron to populate.</p>
         </div>
       </div>
     );
@@ -182,9 +206,9 @@ function ThemesSection() {
   return (
     <div className="mb-3">
       <div className="flex items-center justify-between mb-2">
-        <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Themes</h4>
+        <h4 className="text-[10px] font-semibold text-content-muted uppercase tracking-wider">Themes</h4>
         {data?.lastUpdated && (
-          <span className="text-[9px] text-gray-400">
+          <span className="text-[9px] text-content-faint">
             {new Date(data.lastUpdated).toLocaleDateString()}
           </span>
         )}
@@ -195,27 +219,27 @@ function ThemesSection() {
           return (
             <div
               key={i}
-              className="p-1.5 rounded-md border border-gray-100 border-l-[3px] border-l-emerald-500 bg-emerald-50/30"
+              className="p-1.5 rounded-md border border-border-secondary border-l-[3px] border-l-emerald-500 bg-emerald-50/30 dark:bg-emerald-950/30"
             >
               <div className="flex items-center justify-between mb-0.5">
-                <span className="text-[11px] font-semibold text-gray-800">{theme.phrase}</span>
-                <span className="text-[10px] font-bold text-gray-600">
+                <span className="text-[11px] font-semibold text-content-primary">{theme.phrase}</span>
+                <span className="text-[10px] font-bold text-content-secondary">
                   {typeof theme.avgEngRate === 'number' ? `${theme.avgEngRate.toFixed(2)}%` : theme.avgEngRate}
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className="flex-1 h-1.5 bg-surface-secondary rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-emerald-400 rounded-full"
+                    className="h-full bg-emerald-400 dark:bg-emerald-500 rounded-full"
                     style={{ width: `${barWidth}%` }}
                   />
                 </div>
-                <span className="text-[9px] text-gray-400 flex-shrink-0">{theme.occurrences}x</span>
+                <span className="text-[9px] text-content-faint flex-shrink-0">{theme.occurrences}x</span>
               </div>
               {theme.competitors && theme.competitors.length > 0 && (
                 <div className="flex flex-wrap gap-0.5 mt-0.5">
                   {theme.competitors.map((c, j) => (
-                    <span key={j} className="text-[8px] text-gray-400">{c}{j < theme.competitors.length - 1 ? ',' : ''}</span>
+                    <span key={j} className="text-[8px] text-content-faint">{c}{j < theme.competitors.length - 1 ? ',' : ''}</span>
                   ))}
                 </div>
               )}
@@ -238,7 +262,7 @@ function FormatBreakdownSection() {
   if (isLoading) {
     return (
       <div className="space-y-2">
-        <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Format Breakdown</h4>
+        <h4 className="text-[10px] font-semibold text-content-muted uppercase tracking-wider">Format Breakdown</h4>
         {[1, 2].map((i) => (
           <Skeleton key={i} className="h-14 w-full rounded-lg" />
         ))}
@@ -249,7 +273,7 @@ function FormatBreakdownSection() {
   if (error) {
     return (
       <div>
-        <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Format Breakdown</h4>
+        <h4 className="text-[10px] font-semibold text-content-muted uppercase tracking-wider mb-2">Format Breakdown</h4>
         <p className="text-[10px] text-red-500">Failed to load format analysis.</p>
       </div>
     );
@@ -260,9 +284,9 @@ function FormatBreakdownSection() {
   if (formats.length === 0) {
     return (
       <div>
-        <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Format Breakdown</h4>
-        <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-          <p className="text-[10px] text-gray-400 text-center">No format data available.</p>
+        <h4 className="text-[10px] font-semibold text-content-muted uppercase tracking-wider mb-2">Format Breakdown</h4>
+        <div className="p-3 bg-surface-secondary rounded-lg border border-border-secondary">
+          <p className="text-[10px] text-content-faint text-center">No format data available.</p>
         </div>
       </div>
     );
@@ -272,31 +296,31 @@ function FormatBreakdownSection() {
 
   return (
     <div>
-      <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Format Breakdown</h4>
+      <h4 className="text-[10px] font-semibold text-content-muted uppercase tracking-wider mb-2">Format Breakdown</h4>
       <div className="space-y-1.5">
         {formats.map((fmt, i) => {
           const isTop = fmt.avgEngRate === maxEngRate && formats.length > 1;
           return (
             <div
               key={i}
-              className={`p-2 rounded-lg border border-gray-100 border-l-[3px] border-l-orange-500 ${
-                isTop ? 'bg-orange-50/50 ring-1 ring-orange-200' : 'bg-orange-50/30'
+              className={`p-2 rounded-lg border border-border-secondary border-l-[3px] border-l-orange-500 ${
+                isTop ? 'bg-orange-50/50 dark:bg-orange-950/50 ring-1 ring-orange-200 dark:ring-orange-800' : 'bg-orange-50/30 dark:bg-orange-950/30'
               }`}
             >
               <div className="flex items-center justify-between mb-0.5">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-semibold text-gray-800">{fmt.format}</span>
+                  <span className="text-[11px] font-semibold text-content-primary">{fmt.format}</span>
                   {isTop && (
-                    <span className="text-[8px] px-1 py-0.5 bg-orange-200 text-orange-700 rounded font-medium">TOP</span>
+                    <span className="text-[8px] px-1 py-0.5 bg-orange-200 dark:bg-orange-800 text-orange-700 dark:text-orange-300 rounded font-medium">TOP</span>
                   )}
                 </div>
-                <span className="text-[10px] font-bold text-gray-600">
+                <span className="text-[10px] font-bold text-content-secondary">
                   {typeof fmt.avgEngRate === 'number' ? `${fmt.avgEngRate.toFixed(2)}%` : fmt.avgEngRate}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[9px] text-gray-400">{fmt.postCount} posts</span>
-                <span className="text-[9px] text-gray-400">Top: {fmt.topCompetitor}</span>
+                <span className="text-[9px] text-content-faint">{fmt.postCount} posts</span>
+                <span className="text-[9px] text-content-faint">Top: {fmt.topCompetitor}</span>
               </div>
             </div>
           );
@@ -317,15 +341,15 @@ export default function CompetitorIntelPanel() {
         <div className="w-5 h-5 rounded-full bg-orange-600 flex items-center justify-center text-white text-[8px] font-bold flex-shrink-0">
           CI
         </div>
-        <span className="text-[10px] font-semibold text-gray-600">Competitor Intel -- last 30 days</span>
+        <span className="text-[10px] font-semibold text-content-secondary">Competitor Intel -- last 30 days</span>
       </div>
 
       {/* Sub-tabs */}
-      <div className="flex gap-0.5 bg-gray-100 rounded-md p-0.5 mb-3">
+      <div className="flex gap-0.5 bg-surface-secondary rounded-md p-0.5 mb-3">
         <button
           onClick={() => setActiveTab('competitors')}
           className={`flex-1 px-2 py-1 text-[10px] font-medium rounded transition-colors ${
-            activeTab === 'competitors' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'
+            activeTab === 'competitors' ? 'bg-surface-card shadow-sm text-content-primary' : 'text-content-muted'
           }`}
         >
           By Competitor
@@ -333,7 +357,7 @@ export default function CompetitorIntelPanel() {
         <button
           onClick={() => setActiveTab('landscape')}
           className={`flex-1 px-2 py-1 text-[10px] font-medium rounded transition-colors ${
-            activeTab === 'landscape' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'
+            activeTab === 'landscape' ? 'bg-surface-card shadow-sm text-content-primary' : 'text-content-muted'
           }`}
         >
           Landscape

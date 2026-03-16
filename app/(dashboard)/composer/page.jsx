@@ -34,6 +34,8 @@ export default function ComposerPage() {
   });
   const [scheduleTime, setScheduleTime] = useState('09:15');
   const [sidebarTab, setSidebarTab] = useState('drafts');
+  const [editingPostId, setEditingPostId] = useState(null);
+  const [editingPostStatus, setEditingPostStatus] = useState(null);
 
   // ── tRPC queries ──────────────────────────────────────────
   const accountsQ = trpc.accounts.list.useQuery(undefined, { staleTime: 60_000 });
@@ -57,6 +59,15 @@ export default function ComposerPage() {
   const deleteMutation = trpc.posts.delete.useMutation({
     onSuccess: () => {
       utils.posts.list.invalidate();
+    },
+  });
+
+  const updateMutation = trpc.posts.update.useMutation({
+    onSuccess: () => {
+      utils.posts.list.invalidate();
+      setEditingPostId(null);
+      setEditingPostStatus(null);
+      toast.success('Post updated!');
     },
   });
 
@@ -147,28 +158,99 @@ export default function ComposerPage() {
       ? { subreddit: redditSubreddit || undefined, articleTitle: redditTitle || undefined }
       : {};
 
+  const loadPostIntoEditor = useCallback((post) => {
+    // Parse content back into editor state
+    if (post.contentType === 'THREAD' && post.content?.includes('\n---\n')) {
+      setTweets(post.content.split('\n---\n'));
+      setPostMode('thread');
+    } else if (post.contentType === 'ARTICLE') {
+      setArticleBody(post.content || '');
+      setTweets([post.content || '']);
+      setPostMode('article');
+      if (post.articleTitle) setArticleTitle(post.articleTitle);
+    } else {
+      setTweets([post.content || '']);
+      setPostMode('single');
+    }
+
+    // Set platform and account
+    const postPlatform = post.platform || post.account?.platform || 'X';
+    setSelectedPlatform(postPlatform);
+    const acct = accounts.find((a) => a.id === (post.accountId || post.account?.id));
+    if (acct) setSelectedAccount(acct.username);
+
+    // Set schedule fields if scheduled
+    if (post.scheduledFor) {
+      const d = new Date(post.scheduledFor);
+      setScheduleDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+      setScheduleTime(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`);
+    }
+
+    // Reddit fields
+    if (post.subreddit) setRedditSubreddit(post.subreddit);
+    if (post.articleTitle && postPlatform === 'REDDIT') setRedditTitle(post.articleTitle);
+
+    setEditingPostId(post.id);
+    setEditingPostStatus(post.status);
+    setSidebarTab(post.status === 'SCHEDULED' ? 'queue' : 'drafts');
+    toast.info(post.status === 'SCHEDULED' ? 'Scheduled post loaded into editor' : 'Draft loaded into editor');
+  }, [accounts, toast]);
+
+  const cancelEditing = useCallback(() => {
+    setEditingPostId(null);
+    setEditingPostStatus(null);
+  }, []);
+
   const handleSaveDraft = () => {
     if (!selectedAccountId) return;
-    createMutation.mutate({
-      content: isThread ? tweets.join('\n---\n') : tweets[0],
-      platform: selectedPlatform,
-      accountId: selectedAccountId,
-      contentType: contentTypeMap[postMode] || 'POST',
-      ...getRedditFields(),
-    });
+    const content = isThread ? tweets.join('\n---\n') : tweets[0];
+    const contentType = contentTypeMap[postMode] || 'POST';
+
+    if (editingPostId) {
+      updateMutation.mutate({
+        id: editingPostId,
+        data: { content, contentType, ...getRedditFields() },
+      });
+    } else {
+      createMutation.mutate({
+        content,
+        platform: selectedPlatform,
+        accountId: selectedAccountId,
+        contentType,
+        ...getRedditFields(),
+      });
+    }
   };
 
   const handleSchedule = () => {
     if (!selectedAccountId) return;
-    createMutation.mutate({
-      content: isThread ? tweets.join('\n---\n') : tweets[0],
-      platform: selectedPlatform,
-      accountId: selectedAccountId,
-      contentType: contentTypeMap[postMode] || 'POST',
-      scheduledFor: new Date(`${scheduleDate}T${scheduleTime}`),
-      ...(postMode === 'article' ? { articleTitle } : {}),
-      ...getRedditFields(),
-    });
+    const content = isThread ? tweets.join('\n---\n') : tweets[0];
+    const contentType = contentTypeMap[postMode] || 'POST';
+    const scheduledFor = new Date(`${scheduleDate}T${scheduleTime}`);
+
+    if (editingPostId) {
+      updateMutation.mutate({
+        id: editingPostId,
+        data: {
+          content,
+          contentType,
+          status: 'SCHEDULED',
+          scheduledFor,
+          ...(postMode === 'article' ? { articleTitle } : {}),
+          ...getRedditFields(),
+        },
+      });
+    } else {
+      createMutation.mutate({
+        content,
+        platform: selectedPlatform,
+        accountId: selectedAccountId,
+        contentType,
+        scheduledFor,
+        ...(postMode === 'article' ? { articleTitle } : {}),
+        ...getRedditFields(),
+      });
+    }
   };
 
   const handlePublishNow = async () => {
@@ -253,12 +335,25 @@ export default function ComposerPage() {
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {editingPostId && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg">
+              <span className="text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                Editing {editingPostStatus === 'SCHEDULED' ? 'scheduled post' : 'draft'}
+              </span>
+              <button
+                onClick={cancelEditing}
+                className="text-[10px] text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 font-bold ml-0.5"
+              >
+                ✕
+              </button>
+            </div>
+          )}
           <button
             onClick={handleSaveDraft}
-            disabled={createMutation.isLoading}
+            disabled={createMutation.isLoading || updateMutation.isLoading}
             className="px-2.5 py-1.5 text-xs text-content-secondary border border-border rounded-lg hover:bg-surface-hover"
           >
-            {createMutation.isLoading ? 'Saving...' : 'Save Draft'}
+            {(createMutation.isLoading || updateMutation.isLoading) ? 'Saving...' : editingPostId ? 'Update Draft' : 'Save Draft'}
           </button>
           <div className="flex items-center gap-1.5 bg-surface-secondary rounded-lg px-2.5 py-1.5">
             <input
@@ -921,7 +1016,8 @@ export default function ComposerPage() {
                 {drafts.map((d) => (
                   <div
                     key={d.id}
-                    className="p-2.5 bg-surface-card rounded-lg border border-border-secondary hover:bg-surface-hover cursor-pointer transition-colors group"
+                    onClick={() => loadPostIntoEditor(d)}
+                    className={`p-2.5 bg-surface-card rounded-lg border hover:bg-surface-hover cursor-pointer transition-colors group ${editingPostId === d.id ? 'border-blue-500 ring-1 ring-blue-500/30' : 'border-border-secondary'}`}
                   >
                     <div className="flex items-center gap-1.5 mb-1">
                       <PlatformBadge platform={d.platform} />
@@ -942,8 +1038,13 @@ export default function ComposerPage() {
                       {d.content}
                     </p>
                     <div className="flex items-center gap-1 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="text-[10px] text-blue-600 font-medium">Edit</button>
-                      <span className="text-gray-300">&middot;</span>
+                      <button
+                        className="text-[10px] text-blue-600 font-medium"
+                        onClick={(e) => { e.stopPropagation(); loadPostIntoEditor(d); }}
+                      >
+                        Edit
+                      </button>
+                      <span className="text-content-faint">&middot;</span>
                       <button
                         className="text-[10px] text-red-500 font-medium"
                         onClick={(e) => {
@@ -964,7 +1065,8 @@ export default function ComposerPage() {
                 {scheduledPosts.map((p) => (
                   <div
                     key={p.id}
-                    className="p-2.5 bg-surface-card rounded-lg border border-border-secondary hover:bg-surface-hover cursor-pointer transition-colors group"
+                    onClick={() => loadPostIntoEditor(p)}
+                    className={`p-2.5 bg-surface-card rounded-lg border hover:bg-surface-hover cursor-pointer transition-colors group ${editingPostId === p.id ? 'border-blue-500 ring-1 ring-blue-500/30' : 'border-border-secondary'}`}
                   >
                     <div className="flex items-center gap-1.5 mb-1">
                       <PlatformBadge platform={p.platform} />
@@ -988,8 +1090,18 @@ export default function ComposerPage() {
                         <span>{'\uD83D\uDD50'}</span> {p.scheduledFor ? new Date(p.scheduledFor).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}
                       </span>
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="text-[10px] text-blue-600 font-medium">Edit</button>
-                        <button className="text-[10px] text-amber-600 font-medium">Reschedule</button>
+                        <button
+                          className="text-[10px] text-blue-600 font-medium"
+                          onClick={(e) => { e.stopPropagation(); loadPostIntoEditor(p); }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="text-[10px] text-amber-600 font-medium"
+                          onClick={(e) => { e.stopPropagation(); loadPostIntoEditor(p); }}
+                        >
+                          Reschedule
+                        </button>
                       </div>
                     </div>
                   </div>
