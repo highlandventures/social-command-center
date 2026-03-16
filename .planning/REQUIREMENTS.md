@@ -26,13 +26,13 @@
 - [x] **AUDQ-03**: Unanswered/recurring questions are surfaced as content opportunities
 - [x] **AUDQ-04**: Each question cluster has a content opportunity score based on volume and engagement
 
-### Content Co-Pilot -- Deferred
+### Content Co-Pilot
 
 - [ ] **CPLT-01**: Chat interface in composer for multi-turn content co-creation conversations
-- [ ] **CPLT-02**: Co-pilot has access to all 3 intel panels as context (performance patterns, competitor themes, audience questions)
-- [ ] **CPLT-03**: Co-pilot learns brand voice from top-performing published posts (uses them as few-shot examples)
-- [ ] **CPLT-04**: Co-pilot can predict performance of drafted content before publishing
-- [ ] **CPLT-05**: Co-pilot can insert drafted content directly into the composer editor
+- [x] **CPLT-02**: Co-pilot has access to all 3 intel panels as context (performance patterns, competitor themes, audience questions)
+- [x] **CPLT-03**: Co-pilot learns brand voice from top-performing published posts (uses them as few-shot examples)
+- [x] **CPLT-04**: Co-pilot can predict performance of drafted content before publishing
+- [x] **CPLT-05**: Co-pilot can insert drafted content directly into the composer editor
 
 ---
 
