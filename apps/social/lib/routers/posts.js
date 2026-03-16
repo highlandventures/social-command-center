@@ -117,10 +117,10 @@ export const postsRouter = router({
       if (!existing) {
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Post not found.' });
       }
-      if (!['DRAFT', 'SCHEDULED'].includes(existing.status)) {
+      if (!['DRAFT', 'SCHEDULED', 'PENDING_APPROVAL'].includes(existing.status)) {
         throw new TRPCError({
           code: 'BAD_REQUEST',
-          message: 'Only draft or scheduled posts can be updated.',
+          message: 'Only draft, scheduled, or pending-approval posts can be updated.',
         });
       }
 

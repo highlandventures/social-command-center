@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { SessionProvider } from 'next-auth/react';
+import { ClerkProvider } from '@clerk/nextjs';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpBatchLink } from '@trpc/client';
 import superjson from 'superjson';
@@ -40,8 +40,8 @@ export default function Providers({ children }) {
   );
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <SessionProvider>
+    <ClerkProvider>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <trpc.Provider client={trpcClient} queryClient={queryClient}>
           <QueryClientProvider client={queryClient}>
             <ToastProvider>
@@ -49,7 +49,7 @@ export default function Providers({ children }) {
             </ToastProvider>
           </QueryClientProvider>
         </trpc.Provider>
-      </SessionProvider>
-    </ThemeProvider>
+      </ThemeProvider>
+    </ClerkProvider>
   );
 }

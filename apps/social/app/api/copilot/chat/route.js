@@ -1,7 +1,6 @@
 import { streamText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { API_COSTS } from '@/lib/api-costs';
 import { buildSystemPrompt } from '@/lib/copilot/system-prompt';
@@ -11,7 +10,7 @@ export const maxDuration = 60;
 export async function POST(req) {
   try {
     // Auth check
-    const session = await getServerSession(authOptions);
+    const session = await getSession();
     if (!session?.user?.id) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }

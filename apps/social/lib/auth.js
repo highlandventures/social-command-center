@@ -1,99 +1,55 @@
-import CredentialsProvider from 'next-auth/providers/credentials';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { prisma } from './db';
 
-// ---------------------------------------------------------------------------
-// NextAuth configuration
-// Uses CredentialsProvider with a shared team access code (TEAM_PASSWORD env var).
-// No email sending required — perfect for internal tools.
-// ---------------------------------------------------------------------------
+/**
+ * Get the current Clerk auth state and sync to Prisma.
+ * Returns a session-like object compatible with the rest of the app:
+ *   { user: { id, email, role, name, avatarUrl } }
+ *
+ * Returns null if not authenticated.
+ */
+export async function getSession() {
+  const { userId } = await auth();
+  if (!userId) return null;
 
-export const authOptions = {
-  providers: [
-    CredentialsProvider({
-      name: 'Team Login',
-      credentials: {
-        email: { label: 'Email', type: 'email' },
-        accessCode: { label: 'Access Code', type: 'password' },
+  const clerkUser = await currentUser();
+  if (!clerkUser) return null;
+
+  const email = clerkUser.emailAddresses[0]?.emailAddress;
+  if (!email) return null;
+
+  // Find-or-create the Prisma user, keeping it in sync with Clerk profile data
+  let user = await prisma.user.findUnique({ where: { email } });
+
+  if (!user) {
+    const userCount = await prisma.user.count();
+    user = await prisma.user.create({
+      data: {
+        email,
+        name: [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') || null,
+        avatarUrl: clerkUser.imageUrl || null,
+        role: userCount === 0 ? 'ADMIN' : 'INTERNAL',
       },
-      async authorize(credentials) {
-        const { email, accessCode } = credentials ?? {};
-
-        // Validate access code against env var
-        const teamPassword = process.env.TEAM_PASSWORD;
-        if (!teamPassword) {
-          throw new Error('TEAM_PASSWORD not configured on server');
-        }
-        if (accessCode !== teamPassword) {
-          throw new Error('Invalid access code');
-        }
-        if (!email) {
-          throw new Error('Email is required');
-        }
-
-        // Find or create user
-        let user = await prisma.user.findUnique({ where: { email } });
-
-        if (!user) {
-          // Auto-create new users on first sign-in
-          const userCount = await prisma.user.count();
-          user = await prisma.user.create({
-            data: {
-              email,
-              role: userCount === 0 ? 'ADMIN' : 'INTERNAL',
-            },
-          });
-        }
-
-        // Auto-promote first user to ADMIN if they somehow got INTERNAL
-        if (user.role !== 'ADMIN') {
-          const userCount = await prisma.user.count();
-          if (userCount <= 1) {
-            user = await prisma.user.update({
-              where: { id: user.id },
-              data: { role: 'ADMIN' },
-            });
-          }
-        }
-
-        // Update last active timestamp
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { lastActiveAt: new Date() },
-        });
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        };
+    });
+  } else {
+    // Keep name/avatar in sync and update last active
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        name: [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(' ') || user.name,
+        avatarUrl: clerkUser.imageUrl || user.avatarUrl,
+        lastActiveAt: new Date(),
       },
-    }),
-  ],
+    });
+  }
 
-  session: {
-    strategy: 'jwt',
-  },
-
-  pages: {
-    signIn: '/auth/signin',
-  },
-
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = user.role;
-      }
-      return token;
+  return {
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      avatarUrl: user.avatarUrl,
     },
-
-    async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id;
-        session.user.role = token.role;
-      }
-      return session;
-    },
-  },
-};
+  };
+}

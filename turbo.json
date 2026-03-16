@@ -1,0 +1,38 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": [
+    "POSTGRES_PRISMA_URL",
+    "POSTGRES_URL_NON_POOLING",
+    "NEXTAUTH_URL",
+    "NEXTAUTH_SECRET",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "X_OFFICIAL_CLIENT_ID",
+    "X_OFFICIAL_CLIENT_SECRET",
+    "TWITTERAPI_IO_API_KEY",
+    "LATE_API_KEY",
+    "REDDIT_CLIENT_ID",
+    "REDDIT_CLIENT_SECRET",
+    "SOCIAVAULT_API_KEY",
+    "ANTHROPIC_API_KEY",
+    "TOKEN_ENCRYPTION_KEY",
+    "CRON_SECRET",
+    "KV_REST_API_URL",
+    "KV_REST_API_TOKEN",
+    "SLACK_WEBHOOK_URL",
+    "ZAPIER_WEBHOOK_URL",
+    "ZAPIER_WEBHOOK_SECRET"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {},
+    "test": {}
+  }
+}

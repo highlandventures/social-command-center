@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { randomBytes, createHash } from 'crypto';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getSession } from '@/lib/auth';
 
 /**
  * GET /api/connect/x
@@ -11,11 +10,11 @@ import { authOptions } from '@/lib/auth';
  * and redirects the user to Twitter's authorization endpoint.
  */
 export async function GET() {
-  const baseUrl = (process.env.NEXTAUTH_URL || '').trim();
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000').trim();
   const clientId = (process.env.X_OFFICIAL_CLIENT_ID || '').trim();
 
   // Require authenticated session
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user) {
     return NextResponse.redirect(`${baseUrl}/auth/signin`);
   }

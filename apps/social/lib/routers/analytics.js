@@ -594,10 +594,10 @@ export const analyticsRouter = router({
       const maxPages = input?.maxPages ?? 25;
       const accountId = input?.accountId || '';
       const cronSecret = process.env.CRON_SECRET;
-      const baseUrl = process.env.NEXTAUTH_URL
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL
         || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
       if (!baseUrl) {
-        throw new Error('Cannot trigger backfill: neither NEXTAUTH_URL nor VERCEL_URL is configured.');
+        throw new Error('Cannot trigger backfill: neither NEXT_PUBLIC_APP_URL nor VERCEL_URL is configured.');
       }
 
       const url = new URL('/api/cron/backfill-history', baseUrl);

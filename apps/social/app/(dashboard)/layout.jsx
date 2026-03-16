@@ -3,15 +3,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { signOut, useSession } from 'next-auth/react';
+import { useUser, useClerk } from '@clerk/nextjs';
 import { trpc } from '@/lib/trpc-client';
 import { Avatar } from '@/components/ui';
 import { AccountProvider } from '@/lib/account-context';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 const tabs = [
-  { key: "/", label: "Dashboard", icon: "\uD83D\uDCCA" },
+  { key: "/dashboard", label: "Dashboard", icon: "\uD83D\uDCCA" },
   { key: "/composer", label: "Composer", icon: "\u270F\uFE0F" },
+  { key: "/reviews", label: "L&C Reviews", icon: "\uD83D\uDEE1\uFE0F" },
   { key: "/calendar", label: "Calendar", icon: "\uD83D\uDCC5" },
   { key: "/listening", label: "Social Listening", icon: "\uD83D\uDC42" },
   { key: "/kol", label: "KOL Tracking", icon: "\uD83C\uDF1F" },
@@ -22,7 +23,8 @@ const tabs = [
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { user: clerkUser } = useUser();
+  const { signOut } = useClerk();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null); // null = "All Accounts"
@@ -39,12 +41,12 @@ export default function DashboardLayout({ children }) {
   });
 
   const accountsList = (accounts ?? []).filter((a) => !a.isTest);
-  const userEmail = session?.user?.email || '';
-  const userInitial = (userEmail[0] || 'U').toUpperCase();
+  const userEmail = clerkUser?.primaryEmailAddress?.emailAddress || '';
+  const userInitial = (clerkUser?.firstName?.[0] || userEmail[0] || 'U').toUpperCase();
 
   /** Check if this tab href matches the current route */
   const isActive = (href) => {
-    if (href === '/') return pathname === '/';
+    if (href === '/dashboard') return pathname === '/dashboard';
     return pathname.startsWith(href);
   };
 
@@ -87,6 +89,17 @@ export default function DashboardLayout({ children }) {
 
         {/* Navigation links */}
         <nav className="py-2 px-3 flex flex-col gap-0.5">
+          {/* Back to hub */}
+          <Link
+            href="/"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-content-faint hover:text-content-secondary hover:bg-surface-hover transition-colors mb-1"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            Marketing Hub
+          </Link>
+          <div className="border-t border-border-secondary mb-1" />
           {tabs.map((tab) => {
             const active = isActive(tab.key);
             return (
@@ -114,13 +127,13 @@ export default function DashboardLayout({ children }) {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-content-primary truncate">{userEmail}</p>
-              <p className="text-xs text-content-muted">{session?.user?.role || 'User'}</p>
+              <p className="text-xs text-content-muted">{clerkUser?.publicMetadata?.role || 'User'}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <button
-              onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+              onClick={() => signOut({ redirectUrl: '/auth/signin' })}
               className="text-xs text-red-600 dark:text-red-400 hover:underline"
             >
               Sign out
@@ -261,10 +274,10 @@ export default function DashboardLayout({ children }) {
                   >
                     <div className="px-4 py-2 border-b border-border-secondary">
                       <p className="text-sm font-medium text-content-primary truncate">{userEmail}</p>
-                      <p className="text-xs text-content-muted">{session?.user?.role || 'User'}</p>
+                      <p className="text-xs text-content-muted">{clerkUser?.publicMetadata?.role || 'User'}</p>
                     </div>
                     <button
-                      onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+                      onClick={() => signOut({ redirectUrl: '/auth/signin' })}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                     >
                       Sign out

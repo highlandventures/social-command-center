@@ -1,30 +1,24 @@
-import { getToken } from 'next-auth/jwt';
-import { NextResponse } from 'next/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
-export async function middleware(request) {
-  const token = await getToken({ req: request });
+const isPublicRoute = createRouteMatcher([
+  '/auth/signin(.*)',
+  '/auth/verify(.*)',
+  '/api/cron/(.*)',
+  '/api/connect/(.*)',
+  '/api/webhooks/(.*)',
+]);
 
-  if (!token) {
-    const signInUrl = new URL('/auth/signin', request.url);
-    signInUrl.searchParams.set('callbackUrl', request.url);
-    return NextResponse.redirect(signInUrl);
+export default clerkMiddleware(async (auth, request) => {
+  if (!isPublicRoute(request)) {
+    await auth.protect();
   }
-
-  return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: [
-    /*
-     * Match all routes EXCEPT:
-     *  - /auth/*           (sign-in page)
-     *  - /api/auth/*       (NextAuth endpoints)
-     *  - /api/cron/*       (Vercel cron jobs — authenticated via CRON_SECRET header)
-     *  - /api/connect/*    (OAuth initiation & callback routes)
-     *  - /api/trpc/*       (tRPC handles its own auth via middleware)
-     *  - /_next/*          (Next.js internals)
-     *  - /favicon.ico, /robots.txt, static assets
-     */
-    '/((?!auth|api/auth|api/cron|api/connect|api/trpc|_next/static|_next/image|favicon\\.ico|robots\\.txt|.*\\.svg$|.*\\.png$|.*\\.jpg$|.*\\.ico$).*)',
+    // Skip Next.js internals and all static files
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    // Always run for API routes
+    '/(api|trpc)(.*)',
   ],
 };

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getSession } from '@/lib/auth';
 import { getRedditConnectUrl } from '@/lib/late-reddit';
 
 /**
@@ -9,20 +8,22 @@ import { getRedditConnectUrl } from '@/lib/late-reddit';
  * Late handles all Reddit OAuth complexity — no Reddit app registration needed.
  */
 export async function GET() {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
   // Require authenticated session
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   if (!session?.user) {
-    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/auth/signin`);
+    return NextResponse.redirect(`${baseUrl}/auth/signin`);
   }
 
   if (!process.env.LATE_API_KEY) {
     return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/admin?error=${encodeURIComponent('LATE_API_KEY not configured')}`
+      `${baseUrl}/admin?error=${encodeURIComponent('LATE_API_KEY not configured')}`
     );
   }
 
   try {
-    const redirectUrl = `${process.env.NEXTAUTH_URL}/api/connect/reddit/callback`;
+    const redirectUrl = `${baseUrl}/api/connect/reddit/callback`;
     const result = await getRedditConnectUrl(redirectUrl);
 
     if (!result?.authUrl) {
@@ -33,7 +34,7 @@ export async function GET() {
   } catch (err) {
     console.error('[connect/reddit] Late OAuth error:', err.message);
     return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/admin?error=${encodeURIComponent(err.message)}`
+      `${baseUrl}/admin?error=${encodeURIComponent(err.message)}`
     );
   }
 }

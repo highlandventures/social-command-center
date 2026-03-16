@@ -92,7 +92,7 @@ export async function GET(request) {
             report,
             recipients,
             pdfBuffer,
-            appUrl: process.env.NEXTAUTH_URL || 'https://app.socialcommand.com',
+            appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://app.socialcommand.com',
           });
 
           await prisma.reportDelivery.create({

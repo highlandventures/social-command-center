@@ -37,11 +37,13 @@ export default function ComposerPage() {
   const [sidebarTab, setSidebarTab] = useState('drafts');
   const [editingPostId, setEditingPostId] = useState(null);
   const [editingPostStatus, setEditingPostStatus] = useState(null);
+  const [requestLcReview, setRequestLcReview] = useState(false);
 
   // ── tRPC queries ──────────────────────────────────────────
   const accountsQ = trpc.accounts.list.useQuery(undefined, { staleTime: 60_000 });
   const draftsQ = trpc.posts.list.useQuery({ status: 'DRAFT' }, { staleTime: 15_000 });
   const queueQ = trpc.posts.list.useQuery({ status: 'SCHEDULED' }, { staleTime: 15_000 });
+  const pendingReviewQ = trpc.posts.list.useQuery({ status: 'PENDING_APPROVAL' }, { staleTime: 15_000 });
 
   const utils = trpc.useUtils();
 
@@ -60,6 +62,17 @@ export default function ComposerPage() {
   const deleteMutation = trpc.posts.delete.useMutation({
     onSuccess: () => {
       utils.posts.list.invalidate();
+    },
+  });
+
+  const approvalCreateMutation = trpc.approvals.create.useMutation({
+    onSuccess: () => {
+      utils.posts.list.invalidate();
+      toast.success('Submitted for L&C review');
+      setRequestLcReview(false);
+    },
+    onError: (err) => {
+      toast.error('Failed to submit for review: ' + (err.message || 'Unknown error'));
     },
   });
 
@@ -141,6 +154,7 @@ export default function ComposerPage() {
   const accounts = accountsQ.data ?? [];
   const drafts = draftsQ.data?.items ?? [];
   const scheduledPosts = queueQ.data?.items ?? [];
+  const pendingReviewPosts = pendingReviewQ.data?.items ?? [];
 
   const activeTweets = tweets.filter((t) => (t || '').trim());
   const isThread = postMode === 'thread';
@@ -228,34 +242,66 @@ export default function ComposerPage() {
     }
   };
 
-  const handleSchedule = () => {
+  const handleSchedule = async () => {
     if (!selectedAccountId) return;
     const content = isThread ? tweets.join('\n---\n') : tweets[0];
     const contentType = contentTypeMap[postMode] || 'POST';
     const scheduledFor = new Date(`${scheduleDate}T${scheduleTime}`);
 
-    if (editingPostId) {
-      updateMutation.mutate({
-        id: editingPostId,
-        data: {
+    if (requestLcReview) {
+      // L&C review flow: save as DRAFT with scheduledFor, then create approval request
+      let postId = editingPostId;
+      if (editingPostId) {
+        await updateMutation.mutateAsync({
+          id: editingPostId,
+          data: {
+            content,
+            contentType,
+            scheduledFor,
+            ...(postMode === 'article' ? { articleTitle } : {}),
+            ...getRedditFields(),
+          },
+        });
+      } else {
+        const post = await createMutation.mutateAsync({
           content,
+          platform: selectedPlatform,
+          accountId: selectedAccountId,
           contentType,
-          status: 'SCHEDULED',
           scheduledFor,
           ...(postMode === 'article' ? { articleTitle } : {}),
           ...getRedditFields(),
-        },
-      });
+        });
+        postId = post?.id;
+      }
+      if (postId) {
+        approvalCreateMutation.mutate({ postId });
+      }
     } else {
-      createMutation.mutate({
-        content,
-        platform: selectedPlatform,
-        accountId: selectedAccountId,
-        contentType,
-        scheduledFor,
-        ...(postMode === 'article' ? { articleTitle } : {}),
-        ...getRedditFields(),
-      });
+      // Standard schedule flow (no L&C review)
+      if (editingPostId) {
+        updateMutation.mutate({
+          id: editingPostId,
+          data: {
+            content,
+            contentType,
+            status: 'SCHEDULED',
+            scheduledFor,
+            ...(postMode === 'article' ? { articleTitle } : {}),
+            ...getRedditFields(),
+          },
+        });
+      } else {
+        createMutation.mutate({
+          content,
+          platform: selectedPlatform,
+          accountId: selectedAccountId,
+          contentType,
+          scheduledFor,
+          ...(postMode === 'article' ? { articleTitle } : {}),
+          ...getRedditFields(),
+        });
+      }
     }
   };
 
@@ -376,11 +422,29 @@ export default function ComposerPage() {
               className="text-xs bg-transparent border-none outline-none w-[85px] cursor-pointer"
             />
           </div>
+          <label className="flex items-center gap-1.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={requestLcReview}
+              onChange={(e) => setRequestLcReview(e.target.checked)}
+              className="w-3.5 h-3.5 rounded border-border accent-amber-500"
+            />
+            <span className="text-[10px] text-content-secondary whitespace-nowrap">L&C Review</span>
+          </label>
           <button
             onClick={handleSchedule}
-            className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 font-medium"
+            disabled={approvalCreateMutation.isLoading}
+            className={`px-3 py-1.5 text-white text-xs rounded-lg font-medium ${
+              requestLcReview
+                ? 'bg-amber-600 hover:bg-amber-700'
+                : 'bg-blue-600 hover:bg-blue-700'
+            }`}
           >
-            Schedule
+            {approvalCreateMutation.isLoading
+              ? 'Submitting...'
+              : requestLcReview
+              ? 'Schedule & Submit for Review'
+              : 'Schedule'}
           </button>
           <button
             onClick={handlePublishNow}
@@ -1111,6 +1175,41 @@ export default function ComposerPage() {
                     </div>
                   </div>
                 ))}
+                {pendingReviewPosts.length > 0 && (
+                  <>
+                    <div className="text-[10px] text-amber-600 font-semibold uppercase tracking-wider mt-3 mb-1.5">
+                      Pending L&C Review ({pendingReviewPosts.length})
+                    </div>
+                    {pendingReviewPosts.map((p) => (
+                      <div
+                        key={p.id}
+                        onClick={() => loadPostIntoEditor(p)}
+                        className="p-2.5 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-950/30 cursor-pointer transition-colors group"
+                      >
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <PlatformBadge platform={p.platform} />
+                          <span className="text-[10px] text-amber-600 font-medium">L&C Review</span>
+                        </div>
+                        <p
+                          className="text-[11px] text-content-secondary leading-snug line-clamp-2"
+                          style={{
+                            display: '-webkit-box',
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          {p.content}
+                        </p>
+                        <div className="flex items-center justify-between mt-1.5">
+                          <span className="text-[10px] text-content-muted flex items-center gap-1">
+                            <span>{'\uD83D\uDD50'}</span> {p.scheduledFor ? new Date(p.scheduledFor).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
             ) : sidebarTab === 'copilot' ? (
               <CopilotPanel

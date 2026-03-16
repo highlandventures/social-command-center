@@ -14,7 +14,7 @@ export async function GET(request) {
 
   if (error) {
     return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/admin?error=${encodeURIComponent(error)}`
+      `${process.env.NEXT_PUBLIC_APP_URL}/admin?error=${encodeURIComponent(error)}`
     );
   }
 
@@ -27,7 +27,7 @@ export async function GET(request) {
 
     if (!redditAccount) {
       return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/admin?error=${encodeURIComponent('Reddit account not found in Late after OAuth')}`
+        `${process.env.NEXT_PUBLIC_APP_URL}/admin?error=${encodeURIComponent('Reddit account not found in Late after OAuth')}`
       );
     }
 
@@ -60,12 +60,12 @@ export async function GET(request) {
     });
 
     return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/admin?success=reddit_connected`
+      `${process.env.NEXT_PUBLIC_APP_URL}/admin?success=reddit_connected`
     );
   } catch (err) {
     console.error('[connect/reddit/callback] Error:', err.message);
     return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/admin?error=${encodeURIComponent(err.message)}`
+      `${process.env.NEXT_PUBLIC_APP_URL}/admin?error=${encodeURIComponent(err.message)}`
     );
   }
 }

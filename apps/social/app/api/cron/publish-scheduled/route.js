@@ -24,9 +24,10 @@ export async function GET(request) {
 
   try {
     // Fetch all posts that are due for publishing
+    // SCHEDULED = direct schedule (no L&C review), APPROVED = passed L&C review
     const duePosts = await prisma.post.findMany({
       where: {
-        status: 'SCHEDULED',
+        status: { in: ['SCHEDULED', 'APPROVED'] },
         scheduledFor: { lte: new Date() },
       },
       include: {

@@ -2,8 +2,8 @@ import './globals.css';
 import Providers from '@/components/providers';
 
 export const metadata = {
-  title: 'Social Command Center — Highland Ventures',
-  description: 'Internal social media management, monitoring, and reporting tool',
+  title: 'Marketing Command Center — Highland Ventures',
+  description: 'Internal marketing hub — social media, ads, email, and analytics',
 };
 
 export default function RootLayout({ children }) {

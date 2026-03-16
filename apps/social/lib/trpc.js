@@ -1,7 +1,6 @@
 import { initTRPC, TRPCError } from '@trpc/server';
 import superjson from 'superjson';
-import { getServerSession } from 'next-auth';
-import { authOptions } from './auth';
+import { getSession } from './auth';
 import { prisma } from './db';
 import { kv } from './redis';
 
@@ -10,7 +9,7 @@ import { kv } from './redis';
  * Includes: prisma client, Redis KV, and the current user session.
  */
 export async function createContext({ req, res }) {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
   return {
     prisma,
     kv,
