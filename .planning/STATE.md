@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Report Center
 status: executing
-stopped_at: Completed 07-00-PLAN.md
-last_updated: "2026-03-16T18:50:07.752Z"
-last_activity: 2026-03-16 -- Completed 07-00 Wave 0 test scaffolds
+stopped_at: Completed 07-01-PLAN.md
+last_updated: "2026-03-16T18:59:10Z"
+last_activity: 2026-03-16 -- Completed 07-01 Scheduling system
 progress:
   total_phases: 8
   completed_phases: 5
   total_plans: 19
-  completed_plans: 16
-  percent: 93
+  completed_plans: 17
+  percent: 89
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 ## Current Position
 
 Phase: 7 of 8 (Scheduling + Ad Hoc Reports)
-Plan: 1 of 4 in current phase
+Plan: 2 of 4 in current phase
 Status: Executing Phase 7
-Last activity: 2026-03-16 -- Completed 07-00 Wave 0 test scaffolds
+Last activity: 2026-03-16 -- Completed 07-01 Scheduling system
 
-Progress: [████████░░] 84% (16/19 plans complete)
+Progress: [█████████░] 89% (17/19 plans complete)
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Progress: [████████░░] 84% (16/19 plans complete)
 | Phase 04 P01 | 5min | 2 tasks | 12 files |
 | Phase 04 P02 | 5min | 3 tasks | 6 files |
 | Phase 07 P00 | 2min | 1 tasks | 2 files |
+| Phase 07 P01 | 7min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -100,6 +101,8 @@ Recent decisions affecting current work:
 - [Phase 04]: Draft insertion uses confirm dialog for replace vs append when editor has content
 - [Phase 04]: parseDraftToTweets splits by numbered markers, then double newlines, then single tweet
 - [Phase 07]: Scheduling module split: schedule-manager.js (CRUD+cron) and schedule-helpers.js (date math)
+- [Phase 07]: UTC date math for schedule computation (avoids DST shifts)
+- [Phase 07]: Cron batch cap at 3 + double-exec guard via lastRunAt
 
 ### Pending Todos
 
@@ -112,6 +115,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T18:50:07.749Z
-Stopped at: Completed 07-00-PLAN.md
+Last session: 2026-03-16T18:59:10Z
+Stopped at: Completed 07-01-PLAN.md
 Resume file: None
