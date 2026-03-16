@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { trpc } from '@/lib/trpc-client';
 import { PlatformBadge, Skeleton, useToast } from '@/components/ui';
 
@@ -14,6 +14,7 @@ export default function CalendarPage() {
   const [rescheduleModal, setRescheduleModal] = useState(null);
   const [newTime, setNewTime] = useState('09:15');
   const [selectedPost, setSelectedPost] = useState(null); // click-to-view
+  const isDraggingRef = useRef(false);
 
   const toast = useToast();
   const utils = trpc.useUtils();
@@ -127,7 +128,8 @@ export default function CalendarPage() {
 
   // ── Drag & Drop handlers ──────────────────────────────────
   const handleDragStart = useCallback((e, post) => {
-    e.dataTransfer.setData('application/json', JSON.stringify({
+    isDraggingRef.current = true;
+    e.dataTransfer.setData('text/plain', JSON.stringify({
       postId: post.id,
       postLabel: post.label,
       originalTime: post.timeRaw,
@@ -136,13 +138,18 @@ export default function CalendarPage() {
     e.dataTransfer.effectAllowed = 'move';
   }, []);
 
+  const handleDragEnd = useCallback(() => {
+    setTimeout(() => { isDraggingRef.current = false; }, 0);
+  }, []);
+
   const handleDragOver = useCallback((e, dayNum) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     setDragOverDay(dayNum);
   }, []);
 
-  const handleDragLeave = useCallback(() => {
+  const handleDragLeave = useCallback((e) => {
+    if (e.currentTarget.contains(e.relatedTarget)) return;
     setDragOverDay(null);
   }, []);
 
@@ -150,7 +157,7 @@ export default function CalendarPage() {
     e.preventDefault();
     setDragOverDay(null);
     try {
-      const data = JSON.parse(e.dataTransfer.getData('application/json'));
+      const data = JSON.parse(e.dataTransfer.getData('text/plain'));
       setNewTime(data.originalTime);
       setRescheduleModal({
         postId: data.postId,
@@ -159,7 +166,10 @@ export default function CalendarPage() {
         originalTimeDisplay: data.originalTimeDisplay,
         targetDay,
       });
-    } catch { /* invalid drag data */ }
+    } catch (err) {
+      console.warn('[Calendar] Drop failed:', err);
+      toast.error('Failed to move post — try again');
+    }
   }, []);
 
   const handleReschedule = useCallback((action) => {
@@ -185,6 +195,7 @@ export default function CalendarPage() {
 
   // ── Post card click handler ─────────────────────────────────
   const handlePostClick = useCallback((post) => {
+    if (isDraggingRef.current) return;
     setSelectedPost(post);
   }, []);
 
@@ -202,6 +213,7 @@ export default function CalendarPage() {
         key={i}
         draggable={post.draggable}
         onDragStart={post.draggable ? (e) => { e.stopPropagation(); handleDragStart(e, post); } : undefined}
+        onDragEnd={post.draggable ? handleDragEnd : undefined}
         onClick={(e) => { e.stopPropagation(); handlePostClick(post); }}
         className={`group rounded border-l-[3px] transition-all cursor-pointer ${
           acctColor ? acctColor.border : 'border-l-gray-400'
