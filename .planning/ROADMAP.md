@@ -139,9 +139,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 07-00-PLAN.md -- Wave 0 test scaffolds (scheduling + ad hoc report stubs)
-- [ ] 07-01-PLAN.md -- Scheduling: Prisma schema, tRPC CRUD, cron route, email delivery, management UI
-- [ ] 07-02-PLAN.md -- Ad hoc reports: Prisma schema, AI chat scoping, param extraction, re-runs, snapshots, UI
+- [x] 07-00-PLAN.md -- Wave 0 test scaffolds (scheduling + ad hoc report stubs)
+- [x] 07-01-PLAN.md -- Scheduling: Prisma schema, tRPC CRUD, cron route, email delivery, management UI
+- [x] 07-02-PLAN.md -- Ad hoc reports: Prisma schema, AI chat scoping, param extraction, re-runs, snapshots, UI
 
 ### Phase 8: Benchmarking
 **Goal**: Team can compare report metrics against previous time periods and custom milestones to understand performance trends and event impact
@@ -152,11 +152,12 @@ Plans:
   2. Team can create named milestones (product launches, campaigns, events) with start and end dates
   3. Team can benchmark a report against any named milestone's time period to see how current performance compares to the milestone period
   4. All benchmark comparisons display absolute values and percentage deltas with directional indicators (green up arrows, red down arrows)
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 08-01: TBD
-- [ ] 08-02: TBD
+- [ ] 08-00-PLAN.md -- Wave 0 test scaffolds (milestone + benchmark comparison stubs)
+- [ ] 08-01-PLAN.md -- Backend: Milestone model, milestones tRPC CRUD, benchmark comparison logic, compareBenchmark endpoint
+- [ ] 08-02-PLAN.md -- Frontend: MilestoneManager, BenchmarkSelector, report detail integration, navigation
 
 ## Progress
 
@@ -171,5 +172,5 @@ Phases execute in numeric order: 5 -> 5.1 -> 6 -> 6.1 -> 7 -> 8
 | 4. Content Co-Pilot | v1.0 | 3/3 | Complete | 2026-03-16 |
 | 5. Report Engine + Charts | v1.1 | 3/3 | Complete | 2026-03-15 |
 | 6. Export + Distribution | v1.1 | 3/3 | Complete | 2026-03-16 |
-| 7. Scheduling + Ad Hoc Reports | 3/3 | Complete   | 2026-03-16 | - |
-| 8. Benchmarking | v1.1 | 0/? | Not started | - |
+| 7. Scheduling + Ad Hoc Reports | v1.1 | 3/3 | Complete | 2026-03-16 |
+| 8. Benchmarking | v1.1 | 0/3 | Not started | - |
