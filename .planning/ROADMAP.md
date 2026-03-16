@@ -13,7 +13,7 @@
 - [x] **Phase 1: Performance Intel** - Surface post performance data as actionable insight cards in the composer sidebar
 - [x] **Phase 2: Competitor Intel** - Capture competitor post content and extract strategic patterns via AI analysis
 - [x] **Phase 3: Audience Questions** - Extract, cluster, and score questions from listening hits as content opportunities
-- [ ] **Phase 4: Content Co-Pilot** - Conversational AI co-pilot in composer sidebar with streaming chat, intel context, brand voice, predictions, and draft insertion
+- [x] **Phase 4: Content Co-Pilot** - Conversational AI co-pilot in composer sidebar with streaming chat, intel context, brand voice, predictions, and draft insertion (completed 2026-03-16)
 
 ### Phase 1: Performance Intel
 **Goal**: Team can see what content works and why, directly in the composer where they make content decisions
@@ -73,9 +73,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 04-00-PLAN.md -- Wave 0 test scaffolds (copilot lib module stubs)
-- [ ] 04-01-PLAN.md -- Backend: schema, deps, copilot lib modules, tRPC router, streaming API route
-- [ ] 04-02-PLAN.md -- Frontend: CopilotPanel, message renderer, input, suggestion chips, prediction card, composer integration
+- [x] 04-00-PLAN.md -- Wave 0 test scaffolds (copilot lib module stubs)
+- [x] 04-01-PLAN.md -- Backend: schema, deps, copilot lib modules, tRPC router, streaming API route
+- [x] 04-02-PLAN.md -- Frontend: CopilotPanel, message renderer, input, suggestion chips, prediction card, composer integration
 
 </details>
 
@@ -167,7 +167,7 @@ Phases execute in numeric order: 5 -> 5.1 -> 6 -> 6.1 -> 7 -> 8
 | 1. Performance Intel | v1.0 | 2/2 | Complete | 2026-03-14 |
 | 2. Competitor Intel | v1.0 | 2/2 | Complete | 2026-03-14 |
 | 3. Audience Questions | v1.0 | 2/2 | Complete | 2026-03-15 |
-| 4. Content Co-Pilot | v1.0 | 0/3 | Planned | - |
+| 4. Content Co-Pilot | v1.0 | 3/3 | Complete | 2026-03-16 |
 | 5. Report Engine + Charts | 3/3 | Complete   | 2026-03-15 | - |
 | 6. Export + Distribution | 3/3 | Complete   | 2026-03-16 | - |
 | 7. Scheduling + Ad Hoc Reports | v1.1 | 0/? | Not started | - |

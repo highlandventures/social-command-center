@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Report Center
 status: executing
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-03-16T17:47:58.420Z"
-last_activity: 2026-03-16 -- Completed 04-00 (Wave 0 Test Scaffolds)
+stopped_at: Completed Phase 4 (Content Co-Pilot)
+last_updated: "2026-03-16T18:00:00.000Z"
+last_activity: 2026-03-16 -- Completed Phase 4 (Content Co-Pilot) - all 3 plans done
 progress:
   total_phases: 8
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 15
-  completed_plans: 14
-  percent: 87
+  completed_plans: 15
+  percent: 93
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** Team can compose high-performing content informed by real data on what works, what competitors do, and what the audience needs.
-**Current focus:** Phase 4 - Content Co-Pilot
+**Current focus:** Phase 7 - Scheduling + Ad Hoc Reports (next)
 
 ## Current Position
 
-Phase: 4 of 8 (Content Co-Pilot)
-Plan: 1 of 3 in current phase
-Status: Executing
-Last activity: 2026-03-16 -- Completed 04-00 (Wave 0 Test Scaffolds)
+Phase: 4 of 8 (Content Co-Pilot) — COMPLETE
+Plan: 3 of 3 in current phase (all done)
+Status: Phase 4 complete, Phase 7 next
+Last activity: 2026-03-16 -- Completed Phase 4 (Content Co-Pilot)
 
-Progress: [█████████░] 87% (13/15 plans complete)
+Progress: [█████████▓] 93% (15/15 plans complete, Phases 7-8 not yet planned)
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress: [█████████░] 87% (13/15 plans complete)
 | Phase 06 P02 | 8min | 3 tasks | 6 files |
 | Phase 04 P00 | 2min | 1 tasks | 4 files |
 | Phase 04 P01 | 5min | 2 tasks | 12 files |
+| Phase 04 P02 | 5min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -94,6 +95,9 @@ Recent decisions affecting current work:
 - [Phase 04]: Wave 0 test stubs use describe.skip with dynamic imports for pre-implementation scaffolding
 - [Phase 04]: Hybrid architecture: streaming via plain API route, CRUD via tRPC (v10 lacks SSE)
 - [Phase 04]: Vercel AI SDK streamText + onFinish for message persistence and cost logging
+- [Phase 04]: useChat from ai/react for frontend streaming with automatic SSE handling
+- [Phase 04]: Draft insertion uses confirm dialog for replace vs append when editor has content
+- [Phase 04]: parseDraftToTweets splits by numbered markers, then double newlines, then single tweet
 
 ### Pending Todos
 
