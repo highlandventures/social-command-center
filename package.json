@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.58",
+    "@ai-sdk/react": "^3.0.118",
     "@anthropic-ai/sdk": "^0.24.0",
     "@getlatedev/node": "^0.1.54",
     "@prisma/client": "^5.14.0",

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { trpc } from '@/lib/trpc-client';
 import CopilotMessage from '@/components/CopilotMessage';
 import CopilotInput from '@/components/CopilotInput';
