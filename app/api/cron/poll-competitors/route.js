@@ -311,8 +311,10 @@ export async function GET(request) {
     }
 
     // ── Batch AI Analysis: Competitor Strategy ──────────────────
+    // Pre-compute all metrics deterministically, then ask AI to interpret
     try {
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
 
       // Fetch all competitor posts from last 30 days
       const allCompPosts = await prisma.competitorPost.findMany({
@@ -340,6 +342,17 @@ export async function GET(request) {
         const followersByComp = {};
         for (const m of latestMetrics) followersByComp[m.competitorId] = m.followersX;
 
+        // Get 14-day-ago metrics for trend comparison
+        const trendDate = new Date(today);
+        trendDate.setDate(trendDate.getDate() - 14);
+        trendDate.setUTCHours(0, 0, 0, 0);
+        const trendMetrics = await prisma.competitorMetrics.findMany({
+          where: { date: trendDate },
+          select: { competitorId: true, followersX: true, avgEngagementRate: true },
+        });
+        const trendByComp = {};
+        for (const m of trendMetrics) trendByComp[m.competitorId] = m;
+
         // Also get Figure's follower count
         const figureFollowers = figureAccounts.length > 0
           ? (await prisma.accountMetrics.findMany({
@@ -357,48 +370,132 @@ export async function GET(request) {
           postsByComp[compId].posts.push(post);
         }
 
-        // Build context for AI
-        const competitorSummaries = Object.entries(postsByComp).map(([compId, data]) => {
+        // ── Pre-compute deterministic format breakdown ──────────
+        const globalFormatStats = {};
+        for (const post of allCompPosts) {
+          const fmt = post.contentType || 'POST';
+          if (!globalFormatStats[fmt]) globalFormatStats[fmt] = { postCount: 0, totalEng: 0, byComp: {} };
+          globalFormatStats[fmt].postCount++;
+          globalFormatStats[fmt].totalEng += post.engagementRate;
+          if (!globalFormatStats[fmt].byComp[post.competitor.name]) {
+            globalFormatStats[fmt].byComp[post.competitor.name] = { count: 0, totalEng: 0 };
+          }
+          globalFormatStats[fmt].byComp[post.competitor.name].count++;
+          globalFormatStats[fmt].byComp[post.competitor.name].totalEng += post.engagementRate;
+        }
+        const preComputedFormats = Object.entries(globalFormatStats).map(([format, stats]) => {
+          const byCompEntries = Object.entries(stats.byComp);
+          const topComp = byCompEntries.sort((a, b) => b[1].count - a[1].count)[0];
+          return {
+            format,
+            postCount: stats.postCount,
+            avgEngRate: +(stats.totalEng / stats.postCount).toFixed(4),
+            topCompetitor: topComp ? topComp[0] : null,
+          };
+        });
+
+        // ── Pre-compute per-competitor strategy data ──────────
+        const preComputedStrategyCards = Object.entries(postsByComp).map(([compId, data]) => {
           const posts = data.posts;
           const avgEngRate = posts.reduce((s, p) => s + p.engagementRate, 0) / posts.length;
           const postsPerDay = posts.length / 30;
+          const followers = followersByComp[compId] || 0;
 
-          // Content samples (first 100 chars of up to 10 posts)
-          const contentSamples = posts.slice(0, 10).map(p => p.content.slice(0, 100));
-
-          // Format breakdown
+          // Format mix
           const formats = {};
-          for (const p of posts) {
-            formats[p.contentType] = (formats[p.contentType] || 0) + 1;
-          }
+          for (const p of posts) formats[p.contentType] = (formats[p.contentType] || 0) + 1;
+          const formatMix = Object.entries(formats)
+            .sort((a, b) => b[1] - a[1])
+            .map(([f, c]) => `${f}: ${Math.round((c / posts.length) * 100)}%`)
+            .join(', ');
+
+          // Engagement vs Figure benchmark
+          const engDiff = figureAvgEngRate > 0
+            ? ((avgEngRate - figureAvgEngRate) / figureAvgEngRate * 100).toFixed(0)
+            : 0;
+          const engBenchmark = Number(engDiff) > 0
+            ? `${engDiff}% higher than Figure`
+            : Number(engDiff) < 0
+              ? `${Math.abs(engDiff)}% lower than Figure`
+              : 'On par with Figure';
+
+          // Follower benchmark
+          const followerRatio = figureFollowers > 0
+            ? (followers / figureFollowers).toFixed(1)
+            : 'N/A';
+
+          // Trend (14-day comparison)
+          const prev = trendByComp[compId];
+          const followerGrowth = prev?.followersX > 0
+            ? (((followers - prev.followersX) / prev.followersX) * 100).toFixed(1)
+            : null;
+          const engTrend = prev?.avgEngagementRate > 0
+            ? (((avgEngRate - prev.avgEngagementRate) / prev.avgEngagementRate) * 100).toFixed(1)
+            : null;
+
+          // Recent vs older half post cadence
+          const recentPosts = posts.filter(p => new Date(p.postedAt) >= fourteenDaysAgo);
+          const olderPosts = posts.filter(p => new Date(p.postedAt) < fourteenDaysAgo);
+          const recentCadence = recentPosts.length / 14;
+          const olderCadence = olderPosts.length / 16; // remaining days
 
           return {
             competitorName: data.name,
             postCount: posts.length,
-            postsPerDay: postsPerDay.toFixed(1),
-            avgEngagementRate: avgEngRate.toFixed(4),
-            followersX: followersByComp[compId] || 0,
-            formatBreakdown: formats,
-            contentSamples,
+            postingCadence: `${postsPerDay.toFixed(1)} posts/day`,
+            formatMix,
+            engagementRate: avgEngRate.toFixed(4),
+            followerCount: followers,
+            engagementBenchmark: engBenchmark,
+            followerBenchmark: `${followerRatio}x Figure's followers`,
+            trend: {
+              followerGrowth14d: followerGrowth ? `${followerGrowth}%` : 'No prior data',
+              engagementTrend14d: engTrend ? `${engTrend}%` : 'No prior data',
+              cadenceTrend: recentCadence > olderCadence * 1.2
+                ? 'Accelerating'
+                : recentCadence < olderCadence * 0.8
+                  ? 'Slowing down'
+                  : 'Steady',
+            },
+            // Content samples — 280 chars for 15 top-performing posts (enough for theme extraction)
+            topContentSamples: [...posts]
+              .sort((a, b) => b.engagementRate - a.engagementRate)
+              .slice(0, 15)
+              .map(p => ({ content: p.content.slice(0, 280), engagementRate: p.engagementRate.toFixed(4) })),
           };
         });
 
-        // Summarize Figure's post themes for content gap analysis
-        const figureContentSamples = figurePosts.slice(0, 15).map(p => (p.content || '').slice(0, 100));
+        // Figure content samples — also 280 chars, more of them
+        const figureContentSamples = figurePosts
+          .sort((a, b) => (b.metrics[0]?.engagementRate || 0) - (a.metrics[0]?.engagementRate || 0))
+          .slice(0, 20)
+          .map(p => ({
+            content: (p.content || '').slice(0, 280),
+            engagementRate: (p.metrics[0]?.engagementRate || 0).toFixed(4),
+          }));
 
         const aiContext = {
-          instruction: `Analyze competitor posting strategies and generate four JSON objects:
-1. "themes": array of { phrase (string), occurrences (int), avgEngRate (float), competitors (string[]) } — top 20 themes across all competitors
-2. "formats": array of { format (string), postCount (int), avgEngRate (float), topCompetitor (string) } — format breakdown
-3. "strategyCards": array of { competitorName (string), postingCadence (string like "2.3 posts/day"), topThemes (array of 3 strings), formatMix (string), engagementRate (string), followerCount (int), engagementBenchmark (string comparing to Figure's avg), followerBenchmark (string comparing to Figure's count), keyInsight (string, 1-2 sentences) }
-4. "contentGaps": object with two arrays:
-   - "gaps": array of { theme (string), competitors (string[]), avgEngRate (float), recommendation (string, 1 sentence action item) } — themes competitors cover that Figure does NOT (top 10)
-   - "strengths": array of { theme (string), figurePostCount (int), avgEngRate (float) } — themes Figure covers that competitors don't or cover less (top 10)
+          instruction: `You are given pre-computed metrics for competitor analysis. DO NOT recompute any numbers.
 
-For contentGaps, compare Figure's content samples against competitor themes. Gaps are topics competitors post about with good engagement that Figure is missing. Strengths are topics Figure owns exclusively or dominates.
+Your job is to INTERPRET the data and produce:
+1. "themes": Identify the top 15 recurring themes/topics across competitor content samples. For each: { "phrase": string, "occurrences": int (how many samples touch this theme), "avgEngRate": float (from the samples), "competitors": string[] }
+2. "strategyCards": For each competitor, use the pre-computed metrics below and add ONLY:
+   - "topThemes": array of 3 theme strings (from their content samples)
+   - "keyInsight": 1-2 sentences — what is this competitor doing differently that Figure should pay attention to? Be specific, reference numbers.
+   Copy all other fields (postingCadence, formatMix, engagementRate, etc.) exactly from the pre-computed data.
+3. "contentGaps": Compare Figure's content samples against competitor themes.
+   - "gaps": array of { "theme": string, "competitors": string[], "avgEngRate": float, "recommendation": string (specific action — e.g. "Create a thread breaking down X" not "Consider posting about X") } — topics competitors cover with good engagement that Figure doesn't (top 10)
+   - "strengths": array of { "theme": string, "figurePostCount": int, "avgEngRate": float } — topics Figure covers that competitors don't (top 10)
+
+IMPORTANT:
+- Only identify themes that appear in 2+ content samples (not one-off mentions)
+- Recommendations must be specific and actionable (format + topic + angle)
+- If a competitor's trend shows "Accelerating" cadence + rising engagement, flag them as gaining momentum
 
 Return a JSON object with keys: themes, formats, strategyCards, contentGaps.`,
-          competitors: competitorSummaries,
+
+          preComputedFormats,
+          preComputedStrategyCards,
           figure: {
             avgEngagementRate: figureAvgEngRate.toFixed(4),
             postsPerDay: figurePostsPerDay.toFixed(1),
@@ -409,8 +506,20 @@ Return a JSON object with keys: themes, formats, strategyCards, contentGaps.`,
 
         const aiResult = await generateInsight('competitor_strategy', aiContext, {
           model: 'claude-haiku-4-5-20251001',
-          maxTokens: 2048,
-          systemPrompt: 'You are a competitive intelligence analyst for a social media team in the RWA/tokenization space. Analyze competitor posting strategies and compare to our (Figure) performance. Always respond with valid JSON matching the requested schema.',
+          maxTokens: 3000,
+          systemPrompt: 'You are a competitive intelligence analyst for Figure, a company in the RWA/tokenization space. You interpret pre-computed metrics — never invent numbers. Your insights must be specific (reference actual engagement rates, follower counts, trends) and actionable (recommend specific content formats + topics + angles). Always respond with valid JSON.',
+        });
+
+        // Merge AI-generated fields into pre-computed strategy cards
+        const mergedStrategyCards = preComputedStrategyCards.map((card) => {
+          const aiCard = (aiResult.strategyCards || []).find(
+            (c) => c.competitorName === card.competitorName
+          );
+          return {
+            ...card,
+            topThemes: aiCard?.topThemes || [],
+            keyInsight: aiCard?.keyInsight || '',
+          };
         });
 
         // Dismiss old COMPETITOR_STRATEGY insights, then store new ones
@@ -427,19 +536,19 @@ Return a JSON object with keys: themes, formats, strategyCards, contentGaps.`,
           },
         });
 
-        // Store formats result
+        // Store formats result (pre-computed, not AI-generated)
         await prisma.aIInsight.create({
           data: {
             insightType: 'COMPETITOR_STRATEGY',
-            content: { type: 'formats', data: aiResult.formats || [] },
+            content: { type: 'formats', data: preComputedFormats },
           },
         });
 
-        // Store strategy cards result
+        // Store strategy cards result (merged: pre-computed + AI themes/insights)
         await prisma.aIInsight.create({
           data: {
             insightType: 'COMPETITOR_STRATEGY',
-            content: { type: 'strategyCards', data: aiResult.strategyCards || [] },
+            content: { type: 'strategyCards', data: mergedStrategyCards },
           },
         });
 
@@ -453,8 +562,8 @@ Return a JSON object with keys: themes, formats, strategyCards, contentGaps.`,
 
         console.log('Competitor strategy AI analysis cached:', {
           themes: (aiResult.themes || []).length,
-          formats: (aiResult.formats || []).length,
-          strategyCards: (aiResult.strategyCards || []).length,
+          formats: preComputedFormats.length,
+          strategyCards: mergedStrategyCards.length,
           contentGaps: (aiResult.contentGaps?.gaps || []).length,
         });
       }
