@@ -14,6 +14,7 @@ export default function CalendarPage() {
   const [rescheduleModal, setRescheduleModal] = useState(null);
   const [newTime, setNewTime] = useState('09:15');
   const [selectedPost, setSelectedPost] = useState(null); // click-to-view
+  const [hideTestAccounts, setHideTestAccounts] = useState(true);
   const isDraggingRef = useRef(false);
 
   const toast = useToast();
@@ -51,7 +52,15 @@ export default function CalendarPage() {
 
   // ── tRPC queries ──────────────────────────────────────────
   const postsQ = trpc.posts.list.useQuery(undefined, { staleTime: 15_000 });
-  const posts = postsQ.data?.items ?? [];
+  const accountsQ = trpc.accounts.list.useQuery(undefined, { staleTime: 60_000 });
+  const testAccountIds = useMemo(() => {
+    return new Set((accountsQ.data ?? []).filter((a) => a.isTest).map((a) => a.id));
+  }, [accountsQ.data]);
+  const allPosts = postsQ.data?.items ?? [];
+  const posts = useMemo(() => {
+    if (!hideTestAccounts || testAccountIds.size === 0) return allPosts;
+    return allPosts.filter((p) => !testAccountIds.has(p.account?.id));
+  }, [allPosts, hideTestAccounts, testAccountIds]);
 
   // ── Account color map ───────────────────────────────────────
   const ACCOUNT_COLORS = [
@@ -270,20 +279,32 @@ export default function CalendarPage() {
             <button onClick={goToNextMonth} className="p-1 text-content-faint hover:text-content-secondary">{'\u2192'}</button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {['month', 'week', 'list'].map((v) => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg capitalize ${
-                view === v
-                  ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
-                  : 'bg-surface-secondary text-content-secondary hover:bg-surface-tertiary'
-              }`}
-            >
-              {v}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setHideTestAccounts(!hideTestAccounts)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+              hideTestAccounts
+                ? 'bg-surface-secondary text-content-muted hover:bg-surface-tertiary'
+                : 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
+            }`}
+          >
+            {hideTestAccounts ? 'Show Test Accounts' : 'Hide Test Accounts'}
+          </button>
+          <div className="flex items-center gap-1">
+            {['month', 'week', 'list'].map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg capitalize ${
+                  view === v
+                    ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
+                    : 'bg-surface-secondary text-content-secondary hover:bg-surface-tertiary'
+                }`}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

@@ -38,7 +38,7 @@ export default function DashboardLayout({ children }) {
     staleTime: 60_000,
   });
 
-  const accountsList = accounts ?? [];
+  const accountsList = (accounts ?? []).filter((a) => !a.isTest);
   const userEmail = session?.user?.email || '';
   const userInitial = (userEmail[0] || 'U').toUpperCase();
 
