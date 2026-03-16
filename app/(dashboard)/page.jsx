@@ -71,6 +71,12 @@ export default function DashboardPage() {
     return q;
   }, [dateRange, selectedAccount, customStart, customEnd]);
 
+  // When drilling into a specific account, override the accountId filter
+  const detailQueryInput = useMemo(() => {
+    if (!detailAccount) return queryInput;
+    return { ...queryInput, accountId: detailAccount };
+  }, [queryInput, detailAccount]);
+
   const xInterval = chartInterval(dateRange, customStart, customEnd);
 
   // ── tRPC queries ──────────────────────────────────────────
@@ -85,12 +91,12 @@ export default function DashboardPage() {
   );
 
   const engagementTrendQ = trpc.analytics.engagementTrend.useQuery(
-    queryInput,
+    detailQueryInput,
     { staleTime: 30_000, keepPreviousData: true }
   );
 
   const followerGrowthQ = trpc.analytics.followerGrowth.useQuery(
-    queryInput,
+    detailQueryInput,
     { staleTime: 30_000, keepPreviousData: true }
   );
 
@@ -100,12 +106,12 @@ export default function DashboardPage() {
   );
 
   const heatmapQ = trpc.analytics.heatmap.useQuery(
-    queryInput,
+    detailQueryInput,
     { staleTime: 60_000, keepPreviousData: true }
   );
 
   const postPerfQ = trpc.analytics.postPerformance.useQuery(
-    queryInput,
+    detailQueryInput,
     { staleTime: 30_000, keepPreviousData: true }
   );
 

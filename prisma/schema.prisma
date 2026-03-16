@@ -79,6 +79,7 @@ model Account {
   avatarUrl      String?
   connectedAt    DateTime  @default(now())
   isActive       Boolean   @default(true)
+  isTest         Boolean   @default(false)
 
   // Relations
   posts          Post[]
