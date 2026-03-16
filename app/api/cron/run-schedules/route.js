@@ -1,0 +1,142 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { verifyCronAuth } from '@/lib/cron-auth';
+import { generateEnrichedReport, getPreviousPeriod } from '@/lib/report-engine';
+import { sendReportEmail } from '@/lib/email-sender';
+import { renderReportPDF } from '@/lib/pdf-renderer.jsx';
+import {
+  computeNextRun,
+  computeDateRange,
+  cadenceToReportType,
+} from '@/lib/scheduling/schedule-helpers';
+
+export const dynamic = 'force-dynamic';
+export const maxDuration = 300; // 5 min for Pro plan
+
+/**
+ * Cron handler: process all due report schedules.
+ * Runs every 15 minutes via vercel.json.
+ * - Finds enabled schedules where nextRunAt <= now
+ * - Generates report, sends email if recipients configured
+ * - Advances nextRunAt for the next run
+ */
+export async function GET(request) {
+  if (!verifyCronAuth(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const now = new Date();
+
+  // Cap at 3 to avoid timeout on heavy report generation
+  const dueSchedules = await prisma.reportSchedule.findMany({
+    where: { enabled: true, nextRunAt: { lte: now } },
+    take: 3,
+  });
+
+  if (dueSchedules.length === 0) {
+    return NextResponse.json({ ok: true, processed: 0, errors: [] });
+  }
+
+  const results = await Promise.allSettled(
+    dueSchedules.map(async (schedule) => {
+      // Guard against double execution: skip if lastRunAt is within 60s of now
+      if (
+        schedule.lastRunAt &&
+        now.getTime() - new Date(schedule.lastRunAt).getTime() < 60_000
+      ) {
+        return { scheduleId: schedule.id, skipped: true };
+      }
+
+      // Compute date range and benchmark period
+      const { dateStart, dateEnd } = computeDateRange(schedule.cadence, now);
+      const benchmarkPeriod = getPreviousPeriod(dateStart, dateEnd);
+      const reportType = schedule.reportType || cadenceToReportType(schedule.cadence);
+
+      // Generate report content
+      const content = await generateEnrichedReport({
+        reportType,
+        dateStart,
+        dateEnd,
+        benchmarkPeriod,
+      });
+
+      // Save report record
+      const report = await prisma.report.create({
+        data: {
+          title: `${schedule.name} - ${now.toLocaleDateString()}`,
+          reportType,
+          content,
+          aiPct: 95,
+          createdById: schedule.createdById,
+          status: 'READY',
+          chartUrls:
+            content.charts?.map((c) => ({
+              id: c.id,
+              label: c.label,
+              imageUrl: c.imageUrl,
+            })) || [],
+          coveragePeriod: content.coveragePeriod,
+          benchmarkPeriod: content.benchmarkPeriod,
+        },
+      });
+
+      // Email delivery if recipients configured
+      const recipients = Array.isArray(schedule.recipients)
+        ? schedule.recipients
+        : [];
+
+      if (recipients.length > 0) {
+        try {
+          const pdfBuffer = await renderReportPDF(report);
+          await sendReportEmail({
+            report,
+            recipients,
+            pdfBuffer,
+            appUrl: process.env.NEXTAUTH_URL || 'https://app.socialcommand.com',
+          });
+
+          await prisma.reportDelivery.create({
+            data: {
+              reportId: report.id,
+              channel: 'EMAIL',
+              recipients: JSON.stringify(recipients),
+              status: 'SENT',
+            },
+          });
+        } catch (emailErr) {
+          // Log delivery failure but don't fail the schedule run
+          await prisma.reportDelivery.create({
+            data: {
+              reportId: report.id,
+              channel: 'EMAIL',
+              recipients: JSON.stringify(recipients),
+              status: 'FAILED',
+              error: emailErr.message,
+            },
+          });
+        }
+      }
+
+      // Advance schedule to next run
+      await prisma.reportSchedule.update({
+        where: { id: schedule.id },
+        data: {
+          lastRunAt: now,
+          lastReportId: report.id,
+          nextRunAt: computeNextRun(schedule.cadence, now),
+        },
+      });
+
+      return { scheduleId: schedule.id, reportId: report.id };
+    })
+  );
+
+  const processed = results.filter(
+    (r) => r.status === 'fulfilled' && !r.value?.skipped
+  ).length;
+  const errors = results
+    .filter((r) => r.status === 'rejected')
+    .map((r) => ({ error: r.reason?.message || String(r.reason) }));
+
+  return NextResponse.json({ ok: true, processed, errors });
+}

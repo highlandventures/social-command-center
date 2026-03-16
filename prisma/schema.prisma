@@ -27,14 +27,14 @@ model User {
   lastActiveAt DateTime?
 
   // Relations
-  sessions      Session[]
-  accountAccess UserAccountAccess[]
-  approvalsMade ApprovalRequest[]   @relation("reviewer")
-  auditLogs     AuditLog[]
-  posts         Post[]              @relation("createdBy")
-  alertRules    AlertRule[]
-  aiInsights    AIInsight[]
-  tickets       Ticket[]
+  sessions       Session[]
+  accountAccess  UserAccountAccess[]
+  approvalsMade  ApprovalRequest[]   @relation("reviewer")
+  auditLogs      AuditLog[]
+  posts          Post[]              @relation("createdBy")
+  alertRules     AlertRule[]
+  aiInsights     AIInsight[]
+  tickets        Ticket[]
   copilotThreads CopilotThread[]
 
   @@map("users")
@@ -509,7 +509,7 @@ model CompetitorAmplifier {
   displayName            String?
   avatarUrl              String?
   followersCount         Int      @default(0)
-  amplificationType      String   // comma-separated: "RETWEET,QUOTE,MENTION"
+  amplificationType      String // comma-separated: "RETWEET,QUOTE,MENTION"
   interactionCount       Int      @default(0)
   engagementContribution Int      @default(0)
   firstSeenAt            DateTime @default(now())
@@ -744,9 +744,9 @@ model Report {
 model ReportDelivery {
   id         String   @id @default(cuid())
   reportId   String
-  channel    String   // 'EMAIL' or 'PDF_DOWNLOAD'
+  channel    String // 'EMAIL' or 'PDF_DOWNLOAD'
   recipients Json     @default("[]") // JSON array of email strings
-  status     String   // 'SENT' or 'FAILED'
+  status     String // 'SENT' or 'FAILED'
   error      String?
   createdAt  DateTime @default(now())
   report     Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
@@ -780,7 +780,7 @@ model CopilotThread {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages CopilotMessage[]
 
   @@index([userId, updatedAt])
@@ -862,22 +862,22 @@ model CacheEntry {
 // ============================================================
 
 model Ticket {
-  id            String          @id @default(cuid())
-  type          TicketType
-  status        TicketStatus    @default(OPEN)
-  priority      TicketPriority  @default(MEDIUM)
-  title         String
-  description   String
-  screenshots   Json?           // [{ url, filename }]
-  createdById   String
-  aiAnalysis    Json?           // { summary, suggestedFix, filesAffected, confidence }
-  resolution    String?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  resolvedAt    DateTime?
+  id          String         @id @default(cuid())
+  type        TicketType
+  status      TicketStatus   @default(OPEN)
+  priority    TicketPriority @default(MEDIUM)
+  title       String
+  description String
+  screenshots Json? // [{ url, filename }]
+  createdById String
+  aiAnalysis  Json? // { summary, suggestedFix, filesAffected, confidence }
+  resolution  String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  resolvedAt  DateTime?
 
-  createdBy     User            @relation(fields: [createdById], references: [id])
-  comments      TicketComment[]
+  createdBy User            @relation(fields: [createdById], references: [id])
+  comments  TicketComment[]
 
   @@index([type, status])
   @@index([createdById])
@@ -887,11 +887,11 @@ model Ticket {
 model TicketComment {
   id         String   @id @default(cuid())
   ticketId   String
-  authorName String   // user name or "Claude AI"
+  authorName String // user name or "Claude AI"
   content    String
   createdAt  DateTime @default(now())
 
-  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId])
   @@map("ticket_comments")
@@ -916,4 +916,66 @@ enum TicketPriority {
   MEDIUM
   HIGH
   CRITICAL
+}
+
+// ============================================================
+// REPORT SCHEDULING
+// ============================================================
+
+enum Cadence {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+model ReportSchedule {
+  id           String     @id @default(cuid())
+  name         String
+  cadence      Cadence
+  reportType   ReportType @default(WEEKLY_PERFORMANCE)
+  enabled      Boolean    @default(true)
+  recipients   Json       @default("[]") // JSON array of email strings
+  createdById  String
+  nextRunAt    DateTime
+  lastRunAt    DateTime?
+  lastReportId String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([enabled, nextRunAt])
+  @@map("report_schedules")
+}
+
+// ============================================================
+// AD HOC REPORTS (Conversational Report Scoping)
+// ============================================================
+
+model AdHocReport {
+  id                String               @id @default(cuid())
+  title             String?
+  reportId          String? // Link to generated Report
+  status            String               @default("SCOPING") // SCOPING, GENERATING, READY, FAILED
+  reportParams      Json? // { dateStart, dateEnd, reportType, metricsScope, comparisonBaseline }
+  snapshotIntervals Json? // [24, 48] hours or null
+  nextSnapshotAt    DateTime?
+  createdById       String
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  messages          AdHocReportMessage[]
+
+  @@index([createdById, updatedAt])
+  @@map("adhoc_reports")
+}
+
+model AdHocReportMessage {
+  id          String      @id @default(cuid())
+  adHocId     String
+  role        String // 'user' | 'assistant'
+  content     String
+  createdAt   DateTime    @default(now())
+  adHocReport AdHocReport @relation(fields: [adHocId], references: [id], onDelete: Cascade)
+
+  @@index([adHocId, createdAt])
+  @@map("adhoc_report_messages")
 }

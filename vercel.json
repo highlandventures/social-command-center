@@ -10,6 +10,7 @@
     { "path": "/api/cron/poll-competitors", "schedule": "0 3 * * *" },
     { "path": "/api/cron/poll-subreddit-metrics", "schedule": "0 4 * * *" },
     { "path": "/api/cron/aggregate-kol-metrics", "schedule": "0 5 * * *" },
-    { "path": "/api/cron/triage-tickets", "schedule": "0 7 * * *" }
+    { "path": "/api/cron/triage-tickets", "schedule": "0 7 * * *" },
+    { "path": "/api/cron/run-schedules", "schedule": "*/15 * * * *" }
   ]
 }
