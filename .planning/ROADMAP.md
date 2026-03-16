@@ -13,7 +13,7 @@
 - [x] **Phase 1: Performance Intel** - Surface post performance data as actionable insight cards in the composer sidebar
 - [x] **Phase 2: Competitor Intel** - Capture competitor post content and extract strategic patterns via AI analysis
 - [x] **Phase 3: Audience Questions** - Extract, cluster, and score questions from listening hits as content opportunities
-- [ ] **Phase 4: Content Co-Pilot** - Deferred to future milestone
+- [ ] **Phase 4: Content Co-Pilot** - Conversational AI co-pilot in composer sidebar with streaming chat, intel context, brand voice, predictions, and draft insertion
 
 ### Phase 1: Performance Intel
 **Goal**: Team can see what content works and why, directly in the composer where they make content decisions
@@ -61,8 +61,21 @@ Plans:
 - [x] 03-02: Frontend -- AudienceQuestionsPanel component
 
 ### Phase 4: Content Co-Pilot
-**Status**: Deferred to future milestone
-**Requirements**: CPLT-01 through CPLT-05 (deferred)
+**Goal**: Team can co-create content with an AI assistant in the composer sidebar that leverages performance data, competitor intel, and audience questions
+**Depends on**: Phase 3
+**Requirements**: CPLT-01, CPLT-02, CPLT-03, CPLT-04, CPLT-05
+**Success Criteria** (what must be TRUE):
+  1. Team can open a chat interface in the composer sidebar and have multi-turn conversations with an AI co-pilot
+  2. Co-pilot has access to all 3 intel sources (performance patterns, competitor themes, audience questions) as context
+  3. Co-pilot learns brand voice from top-performing published posts and adapts per account
+  4. Co-pilot can predict performance of drafted content with inline score cards
+  5. Co-pilot can insert drafted content directly into the composer editor in the active post mode
+**Plans**: 3 plans
+
+Plans:
+- [ ] 04-00-PLAN.md -- Wave 0 test scaffolds (copilot lib module stubs)
+- [ ] 04-01-PLAN.md -- Backend: schema, deps, copilot lib modules, tRPC router, streaming API route
+- [ ] 04-02-PLAN.md -- Frontend: CopilotPanel, message renderer, input, suggestion chips, prediction card, composer integration
 
 </details>
 
@@ -154,7 +167,7 @@ Phases execute in numeric order: 5 -> 5.1 -> 6 -> 6.1 -> 7 -> 8
 | 1. Performance Intel | v1.0 | 2/2 | Complete | 2026-03-14 |
 | 2. Competitor Intel | v1.0 | 2/2 | Complete | 2026-03-14 |
 | 3. Audience Questions | v1.0 | 2/2 | Complete | 2026-03-15 |
-| 4. Content Co-Pilot | v1.0 | 0/3 | Deferred | - |
+| 4. Content Co-Pilot | v1.0 | 0/3 | Planned | - |
 | 5. Report Engine + Charts | 3/3 | Complete   | 2026-03-15 | - |
 | 6. Export + Distribution | 3/3 | Complete   | 2026-03-16 | - |
 | 7. Scheduling + Ad Hoc Reports | v1.1 | 0/? | Not started | - |
