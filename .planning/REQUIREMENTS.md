@@ -12,14 +12,14 @@
 - [x] **EMAL-04**: Subscribers have status tracking (active, unsubscribed, bounced, complained)
 
 ### Email Templates
-- [ ] **ETPL-01**: System provides 4 starter templates (newsletter, announcement, product update, event invite)
-- [ ] **ETPL-02**: Team can create custom email templates with HTML editor and live preview
-- [ ] **ETPL-03**: AI can suggest subject line variants and body copy based on campaign context
+- [x] **ETPL-01**: System provides 4 starter templates (newsletter, announcement, product update, event invite)
+- [x] **ETPL-02**: Team can create custom email templates with HTML editor and live preview
+- [x] **ETPL-03**: AI can suggest subject line variants and body copy based on campaign context
 
 ### Email Campaigns
-- [ ] **ECMP-01**: Team can create campaigns by selecting a list, choosing a template, editing content, and setting subject/from/reply-to
-- [ ] **ECMP-02**: Team can preview rendered campaign emails before sending
-- [ ] **ECMP-03**: Team can schedule campaigns for future delivery or send immediately
+- [x] **ECMP-01**: Team can create campaigns by selecting a list, choosing a template, editing content, and setting subject/from/reply-to
+- [x] **ECMP-02**: Team can preview rendered campaign emails before sending
+- [x] **ECMP-03**: Team can schedule campaigns for future delivery or send immediately
 - [ ] **ECMP-04**: Campaigns send in batches via cron (respecting SMTP rate limits) without blocking Vercel serverless
 
 ### Email Tracking
@@ -59,12 +59,12 @@
 | EMAL-02 | CSV subscriber import | 9 | Complete |
 | EMAL-03 | View/search/filter subscribers | 9 | Complete |
 | EMAL-04 | Subscriber status tracking | 9 | Complete |
-| ETPL-01 | Starter templates | 10 | Not started |
-| ETPL-02 | Custom template editor | 10 | Not started |
-| ETPL-03 | AI subject/body suggestions | 10 | Not started |
-| ECMP-01 | Campaign builder | 10 | Not started |
-| ECMP-02 | Campaign preview | 10 | Not started |
-| ECMP-03 | Schedule/send campaigns | 10 | Not started |
+| ETPL-01 | Starter templates | 10 | Complete |
+| ETPL-02 | Custom template editor | 10 | Complete |
+| ETPL-03 | AI subject/body suggestions | 10 | Complete |
+| ECMP-01 | Campaign builder | 10 | Complete |
+| ECMP-02 | Campaign preview | 10 | Complete |
+| ECMP-03 | Schedule/send campaigns | 10 | Complete |
 | ECMP-04 | Batched cron sending | 11 | Not started |
 | ETRK-01 | Open tracking pixel | 11 | Not started |
 | ETRK-02 | Click tracking redirect | 11 | Not started |

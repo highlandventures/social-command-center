@@ -76,7 +76,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 10-01-PLAN.md — tRPC routers for template CRUD and campaign CRUD, 4 starter template seeds, AI content suggestions, campaign scheduling
+- [x] 10-01-PLAN.md — tRPC routers for template CRUD and campaign CRUD, 4 starter template seeds, AI content suggestions, campaign scheduling
 - [ ] 10-02-PLAN.md — Template gallery, split-pane HTML editor with preview, campaign list, multi-step campaign builder with AI and scheduling
 
 ### Phase 11: Send Pipeline + Event Tracking
@@ -156,7 +156,7 @@ Phases 9+13 parallel → 10 → 11 → 12+14 parallel
 | 7. Scheduling + Ad Hoc Reports | v1.1 | 3/3 | Complete | 2026-03-16 |
 | 8. Benchmarking | v1.1 | 3/3 | Complete | 2026-03-17 |
 | 9. Email Data Layer + Lists | v1.2 | 2/2 | Complete | 2026-03-16 |
-| 10. Template Builder + Campaigns | v1.2 | 0/2 | Not started | - |
+| 10. Template Builder + Campaigns | v1.2 | 1/2 | In progress | - |
 | 11. Send Pipeline + Tracking | v1.2 | 0/? | Not started | - |
 | 12. Analytics + Hub Integration | v1.2 | 0/? | Not started | - |
 | 13. Listening Algorithm | v1.2 | 2/2 | Complete | 2026-03-17 |

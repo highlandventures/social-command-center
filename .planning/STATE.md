@@ -4,14 +4,14 @@ milestone: v1.2
 milestone_name: Email Campaigns + Polish
 status: executing
 stopped_at: null
-last_updated: "2026-03-16"
-last_activity: 2026-03-16 -- Completed 09-02 email section UI (Phase 9 complete)
+last_updated: "2026-03-17"
+last_activity: 2026-03-17 -- Completed 10-01 template builder + campaign CRUD API
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 0
-  completed_plans: 4
-  percent: 20
+  completed_plans: 5
+  percent: 40
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 ## Current Position
 
 Phase: 10 of 14 (Template Builder + Campaign CRUD)
-Plan: 0 of ? in current phase
-Status: Phase 9 complete, Phase 13 complete. Ready for Phase 10.
-Last activity: 2026-03-16 -- Completed 09-02 email section UI (Phase 9 complete)
+Plan: 1 of 2 in current phase
+Status: 10-01 complete (API layer). Ready for 10-02 (campaign UI).
+Last activity: 2026-03-17 -- Completed 10-01 template builder + campaign CRUD API
 
-Progress: [██░░░░░░░░] 20% (4/? plans complete)
+Progress: [████░░░░░░] 40% (5/? plans complete)
 
 ## Performance Metrics
 
@@ -87,6 +87,11 @@ Progress: [██░░░░░░░░] 20% (4/? plans complete)
 - [Phase 09-02]: CSV parsed client-side with FileReader, validated before sending to server
 - [Phase 09-02]: Load more pagination uses direct tRPC client.query for cursor-based fetching
 
+- [Phase 10-01]: updateMany/deleteMany with status: DRAFT guard for race-safe campaign mutations
+- [Phase 10-01]: AI suggestions use generateInsight with email_content_suggestions type and 512 max tokens
+- [Phase 10-01]: Seed templates use deterministic IDs with upsert for idempotency
+- [Phase 10-01]: Immediate send creates EmailSend QUEUED records; scheduled defers to cron
+
 ### Pending Todos
 
 None yet.
@@ -98,6 +103,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16
-Stopped at: Completed 09-02-PLAN.md (Phase 9 fully complete)
+Last session: 2026-03-17
+Stopped at: Completed 10-01-PLAN.md (template builder + campaign CRUD API)
 Resume file: None
