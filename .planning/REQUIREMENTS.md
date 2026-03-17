@@ -40,11 +40,11 @@
 ## Track B: Social Command Polish
 
 ### Listening Algorithm
-- [ ] **SLST-01**: High-scoring listening hits are batch-validated through Claude Haiku for semantic relevance (AI score as multiplier on heuristic)
-- [ ] **SLST-02**: Scoring weights adapt by topic type (KOL, competitor, brand monitoring)
-- [ ] **SLST-03**: Financial/crypto-specific terms scored with context awareness (not generic positive/negative)
-- [ ] **SLST-04**: Engagement velocity (engagement-per-hour) factored into scoring alongside absolute counts
-- [ ] **SLST-05**: Cross-query deduplication prevents same post appearing in multiple queries for the same topic
+- [x] **SLST-01**: High-scoring listening hits are batch-validated through Claude Haiku for semantic relevance (AI score as multiplier on heuristic)
+- [x] **SLST-02**: Scoring weights adapt by topic type (KOL, competitor, brand monitoring)
+- [x] **SLST-03**: Financial/crypto-specific terms scored with context awareness (not generic positive/negative)
+- [x] **SLST-04**: Engagement velocity (engagement-per-hour) factored into scoring alongside absolute counts
+- [x] **SLST-05**: Cross-query deduplication prevents same post appearing in multiple queries for the same topic
 
 ### Mobile/Responsive + UX
 - [ ] **MPOL-01**: All dashboard pages render correctly at 375px (mobile), 768px (tablet), 1024px+ (desktop)
@@ -75,11 +75,11 @@
 | EANL-03 | Link/timeline analytics | 12 | Not started |
 | EHUB-01 | Hub card activation | 12 | Not started |
 | EHUB-02 | Email section layout | 9 | Not started |
-| SLST-01 | AI semantic relevance | 13 | Not started |
-| SLST-02 | Topic-adaptive weights | 13 | Not started |
-| SLST-03 | Financial sentiment | 13 | Not started |
-| SLST-04 | Engagement velocity | 13 | Not started |
-| SLST-05 | Cross-query dedup | 13 | Not started |
+| SLST-01 | AI semantic relevance | 13 | Complete |
+| SLST-02 | Topic-adaptive weights | 13 | Complete |
+| SLST-03 | Financial sentiment | 13 | Complete |
+| SLST-04 | Engagement velocity | 13 | Complete |
+| SLST-05 | Cross-query dedup | 13 | Complete |
 | MPOL-01 | Responsive design | 14 | Not started |
 | MPOL-02 | Routing bug fix | 14 | Not started |
 | MPOL-03 | Loading/error/empty states | 14 | Not started |

@@ -5,13 +5,13 @@ milestone_name: Email Campaigns + Polish
 status: planning
 stopped_at: null
 last_updated: "2026-03-17"
-last_activity: 2026-03-17 -- Completed 09-01 email data layer + list management
+last_activity: 2026-03-17 -- Completed 13-02 listening algorithm improvements wired into scan loop
 progress:
   total_phases: 6
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 0
-  completed_plans: 2
-  percent: 10
+  completed_plans: 3
+  percent: 15
 ---
 
 # Project State
@@ -27,10 +27,10 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 
 Phase: 9 of 14 (Email Data Layer + List Management)
 Plan: 1 of 2 in current phase
-Status: Executing Phase 9
-Last activity: 2026-03-17 -- Completed 09-01 email data layer + list management
+Status: Executing Phase 9 (Phase 13 complete)
+Last activity: 2026-03-17 -- Completed 13-02 listening algorithm improvements wired into scan loop
 
-Progress: [█░░░░░░░░░] 10% (2/? plans complete)
+Progress: [██░░░░░░░░] 15% (3/? plans complete)
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Progress: [█░░░░░░░░░] 10% (2/? plans complete)
 | Phase 08 P02 | 5min | 3 tasks | 5 files |
 | Phase 13 P01 | 4min | 2 tasks | 2 files |
 | Phase 09 P01 | 8min | 2 tasks | 6 files |
+| Phase 13 P02 | 10min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,10 @@ Progress: [█░░░░░░░░░] 10% (2/? plans complete)
 - [Phase 09-01]: All 6 email models added upfront to avoid migration churn across phases 10-12
 - [Phase 09-01]: Cursor-based pagination for subscribers following posts.js pattern
 - [Phase 09-01]: CSV import uses createMany with skipDuplicates for idempotent bulk operations
+- [Phase 13-02]: batchValidateRelevance exported for testability, called internally in scan loop
+- [Phase 13-02]: AI validation gated on ANTHROPIC_API_KEY + heuristicScore > 0.35
+- [Phase 13-02]: Scan loop restructured to collect-validate-persist for batch AI
+- [Phase 13-02]: Redis dedup with try/catch and Prisma fallback for safe degradation
 
 ### Pending Todos
 
@@ -90,5 +95,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-17
-Stopped at: Completed 09-01-PLAN.md
+Stopped at: Completed 13-02-PLAN.md
 Resume file: None
