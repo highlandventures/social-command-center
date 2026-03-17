@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { trpc } from '@/lib/trpc-client';
 import { PlatformBadge, Skeleton } from '@/components/ui';
+import CalendarSection from '@/components/hub/CalendarSection';
+import EmailSection from '@/components/hub/EmailSection';
+import TasksSection from '@/components/hub/TasksSection';
 
 // ── Helpers ─────────────────────────────────────────────────
 function formatNumber(n) {
@@ -505,6 +508,20 @@ export default function HubPage() {
 
       {/* Pending Reviews Banner */}
       <PendingReviewsBanner />
+
+      {/* ── Home Hub: Calendar, Tasks, Email ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-10">
+        {/* Left column: Calendar + Tasks */}
+        <div className="lg:col-span-2 space-y-5">
+          <CalendarSection />
+          <TasksSection />
+        </div>
+
+        {/* Right column: Email */}
+        <div>
+          <EmailSection />
+        </div>
+      </div>
 
       {/* Module grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

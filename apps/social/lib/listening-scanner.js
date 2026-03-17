@@ -39,6 +39,123 @@ const ECOSYSTEM_TERMS = [
   'dart digital asset',
 ];
 
+// ── Topic-adaptive weight profiles ──────────────────────────
+// Different topic types prioritize different scoring dimensions.
+// KOL topics emphasize follower count; competitor topics emphasize content match.
+export const TOPIC_WEIGHT_PROFILES = {
+  KOL: {
+    contentRelevance: 0.35,
+    engagement: 0.20,
+    followers: 0.35,
+    recency: 0.10,
+  },
+  COMPETITOR: {
+    contentRelevance: 0.55,
+    engagement: 0.20,
+    followers: 0.10,
+    recency: 0.15,
+  },
+  BRAND: {
+    contentRelevance: 0.45,
+    engagement: 0.25,
+    followers: 0.20,
+    recency: 0.10,
+  },
+};
+
+/**
+ * Classify a topic by type based on its name.
+ * @param {{ name: string }} topic
+ * @returns {'KOL' | 'COMPETITOR' | 'BRAND'}
+ */
+export function getTopicType(topic) {
+  const name = topic.name.toLowerCase();
+  if (name.includes('kol')) return 'KOL';
+  if (name.includes('competitor')) return 'COMPETITOR';
+  return 'BRAND';
+}
+
+// ── Financial context-aware sentiment ───────────────────────
+// Ambiguous crypto/finance terms that need phrase-level context
+// to determine sentiment. Each term maps to context phrases grouped
+// by sentiment label.
+export const FINANCIAL_AMBIGUOUS_TERMS = {
+  'short': { financial: true, contexts: {
+    bearish: ['short selling', 'shorting', 'short position', 'short squeeze'],
+    neutral: ['in short', 'short term', 'short video', 'short time'],
+  }},
+  'yield': { financial: true, contexts: {
+    positive: ['high yield', 'yield farming', 'yield protocol', 'yield bearing'],
+    neutral: ['yield results', 'yield to'],
+  }},
+  'liquidation': { financial: true, contexts: {
+    negative: ['forced liquidation', 'liquidation cascade', 'liquidation event'],
+    neutral: ['liquidation preference', 'orderly liquidation'],
+  }},
+  'dump': { financial: true, contexts: {
+    negative: ['token dump', 'price dump', 'dumping tokens'],
+    neutral: ['data dump', 'brain dump'],
+  }},
+  'moon': { financial: true, contexts: {
+    positive: ['to the moon', 'mooning', 'moon shot'],
+    neutral: ['moon landing', 'full moon'],
+  }},
+  'rug': { financial: true, contexts: {
+    negative: ['rug pull', 'rugged', 'rug pulled'],
+    neutral: ['under the rug', 'rug design'],
+  }},
+};
+
+/**
+ * Resolve sentiment for an ambiguous financial/crypto term based on
+ * surrounding phrase context. Returns the matching sentiment label
+ * or null if the term is unknown or no context phrase matches.
+ *
+ * @param {string} text - The full text to analyze
+ * @param {string} term - The ambiguous term to resolve
+ * @returns {string | null} Sentiment label or null
+ */
+export function resolveFinancialSentiment(text, term) {
+  const lower = text.toLowerCase();
+  const termConfig = FINANCIAL_AMBIGUOUS_TERMS[term];
+  if (!termConfig) return null;
+
+  for (const [sentiment, phrases] of Object.entries(termConfig.contexts)) {
+    if (phrases.some(p => lower.includes(p))) return sentiment;
+  }
+  return null;
+}
+
+/**
+ * Compute engagement velocity: engagement per hour, with a floor
+ * of 0.5 hours for very recent posts to avoid division-by-near-zero.
+ *
+ * @param {number} engagementCount - Total engagement (likes + retweets + replies)
+ * @param {Date} detectedAt - When the post was created
+ * @returns {number} Engagement per hour
+ */
+export function computeEngagementVelocity(engagementCount, detectedAt) {
+  if (!engagementCount) return 0;
+  const ageHours = Math.max(0.5, (Date.now() - detectedAt.getTime()) / (1000 * 60 * 60));
+  return engagementCount / ageHours;
+}
+
+// ── Cross-query dedup constants ─────────────────────────────
+// TTL for topic-level dedup keys: 7 days (matches recency decay window)
+export const TOPIC_DEDUP_TTL_SECONDS = 7 * 24 * 60 * 60; // 604800
+
+/**
+ * Generate a Redis key for topic-level deduplication.
+ * Prevents the same post from appearing in multiple queries for one topic.
+ *
+ * @param {string} topicId
+ * @param {string} platformPostId
+ * @returns {string} Redis key
+ */
+export function generateTopicDedupKey(topicId, platformPostId) {
+  return `listening:dedup:${topicId}:${platformPostId}`;
+}
+
 // ── Actionable thresholds by polling tier ──
 const ACTIONABLE_THRESHOLDS = {
   HOT: 0.4,

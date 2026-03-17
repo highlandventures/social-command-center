@@ -37,6 +37,8 @@ model User {
   aiInsights         AIInsight[]
   tickets            Ticket[]
   copilotThreads     CopilotThread[]
+  googleOAuth        GoogleOAuthToken?
+  homeTasks          HomeTask[]
 
   @@map("users")
 }
@@ -1016,4 +1018,204 @@ model Milestone {
 
   @@index([startDate, endDate])
   @@map("milestones")
+}
+
+// ============================================================
+// GOOGLE OAUTH (Gmail + Calendar integration)
+// ============================================================
+
+model GoogleOAuthToken {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  accessToken    String // AES-256-GCM encrypted
+  refreshToken   String // AES-256-GCM encrypted
+  tokenExpiresAt DateTime?
+  scopes         String // space-separated scopes granted
+  googleEmail    String?
+  connectedAt    DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("google_oauth_tokens")
+}
+
+// ============================================================
+// HOME TASKS (Personal to-do list)
+// ============================================================
+
+model HomeTask {
+  id          String     @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  status      HomeTaskStatus @default(TODO)
+  priority    HomeTaskPriority @default(MEDIUM)
+  dueDate     DateTime?
+  completedAt DateTime?
+  sortOrder   Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([userId, dueDate])
+  @@map("home_tasks")
+}
+
+enum HomeTaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum HomeTaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// ============================================================
+// EMAIL CAMPAIGNS
+// ============================================================
+
+enum SubscriberStatus {
+  ACTIVE
+  UNSUBSCRIBED
+  BOUNCED
+  COMPLAINED
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  FAILED
+}
+
+enum EmailEventType {
+  DELIVERED
+  OPENED
+  CLICKED
+  BOUNCED
+  COMPLAINED
+  UNSUBSCRIBED
+}
+
+model EmailList {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subscribers EmailSubscriber[]
+  campaigns   EmailCampaign[]
+
+  @@index([createdById])
+  @@map("email_lists")
+}
+
+model EmailSubscriber {
+  id        String           @id @default(cuid())
+  listId    String
+  email     String
+  firstName String?
+  lastName  String?
+  status    SubscriberStatus @default(ACTIVE)
+  metadata  Json?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  list   EmailList    @relation(fields: [listId], references: [id], onDelete: Cascade)
+  sends  EmailSend[]
+  events EmailEvent[]
+
+  @@unique([listId, email])
+  @@index([listId, status])
+  @@index([email])
+  @@map("email_subscribers")
+}
+
+model EmailTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  subject     String?
+  htmlBody    String
+  category    String?
+  isStarter   Boolean  @default(false)
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  campaigns EmailCampaign[]
+
+  @@index([createdById])
+  @@map("email_templates")
+}
+
+model EmailCampaign {
+  id           String         @id @default(cuid())
+  name         String
+  subject      String
+  fromName     String?
+  fromEmail    String?
+  replyTo      String?
+  listId       String
+  templateId   String?
+  htmlContent  String?
+  status       CampaignStatus @default(DRAFT)
+  scheduledFor DateTime?
+  sentAt       DateTime?
+  createdById  String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  list     EmailList      @relation(fields: [listId], references: [id])
+  template EmailTemplate? @relation(fields: [templateId], references: [id])
+  sends    EmailSend[]
+
+  @@index([status])
+  @@index([listId])
+  @@map("email_campaigns")
+}
+
+model EmailSend {
+  id           String   @id @default(cuid())
+  campaignId   String
+  subscriberId String
+  messageId    String?
+  status       String   @default("QUEUED")
+  sentAt       DateTime?
+  error        String?
+  createdAt    DateTime @default(now())
+
+  campaign   EmailCampaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  subscriber EmailSubscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  events     EmailEvent[]
+
+  @@unique([campaignId, subscriberId])
+  @@index([campaignId, status])
+  @@map("email_sends")
+}
+
+model EmailEvent {
+  id           String         @id @default(cuid())
+  sendId       String
+  subscriberId String
+  eventType    EmailEventType
+  metadata     Json?
+  occurredAt   DateTime       @default(now())
+
+  send       EmailSend       @relation(fields: [sendId], references: [id], onDelete: Cascade)
+  subscriber EmailSubscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+
+  @@index([sendId])
+  @@index([subscriberId, eventType])
+  @@index([occurredAt])
+  @@map("email_events")
 }

@@ -4,14 +4,14 @@ milestone: v1.2
 milestone_name: Email Campaigns + Polish
 status: planning
 stopped_at: null
-last_updated: "2026-03-17"
-last_activity: 2026-03-17 -- Initialized v1.2 milestone
+last_updated: "2026-03-16"
+last_activity: 2026-03-16 -- Completed 13-01 listening algorithm helpers
 progress:
   total_phases: 6
   completed_phases: 0
   total_plans: 0
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 5
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-17)
 
 ## Current Position
 
-Phase: 9 of 14 (Email Data Layer + List Management)
-Plan: 0 of ? in current phase
-Status: Planning Phase 9
-Last activity: 2026-03-17 -- Initialized v1.2 milestone
+Phase: 13 of 14 (Listening Algorithm Improvements)
+Plan: 1 of 2 in current phase
+Status: Executing Phase 13
+Last activity: 2026-03-16 -- Completed 13-01 listening algorithm helpers
 
-Progress: [░░░░░░░░░░] 0% (0/0 plans complete)
+Progress: [█░░░░░░░░░] 5% (1/? plans complete)
 
 ## Performance Metrics
 
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0% (0/0 plans complete)
 | Phase 08 P00 | 3min | 1 task | 2 files |
 | Phase 08 P01 | 7min | 2 tasks | 7 files |
 | Phase 08 P02 | 5min | 3 tasks | 5 files |
+| Phase 13 P01 | 4min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,10 @@ Progress: [░░░░░░░░░░] 0% (0/0 plans complete)
 - [v1.2 Architecture]: Open tracking via 1x1 GIF pixel, click tracking via redirect, both as public API routes
 - [v1.2 Architecture]: Code-based template editor for MVP (visual drag-and-drop deferred to v1.3)
 - [v1.2 Architecture]: Listening algorithm improvements are additive (AI multiplier on heuristics), not rewrite
+- [Phase 13-01]: Topic type detected from name pattern (kol/competitor/brand) rather than schema field
+- [Phase 13-01]: Financial ambiguous terms use phrase-level context matching, not single-word classification
+- [Phase 13-01]: Engagement velocity floors post age at 0.5 hours to prevent inflated scores
+- [Phase 13-01]: Cross-query dedup key: listening:dedup:{topicId}:{platformPostId} with 7-day TTL
 
 ### Pending Todos
 
@@ -80,6 +85,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17
-Stopped at: Initialized v1.2 milestone
+Last session: 2026-03-16
+Stopped at: Completed 13-01-PLAN.md
 Resume file: None

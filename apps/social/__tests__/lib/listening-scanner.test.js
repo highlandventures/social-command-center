@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { analyzeSentiment, normalize, computeContentRelevance } from '@/lib/listening-scanner';
+import {
+  analyzeSentiment,
+  normalize,
+  computeContentRelevance,
+  getTopicType,
+  TOPIC_WEIGHT_PROFILES,
+  resolveFinancialSentiment,
+  computeEngagementVelocity,
+  generateTopicDedupKey,
+  TOPIC_DEDUP_TTL_SECONDS,
+} from '@/lib/listening-scanner';
 
 describe('listening-scanner', () => {
   describe('analyzeSentiment', () => {
@@ -120,6 +130,121 @@ describe('listening-scanner', () => {
       );
       expect(score).toBeGreaterThanOrEqual(0);
       expect(score).toBeLessThanOrEqual(1);
+    });
+  });
+
+  describe('getTopicType', () => {
+    it('returns KOL for topic with "KOL" in name', () => {
+      expect(getTopicType({ name: 'KOL Influencers' })).toBe('KOL');
+    });
+
+    it('returns COMPETITOR for topic with "Competitor" in name', () => {
+      expect(getTopicType({ name: 'Competitor: Securitize' })).toBe('COMPETITOR');
+    });
+
+    it('returns BRAND for generic topic names', () => {
+      expect(getTopicType({ name: 'Figure Brand Monitor' })).toBe('BRAND');
+    });
+
+    it('is case insensitive', () => {
+      expect(getTopicType({ name: 'kol tracking' })).toBe('KOL');
+      expect(getTopicType({ name: 'competitor analysis' })).toBe('COMPETITOR');
+    });
+  });
+
+  describe('topic-adaptive weights', () => {
+    it('KOL profile emphasizes followers', () => {
+      expect(TOPIC_WEIGHT_PROFILES.KOL.followers).toBe(0.35);
+    });
+
+    it('COMPETITOR profile emphasizes content relevance', () => {
+      expect(TOPIC_WEIGHT_PROFILES.COMPETITOR.contentRelevance).toBe(0.55);
+    });
+
+    it('BRAND profile uses balanced weights', () => {
+      expect(TOPIC_WEIGHT_PROFILES.BRAND.contentRelevance).toBe(0.45);
+      expect(TOPIC_WEIGHT_PROFILES.BRAND.engagement).toBe(0.25);
+    });
+
+    it('all profiles have weights summing to 1.0', () => {
+      for (const [type, profile] of Object.entries(TOPIC_WEIGHT_PROFILES)) {
+        const sum = profile.contentRelevance + profile.engagement + profile.followers + profile.recency;
+        expect(sum).toBeCloseTo(1.0, 10);
+      }
+    });
+  });
+
+  describe('resolveFinancialSentiment', () => {
+    it('returns bearish for "shorting BTC aggressively"', () => {
+      expect(resolveFinancialSentiment('shorting BTC aggressively', 'short')).toBe('bearish');
+    });
+
+    it('returns neutral for "short video about crypto"', () => {
+      expect(resolveFinancialSentiment('short video about crypto', 'short')).toBe('neutral');
+    });
+
+    it('returns positive for "to the moon!"', () => {
+      expect(resolveFinancialSentiment('to the moon!', 'moon')).toBe('positive');
+    });
+
+    it('returns neutral for "full moon tonight"', () => {
+      expect(resolveFinancialSentiment('full moon tonight', 'moon')).toBe('neutral');
+    });
+
+    it('returns negative for "rug pull alert"', () => {
+      expect(resolveFinancialSentiment('rug pull alert', 'rug')).toBe('negative');
+    });
+
+    it('returns neutral for "under the rug"', () => {
+      expect(resolveFinancialSentiment('under the rug', 'rug')).toBe('neutral');
+    });
+
+    it('returns null for unknown term', () => {
+      expect(resolveFinancialSentiment('some text', 'unknown')).toBeNull();
+    });
+
+    it('handles dump in financial context', () => {
+      expect(resolveFinancialSentiment('token dump incoming', 'dump')).toBe('negative');
+    });
+
+    it('handles dump in non-financial context', () => {
+      expect(resolveFinancialSentiment('data dump from the server', 'dump')).toBe('neutral');
+    });
+  });
+
+  describe('computeEngagementVelocity', () => {
+    it('returns engagement per hour', () => {
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+      expect(computeEngagementVelocity(100, twoHoursAgo)).toBe(50);
+    });
+
+    it('floors age at 0.5 hours for very recent posts', () => {
+      const tenMinAgo = new Date(Date.now() - 10 * 60 * 1000);
+      // 50 / 0.5 = 100
+      expect(computeEngagementVelocity(50, tenMinAgo)).toBe(100);
+    });
+
+    it('returns 0 for zero engagement', () => {
+      expect(computeEngagementVelocity(0, new Date())).toBe(0);
+    });
+
+    it('returns 0 for falsy engagement', () => {
+      expect(computeEngagementVelocity(null, new Date())).toBe(0);
+      expect(computeEngagementVelocity(undefined, new Date())).toBe(0);
+    });
+  });
+
+  describe('cross-query dedup', () => {
+    it('generates correct Redis key format', () => {
+      expect(generateTopicDedupKey('topic-123', 'post-456')).toBe('listening:dedup:topic-123:post-456');
+    });
+
+    it('generates key with different inputs', () => {
+      expect(generateTopicDedupKey('abc', 'def')).toBe('listening:dedup:abc:def');
+    });
+
+    it('has correct TTL of 7 days in seconds', () => {
+      expect(TOPIC_DEDUP_TTL_SECONDS).toBe(604800);
     });
   });
 });
