@@ -90,7 +90,7 @@ Plans:
 - [x] **Phase 5: Report Engine + Charts** - Rich report generation with inline charts, KPI stats, executive summaries, and comparison deltas (completed 2026-03-15)
 - [x] **Phase 6: Export + Distribution** - PDF export and email delivery with full visual content inline (completed 2026-03-16)
 - [x] **Phase 7: Scheduling + Ad Hoc Reports** - Automated cadence reports and conversational AI report scoping (completed 2026-03-16)
-- [ ] **Phase 8: Benchmarking** - Period-over-period comparisons and custom milestone benchmarking
+- [x] **Phase 8: Benchmarking** - Period-over-period comparisons and custom milestone benchmarking (completed 2026-03-16)
 
 ## Phase Details
 
@@ -155,9 +155,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 08-00-PLAN.md -- Wave 0 test scaffolds (milestone + benchmark comparison stubs)
-- [ ] 08-01-PLAN.md -- Backend: Milestone model, milestones tRPC CRUD, benchmark comparison logic, compareBenchmark endpoint
-- [ ] 08-02-PLAN.md -- Frontend: MilestoneManager, BenchmarkSelector, report detail integration, navigation
+- [x] 08-00-PLAN.md -- Wave 0 test scaffolds (milestone + benchmark comparison stubs)
+- [x] 08-01-PLAN.md -- Backend: Milestone model, milestones tRPC CRUD, benchmark comparison logic, compareBenchmark endpoint
+- [x] 08-02-PLAN.md -- Frontend: MilestoneManager, BenchmarkSelector, report detail integration, navigation
 
 ## Progress
 
@@ -173,4 +173,4 @@ Phases execute in numeric order: 5 -> 5.1 -> 6 -> 6.1 -> 7 -> 8
 | 5. Report Engine + Charts | v1.1 | 3/3 | Complete | 2026-03-15 |
 | 6. Export + Distribution | v1.1 | 3/3 | Complete | 2026-03-16 |
 | 7. Scheduling + Ad Hoc Reports | v1.1 | 3/3 | Complete | 2026-03-16 |
-| 8. Benchmarking | 2/3 | In Progress|  | - |
+| 8. Benchmarking | v1.1 | 3/3 | Complete | 2026-03-16 |
