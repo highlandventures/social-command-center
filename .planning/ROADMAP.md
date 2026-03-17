@@ -45,7 +45,7 @@
 - [ ] **Phase 10: Template Builder + Campaign CRUD** - Starter templates, HTML editor, campaign builder, AI content suggestions
 - [ ] **Phase 11: Send Pipeline + Event Tracking** - Batched cron sending, open/click tracking, bounces, unsubscribe
 - [ ] **Phase 12: Campaign Analytics + Hub Integration** - Performance dashboard, campaign detail analytics, hub card activation
-- [ ] **Phase 13: Social Listening Algorithm Improvements** - AI semantic relevance, topic-adaptive weights, financial sentiment, engagement velocity
+- [x] **Phase 13: Social Listening Algorithm Improvements** - AI semantic relevance, topic-adaptive weights, financial sentiment, engagement velocity
 - [ ] **Phase 14: Mobile/Responsive + UX Polish** - Responsive design pass, routing bug fix, loading/error/empty states
 
 ### Phase 9: Email Data Layer + List Management
@@ -73,11 +73,11 @@ Plans:
   3. AI suggests subject line variants and body copy when prompted
   4. Team can build a campaign (select list, choose template, edit content, set subject/from) and schedule it
   5. Team can preview the rendered email before sending
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 10-01: TBD
-- [ ] 10-02: TBD
+- [ ] 10-01-PLAN.md — tRPC routers for template CRUD and campaign CRUD, 4 starter template seeds, AI content suggestions, campaign scheduling
+- [ ] 10-02-PLAN.md — Template gallery, split-pane HTML editor with preview, campaign list, multi-step campaign builder with AI and scheduling
 
 ### Phase 11: Send Pipeline + Event Tracking
 **Goal**: Campaigns send reliably in batches via cron, with full open/click/bounce/unsubscribe tracking
@@ -156,7 +156,7 @@ Phases 9+13 parallel → 10 → 11 → 12+14 parallel
 | 7. Scheduling + Ad Hoc Reports | v1.1 | 3/3 | Complete | 2026-03-16 |
 | 8. Benchmarking | v1.1 | 3/3 | Complete | 2026-03-17 |
 | 9. Email Data Layer + Lists | v1.2 | 2/2 | Complete | 2026-03-16 |
-| 10. Template Builder + Campaigns | v1.2 | 0/? | Not started | - |
+| 10. Template Builder + Campaigns | v1.2 | 0/2 | Not started | - |
 | 11. Send Pipeline + Tracking | v1.2 | 0/? | Not started | - |
 | 12. Analytics + Hub Integration | v1.2 | 0/? | Not started | - |
 | 13. Listening Algorithm | v1.2 | 2/2 | Complete | 2026-03-17 |
