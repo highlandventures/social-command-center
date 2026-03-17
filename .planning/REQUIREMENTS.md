@@ -1,186 +1,85 @@
-# Requirements: Social Command Center
+# Requirements: v1.2 Email Campaigns + Polish
 
-**Defined:** 2026-03-14
-**Core Value:** Team can compose high-performing content informed by real data on what works, what competitors do, and what the audience needs.
+**Defined:** 2026-03-17
+**Core Value:** Team can compose high-performing content, generate rich reports, and run email campaigns — all from one hub.
 
-## v1.0 Requirements (Content Intelligence System) -- Complete
+## Track A: Email Campaigns
 
-### Performance Intel -- Complete
+### Email List Management
+- [ ] **EMAL-01**: Team can create named email lists with descriptions
+- [ ] **EMAL-02**: Team can import subscribers from CSV files (email, first name, last name) with duplicate detection
+- [ ] **EMAL-03**: Team can view, search, and filter subscribers within a list
+- [ ] **EMAL-04**: Subscribers have status tracking (active, unsubscribed, bounced, complained)
 
-- [x] **PERF-01**: Team can view published posts ranked by performance tier (top / average / poor) with engagement metrics
-- [x] **PERF-02**: Team can see pattern analysis -- which topics, content formats (thread vs post vs article), and posting times correlate with high performance
-- [x] **PERF-03**: Team can view engagement trend sparklines per post showing trajectory over time
-- [x] **PERF-04**: Insights are displayed as reusable cards in the composer sidebar (e.g., "Threads about RWA outperform single posts by 3.2x")
+### Email Templates
+- [ ] **ETPL-01**: System provides 4 starter templates (newsletter, announcement, product update, event invite)
+- [ ] **ETPL-02**: Team can create custom email templates with HTML editor and live preview
+- [ ] **ETPL-03**: AI can suggest subject line variants and body copy based on campaign context
 
-### Competitor Intel -- Complete
+### Email Campaigns
+- [ ] **ECMP-01**: Team can create campaigns by selecting a list, choosing a template, editing content, and setting subject/from/reply-to
+- [ ] **ECMP-02**: Team can preview rendered campaign emails before sending
+- [ ] **ECMP-03**: Team can schedule campaigns for future delivery or send immediately
+- [ ] **ECMP-04**: Campaigns send in batches via cron (respecting SMTP rate limits) without blocking Vercel serverless
 
-- [x] **COMP-01**: System captures competitor post content (not just account-level metrics) from X (Reddit deferred to future phase)
-- [x] **COMP-02**: AI extracts themes and topics competitors are posting about with frequency analysis
-- [x] **COMP-03**: AI identifies content formats competitors use and which formats get highest engagement
-- [x] **COMP-04**: Team can view a per-competitor strategy summary (posting cadence, top themes, engagement benchmarks vs ours)
+### Email Tracking
+- [ ] **ETRK-01**: System tracks email opens via tracking pixel
+- [ ] **ETRK-02**: System tracks link clicks via redirect URLs
+- [ ] **ETRK-03**: System handles bounces and marks subscribers as bounced
+- [ ] **ETRK-04**: Every email includes a one-click unsubscribe link (CAN-SPAM/GDPR compliant)
 
-### Audience Questions -- Complete
+### Email Analytics
+- [ ] **EANL-01**: Campaign detail shows open rate, click rate, bounce rate, and unsubscribe rate
+- [ ] **EANL-02**: Email dashboard shows aggregate stats: total subscribers, campaigns sent, avg open/click rates
+- [ ] **EANL-03**: Campaign detail shows link click breakdown and open/click timeline
 
-- [x] **AUDQ-01**: System extracts questions from listening hits (filtering intent = "question" from mentions, replies, comments)
-- [x] **AUDQ-02**: Questions are clustered by topic (e.g., "tokenization questions", "staking questions", "Figure vs competitor")
-- [x] **AUDQ-03**: Unanswered/recurring questions are surfaced as content opportunities
-- [x] **AUDQ-04**: Each question cluster has a content opportunity score based on volume and engagement
+### Hub Integration
+- [ ] **EHUB-01**: Email Campaigns module card on hub landing page is active (not "Coming Soon") and links to /email
+- [ ] **EHUB-02**: Email section has its own layout with sidebar navigation and back-to-hub link
 
-### Content Co-Pilot
+## Track B: Social Command Polish
 
-- [x] **CPLT-01**: Chat interface in composer for multi-turn content co-creation conversations
-- [x] **CPLT-02**: Co-pilot has access to all 3 intel panels as context (performance patterns, competitor themes, audience questions)
-- [x] **CPLT-03**: Co-pilot learns brand voice from top-performing published posts (uses them as few-shot examples)
-- [x] **CPLT-04**: Co-pilot can predict performance of drafted content before publishing
-- [x] **CPLT-05**: Co-pilot can insert drafted content directly into the composer editor
+### Listening Algorithm
+- [ ] **SLST-01**: High-scoring listening hits are batch-validated through Claude Haiku for semantic relevance (AI score as multiplier on heuristic)
+- [ ] **SLST-02**: Scoring weights adapt by topic type (KOL, competitor, brand monitoring)
+- [ ] **SLST-03**: Financial/crypto-specific terms scored with context awareness (not generic positive/negative)
+- [ ] **SLST-04**: Engagement velocity (engagement-per-hour) factored into scoring alongside absolute counts
+- [ ] **SLST-05**: Cross-query deduplication prevents same post appearing in multiple queries for the same topic
 
----
-
-## v1.1 Requirements (Report Center)
-
-**Defined:** 2026-03-15
-
-### Scheduling
-
-- [x] **SCHED-01**: Team can create a report schedule with weekly, monthly, quarterly, or yearly cadence
-- [x] **SCHED-02**: Scheduled reports auto-generate at configured cadence without manual intervention
-- [x] **SCHED-03**: Team can enable/disable, edit, and delete report schedules
-- [x] **SCHED-04**: Team can view schedule status (next run, last run, link to latest report)
-
-### Report Content
-
-- [x] **RCNT-01**: Every report displays topline KPI stats (impressions, engagement rate, follower delta, top post, sentiment)
-- [x] **RCNT-02**: Every report includes an AI-generated executive summary (what happened, what's notable, what to do next)
-- [x] **RCNT-03**: Every report includes comparison deltas vs previous period (WoW, MoM, QoQ, YoY) with trend arrows
-- [x] **RCNT-04**: Reports include inline charts (engagement trend line, content type breakdown, sentiment distribution)
-- [x] **RCNT-05**: Cadence reports include key sentiment themes with bulleted details (top positive/negative drivers, emerging topics, notable shifts)
-- [x] **RCNT-06**: Ad hoc reports include a sentiment/reception summary for the milestone or event period
-- [x] **RCNT-07**: Report content is stored as structured JSON with both data arrays (for in-app charts) and chart image URLs (for export/email)
-
-### Ad Hoc Reports
-
-- [x] **ADHC-01**: Team can create ad hoc reports through an in-app chat interface
-- [x] **ADHC-02**: AI asks clarifying questions to scope the report (time range, metrics focus, comparison baseline)
-- [x] **ADHC-03**: Team can configure snapshot re-runs for ad hoc reports (e.g., at 24h mark, 48h mark)
-- [x] **ADHC-04**: Team can manually re-trigger any ad hoc report with a "Re-run" button
-- [x] **ADHC-05**: Chat conversation state persists across page refreshes
-
-### Export
-
-- [x] **EXPT-01**: Team can export any report as a formatted PDF with KPI cards, executive summary, and chart images
-- [x] **EXPT-02**: PDF includes topline stats, executive summary, all chart visualizations, and key recommendations
-
-### Distribution
-
-- [x] **DIST-01**: Scheduled reports auto-deliver via email to configured recipients *(moved to Phase 7 — depends on scheduling infrastructure)*
-- [x] **DIST-02**: Email contains full visual report inline (executive summary, KPI table, chart images, recommendations)
-- [x] **DIST-03**: Team can configure email recipients per schedule *(moved to Phase 7 — depends on scheduling infrastructure)*
-- [x] **DIST-04**: Delivery status is logged and visible (sent, failed, recipient, timestamp)
-
-### Benchmarking
-
-- [x] **BNCH-01**: Team can compare report metrics against a previous equivalent period (WoW, MoM, QoQ, YoY)
-- [x] **BNCH-02**: Team can create named milestones (product launches, events) with start/end dates
-- [x] **BNCH-03**: Team can benchmark a report against a named milestone's time period
-- [x] **BNCH-04**: Benchmark comparisons show absolute values and percentage deltas with directional indicators
-
-## Future Requirements
-
-Deferred to future release. Tracked but not in current roadmap.
-
-### Slack Distribution
-
-- **SLCK-01**: Scheduled reports auto-deliver via Slack webhook
-- **SLCK-02**: Slack message includes Block Kit formatted KPIs and chart images
-- **SLCK-03**: Team can configure Slack webhook URL per schedule
-
-### Sharing
-
-- **SHAR-01**: Team can share individual reports on-demand via email
-- **SHAR-02**: Team can share individual reports on-demand via Slack
-
-### Advanced Benchmarking
-
-- **ADVB-01**: Side-by-side two-column comparison UI with color-coded deltas
-
-### Content Co-Pilot (from v1.0)
-
-- **CPLT-01**: Chat interface in composer for multi-turn content co-creation conversations
-- **CPLT-02**: Co-pilot has access to all 3 intel panels as context
-- **CPLT-03**: Co-pilot learns brand voice from top-performing published posts
-- **CPLT-04**: Co-pilot can predict performance of drafted content before publishing
-- **CPLT-05**: Co-pilot can insert drafted content directly into the composer editor
-
-### Advanced Analytics
-
-- **ADVN-01**: A/B test framework for content variants
-- **ADVN-02**: Cross-platform content adaptation (auto-convert X thread to Reddit post)
-- **ADVN-03**: Audience demographic analysis beyond engagement counts
-
-## Out of Scope
-
-| Feature | Reason |
-|---------|--------|
-| Automated posting without human review | Humans decide what gets published |
-| Video/media content generation | Text-first |
-| Multi-language content | English only for now |
-| Real-time competitor alerts | Use existing scheduled cron |
-| Real-time dashboard | Infrastructure mismatch with Vercel serverless |
-| PPTX slide export | Landscape PDF covers presentation use cases |
-| Custom drag-and-drop report builder | Conversational AI scoping is a better first approach |
-| Full Slack App (OAuth + bot) | Incoming Webhooks sufficient; upgrade path exists |
+### Mobile/Responsive + UX
+- [ ] **MPOL-01**: All dashboard pages render correctly at 375px (mobile), 768px (tablet), 1024px+ (desktop)
+- [ ] **MPOL-02**: Client-side routing bug fixed — no unexpected redirects when navigating between pages
+- [ ] **MPOL-03**: All tRPC-powered pages have skeleton loaders, error boundaries, and helpful empty states
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
-
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| PERF-01 | Phase 1 | Complete |
-| PERF-02 | Phase 1 | Complete |
-| PERF-03 | Phase 1 | Complete |
-| PERF-04 | Phase 1 | Complete |
-| COMP-01 | Phase 2 | Complete |
-| COMP-02 | Phase 2 | Complete |
-| COMP-03 | Phase 2 | Complete |
-| COMP-04 | Phase 2 | Complete |
-| AUDQ-01 | Phase 3 | Complete |
-| AUDQ-02 | Phase 3 | Complete |
-| AUDQ-03 | Phase 3 | Complete |
-| AUDQ-04 | Phase 3 | Complete |
-| RCNT-01 | Phase 5 | Complete |
-| RCNT-02 | Phase 5 | Complete |
-| RCNT-03 | Phase 5 | Complete |
-| RCNT-04 | Phase 5 | Complete |
-| RCNT-05 | Phase 5 | Complete |
-| RCNT-06 | Phase 5 | Complete |
-| RCNT-07 | Phase 5 | Complete |
-| EXPT-01 | Phase 6 | Complete |
-| EXPT-02 | Phase 6 | Complete |
-| DIST-01 | Phase 6 | Complete |
-| DIST-02 | Phase 6 | Complete |
-| DIST-03 | Phase 6 | Complete |
-| DIST-04 | Phase 6 | Complete |
-| SCHED-01 | Phase 7 | Complete |
-| SCHED-02 | Phase 7 | Complete |
-| SCHED-03 | Phase 7 | Complete |
-| SCHED-04 | Phase 7 | Complete |
-| ADHC-01 | Phase 7 | Complete |
-| ADHC-02 | Phase 7 | Complete |
-| ADHC-03 | Phase 7 | Complete |
-| ADHC-04 | Phase 7 | Complete |
-| ADHC-05 | Phase 7 | Complete |
-| BNCH-01 | Phase 8 | Complete |
-| BNCH-02 | Phase 8 | Complete |
-| BNCH-03 | Phase 8 | Complete |
-| BNCH-04 | Phase 8 | Complete |
-
-**Coverage:**
-- v1.0 requirements: 12 complete, 5 deferred
-- v1.1 requirements: 26 total
-- Mapped to phases: 26
-- Unmapped: 0
-
----
-*Requirements defined: 2026-03-14*
-*Last updated: 2026-03-15 after v1.1 roadmap creation*
+| ID | Description | Phase | Status |
+|----|-------------|-------|--------|
+| EMAL-01 | Create named email lists | 9 | Not started |
+| EMAL-02 | CSV subscriber import | 9 | Not started |
+| EMAL-03 | View/search/filter subscribers | 9 | Not started |
+| EMAL-04 | Subscriber status tracking | 9 | Not started |
+| ETPL-01 | Starter templates | 10 | Not started |
+| ETPL-02 | Custom template editor | 10 | Not started |
+| ETPL-03 | AI subject/body suggestions | 10 | Not started |
+| ECMP-01 | Campaign builder | 10 | Not started |
+| ECMP-02 | Campaign preview | 10 | Not started |
+| ECMP-03 | Schedule/send campaigns | 10 | Not started |
+| ECMP-04 | Batched cron sending | 11 | Not started |
+| ETRK-01 | Open tracking pixel | 11 | Not started |
+| ETRK-02 | Click tracking redirect | 11 | Not started |
+| ETRK-03 | Bounce handling | 11 | Not started |
+| ETRK-04 | One-click unsubscribe | 11 | Not started |
+| EANL-01 | Campaign analytics | 12 | Not started |
+| EANL-02 | Email dashboard stats | 12 | Not started |
+| EANL-03 | Link/timeline analytics | 12 | Not started |
+| EHUB-01 | Hub card activation | 12 | Not started |
+| EHUB-02 | Email section layout | 9 | Not started |
+| SLST-01 | AI semantic relevance | 13 | Not started |
+| SLST-02 | Topic-adaptive weights | 13 | Not started |
+| SLST-03 | Financial sentiment | 13 | Not started |
+| SLST-04 | Engagement velocity | 13 | Not started |
+| SLST-05 | Cross-query dedup | 13 | Not started |
+| MPOL-01 | Responsive design | 14 | Not started |
+| MPOL-02 | Routing bug fix | 14 | Not started |
+| MPOL-03 | Loading/error/empty states | 14 | Not started |

@@ -1,70 +1,60 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Report Center
-status: executing
-stopped_at: Completed 08-02-PLAN.md
-last_updated: "2026-03-17T00:49:01.950Z"
-last_activity: 2026-03-16 -- Completed 08-02 Benchmarking frontend
+milestone: v1.2
+milestone_name: Email Campaigns + Polish
+status: planning
+stopped_at: null
+last_updated: "2026-03-17"
+last_activity: 2026-03-17 -- Initialized v1.2 milestone
 progress:
-  total_phases: 8
-  completed_phases: 7
-  total_plans: 22
-  completed_plans: 21
-  percent: 100
+  total_phases: 6
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-15)
+See: .planning/PROJECT.md (updated 2026-03-17)
 
-**Core value:** Team can compose high-performing content informed by real data on what works, what competitors do, and what the audience needs.
-**Current focus:** Phase 8 - Benchmarking (in progress)
+**Core value:** Team can compose high-performing content informed by real data, generate and distribute rich reports, and run email campaigns — all from one hub.
+**Current focus:** v1.2 — Email Campaigns app + Social Command polish
 
 ## Current Position
 
-Phase: 8 of 8 (Benchmarking)
-Plan: 3 of 3 in current phase
-Status: Executing Phase 8
-Last activity: 2026-03-16 -- Completed 08-02 Benchmarking frontend
+Phase: 9 of 14 (Email Data Layer + List Management)
+Plan: 0 of ? in current phase
+Status: Planning Phase 9
+Last activity: 2026-03-17 -- Initialized v1.2 milestone
 
-Progress: [██████████] 100% (20/20 plans complete)
+Progress: [░░░░░░░░░░] 0% (0/0 plans complete)
 
 ## Performance Metrics
 
-**Velocity:**
-- Total plans completed: 6 (v1.0)
-- Average duration: -
-- Total execution time: -
+**Velocity (from v1.1):**
+- Average plan duration: ~5 min
+- Plans per phase: 3 avg
 
-**By Phase:**
+**Recent Trend (last 15 plans from v1.1):**
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 1. Performance Intel | 2 | - | - |
-| 2. Competitor Intel | 2 | - | - |
-| 3. Audience Questions | 2 | - | - |
-
-**Recent Trend:**
-- Last 5 plans: -
-- Trend: Starting new milestone
-
-*Updated after each plan completion*
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
 | Phase 05 P01 | 4min | 2 tasks | 4 files |
 | Phase 05 P02 | 11min | 2 tasks | 4 files |
 | Phase 05 P03 | 5min | 3 tasks | 4 files |
 | Phase 06 P00 | 1min | 1 task | 2 files |
 | Phase 06 P01 | 6min | 2 tasks | 7 files |
 | Phase 06 P02 | 8min | 3 tasks | 6 files |
-| Phase 04 P00 | 2min | 1 tasks | 4 files |
+| Phase 04 P00 | 2min | 1 task | 4 files |
 | Phase 04 P01 | 5min | 2 tasks | 12 files |
 | Phase 04 P02 | 5min | 3 tasks | 6 files |
-| Phase 07 P00 | 2min | 1 tasks | 2 files |
+| Phase 07 P00 | 2min | 1 task | 2 files |
 | Phase 07 P01 | 7min | 2 tasks | 9 files |
 | Phase 07 P02 | 10min | 2 tasks | 11 files |
-| Phase 08 P00 | 3min | 1 tasks | 2 files |
+| Phase 08 P00 | 3min | 1 task | 2 files |
 | Phase 08 P01 | 7min | 2 tasks | 7 files |
 | Phase 08 P02 | 5min | 3 tasks | 5 files |
 
@@ -72,52 +62,12 @@ Progress: [██████████] 100% (20/20 plans complete)
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
-
-- [v1.1 Research]: QuickChart.io POST API for server-side chart rendering (no Puppeteer, no node-canvas)
-- [v1.1 Research]: @react-pdf/renderer for PDF (requires serverExternalPackages config in next.config.js)
-- [v1.1 Research]: @react-email/components + nodemailer for email distribution
-- [v1.1 Research]: Slack distribution deferred to Future requirements
-- [v1.1 Research]: Chart images stored as URLs at generation time; all channels reference stored URLs
-- [v1.1 Research]: Single Vercel cron checks all due schedules via nextRunAt field
-- [v1.1 Roadmap]: 4 phases (5-8), coarse granularity -- Engine, Export+Dist, Scheduling+AdHoc, Benchmarking
-- [Phase 05]: QuickChart.io POST API with Chart.js v4 for server-side chart rendering
-- [Phase 05]: Chart failures return null imageUrl (graceful degradation, never throw)
-- [Phase 05]: Zod schema validates AI-generated report content JSON at runtime
-- [Phase 05]: AI context pre-aggregated to top 5 posts + 20 listening hits with 50KB guard
-- [Phase 05]: Delta calculation uses 1% flat threshold for small fluctuations
-- [Phase 05]: Dual-path generation -- enriched engine for cadence/custom, legacy for competitive/KOL
-- [Phase 05]: Enriched vs old report format detected via content.kpis field presence
-- [Phase 05]: OldFormatViewer for backward compatibility with pre-enriched reports
-- [Phase 06]: Dynamic imports in test stubs so files can exist before source modules
-- [Phase 06]: Mock @react-pdf/renderer, nodemailer, @react-email/render to avoid heavy deps in tests
-- [Phase 06]: PDF renderer uses .jsx extension for Vitest JSX transform compatibility
-- [Phase 06]: Dedicated App Router GET handler for PDF generation (not tRPC) to avoid binary serialization issues
-- [Phase 06]: Chart images pre-fetched as base64 data URIs for reliable PDF embedding
-- [Phase 06]: SMTP transport created at module scope for serverless warm reuse
-- [Phase 06]: Email failures logged as FAILED ReportDelivery records (never silently lost)
-- [Phase 06]: Recipient defaults stored in localStorage, pre-filled on modal open
-- [Phase 04]: Wave 0 test stubs use describe.skip with dynamic imports for pre-implementation scaffolding
-- [Phase 04]: Hybrid architecture: streaming via plain API route, CRUD via tRPC (v10 lacks SSE)
-- [Phase 04]: Vercel AI SDK streamText + onFinish for message persistence and cost logging
-- [Phase 04]: useChat from ai/react for frontend streaming with automatic SSE handling
-- [Phase 04]: Draft insertion uses confirm dialog for replace vs append when editor has content
-- [Phase 04]: parseDraftToTweets splits by numbered markers, then double newlines, then single tweet
-- [Phase 07]: Scheduling module split: schedule-manager.js (CRUD+cron) and schedule-helpers.js (date math)
-- [Phase 07]: UTC date math for schedule computation (avoids DST shifts)
-- [Phase 07]: Cron batch cap at 3 + double-exec guard via lastRunAt
-- [Phase 07]: Ad hoc system prompt limits to ONE round of clarifying questions (2-3 max)
-- [Phase 07]: Param extraction via regex for code-fenced + raw JSON with action:generate
-- [Phase 07]: Ad hoc snapshots piggyback on run-schedules cron (no separate route)
-- [Phase 07]: useChat from @ai-sdk/react (not ai/react -- matching project convention)
-- [Phase 08]: Ephemeral benchmark comparison -- deltas computed on the fly, not saved to report record
-- [Phase 08]: computeBenchmarkDeltas reuses existing calculateKPIs/calculateDelta (zero duplication)
-- [Phase 08]: resolveComparisonPeriod uses getPreviousPeriod for all cadence types (mirrors coverage duration)
-- [Phase 08]: noData flag returned when comparison period has zero/null data for all KPIs
-- [Phase 08]: Wave 0 stubs use describe.skip with dynamic imports, matching Phase 4/6/7 patterns
-- [Phase 08]: Inline form for milestone CRUD (not modal), Period/Milestone two-mode toggle for comparison selector
-- [Phase 08]: Benchmark results as non-destructive overlay section on report detail page
+- [v1.2 Architecture]: Email Campaigns as route group within apps/social/ (not separate app) — shared Prisma, Clerk, nodemailer, single Vercel deploy
+- [v1.2 Architecture]: 6 new Prisma models: EmailList, EmailSubscriber, EmailCampaign, EmailTemplate, EmailSend, EmailEvent
+- [v1.2 Architecture]: Batched email sending via cron (50/min, ~3K/hour) — Vercel serverless constraint
+- [v1.2 Architecture]: Open tracking via 1x1 GIF pixel, click tracking via redirect, both as public API routes
+- [v1.2 Architecture]: Code-based template editor for MVP (visual drag-and-drop deferred to v1.3)
+- [v1.2 Architecture]: Listening algorithm improvements are additive (AI multiplier on heuristics), not rewrite
 
 ### Pending Todos
 
@@ -125,11 +75,11 @@ None yet.
 
 ### Blockers/Concerns
 
-- SMTP provider not yet configured (needed before Phase 6 email delivery)
-- QuickChart.io free tier rate limit needs staging validation (60 vs 120 req/min -- not blocking at projected usage)
+- SMTP provider configuration still needed for email campaign sending
+- Need to validate nodemailer rate limits with chosen SMTP provider
 
 ## Session Continuity
 
-Last session: 2026-03-16T22:35:00Z
-Stopped at: Completed 08-02-PLAN.md
+Last session: 2026-03-17
+Stopped at: Initialized v1.2 milestone
 Resume file: None
