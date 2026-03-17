@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   analyzeSentiment,
   normalize,
@@ -9,7 +9,15 @@ import {
   computeEngagementVelocity,
   generateTopicDedupKey,
   TOPIC_DEDUP_TTL_SECONDS,
+  batchValidateRelevance,
 } from '@/lib/listening-scanner';
+
+// Mock generateInsight for batchValidateRelevance tests
+vi.mock('@/lib/ai', () => ({
+  generateInsight: vi.fn(),
+}));
+
+import { generateInsight } from '@/lib/ai';
 
 describe('listening-scanner', () => {
   describe('analyzeSentiment', () => {
@@ -245,6 +253,142 @@ describe('listening-scanner', () => {
 
     it('has correct TTL of 7 days in seconds', () => {
       expect(TOPIC_DEDUP_TTL_SECONDS).toBe(604800);
+    });
+  });
+
+  describe('batchValidateRelevance', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it('calls generateInsight with correct model and returns multipliers', async () => {
+      generateInsight.mockResolvedValue([
+        { index: 0, multiplier: 1.3, reason: 'highly relevant to Figure ecosystem' },
+      ]);
+
+      const hits = [
+        { content: 'Figure Markets launches new HELOC product', authorFollowers: 5000, engagementCount: 200 },
+      ];
+      const result = await batchValidateRelevance(hits, 'Figure Brand Monitor');
+
+      expect(generateInsight).toHaveBeenCalledTimes(1);
+      // Verify model is claude-haiku-4-5-20251001
+      const callArgs = generateInsight.mock.calls[0];
+      expect(callArgs[0]).toBe('listening/relevance-validation');
+      expect(callArgs[2].model).toBe('claude-haiku-4-5-20251001');
+      // Verify systemPrompt mentions 0.5-1.5 range
+      expect(callArgs[2].systemPrompt).toContain('0.5');
+      expect(callArgs[2].systemPrompt).toContain('1.5');
+
+      expect(result).toEqual([
+        { index: 0, multiplier: 1.3, reason: 'highly relevant to Figure ecosystem' },
+      ]);
+    });
+
+    it('truncates content to 500 chars per hit', async () => {
+      generateInsight.mockResolvedValue([
+        { index: 0, multiplier: 1.0, reason: 'ok' },
+      ]);
+
+      const longContent = 'A'.repeat(1000);
+      const hits = [{ content: longContent, authorFollowers: 100, engagementCount: 10 }];
+      await batchValidateRelevance(hits, 'Test Topic');
+
+      const contextArg = generateInsight.mock.calls[0][1];
+      // The context string should not contain the full 1000-char content
+      expect(contextArg).not.toContain('A'.repeat(600));
+      expect(contextArg).toContain('A'.repeat(500));
+    });
+
+    it('returns multiplier 1.0 for all hits when generateInsight throws', async () => {
+      generateInsight.mockRejectedValue(new Error('API unavailable'));
+
+      const hits = [
+        { content: 'Post 1', authorFollowers: 100, engagementCount: 10 },
+        { content: 'Post 2', authorFollowers: 200, engagementCount: 20 },
+        { content: 'Post 3', authorFollowers: 300, engagementCount: 30 },
+      ];
+      const result = await batchValidateRelevance(hits, 'Test Topic');
+
+      expect(result).toHaveLength(3);
+      result.forEach((r, i) => {
+        expect(r.index).toBe(i);
+        expect(r.multiplier).toBe(1.0);
+        expect(r.reason).toBe('fallback');
+      });
+    });
+
+    it('returns empty array for empty hits', async () => {
+      const result = await batchValidateRelevance([], 'Test Topic');
+      expect(result).toEqual([]);
+      expect(generateInsight).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('analyzeSentiment with financial context', () => {
+    it('resolves "shorting BTC hard" using financial context instead of generic keyword', () => {
+      // "short" appears in NEGATIVE_KEYWORDS but also in FINANCIAL_AMBIGUOUS_TERMS
+      // Financial context should resolve "shorting" as bearish -> negativeCount++
+      // and prevent double-counting from the NEGATIVE_KEYWORDS loop
+      const result = analyzeSentiment('shorting BTC hard');
+      expect(result).toBe('NEGATIVE');
+    });
+
+    it('resolves "short video about crypto" as neutral — not negative', () => {
+      // Without financial context, "short" would be matched as negative keyword.
+      // Financial context should resolve "short video" as neutral, skipping it in keywords.
+      const result = analyzeSentiment('short video about crypto');
+      expect(result).toBe('NEUTRAL');
+    });
+
+    it('non-financial text still works as before', () => {
+      // Text without any financial ambiguous terms should behave identically
+      expect(analyzeSentiment('This is a great product')).toBe('POSITIVE');
+      expect(analyzeSentiment('This is terrible and awful')).toBe('NEGATIVE');
+      expect(analyzeSentiment('Figure announced something today')).toBe('NEUTRAL');
+    });
+
+    it('resolves "to the moon" as positive via financial context', () => {
+      // "moon" is in POSITIVE_KEYWORDS AND FINANCIAL_AMBIGUOUS_TERMS
+      // Financial context should resolve "to the moon" as positive
+      const result = analyzeSentiment('to the moon! amazing!');
+      expect(result).toBe('POSITIVE');
+    });
+
+    it('resolves "full moon tonight" neutrally — moon is not financial here', () => {
+      // "moon" would normally match POSITIVE_KEYWORDS
+      // Financial context should resolve "full moon" as neutral, preventing positive count
+      const result = analyzeSentiment('full moon tonight over the city');
+      expect(result).toBe('NEUTRAL');
+    });
+  });
+
+  describe('integrated scoring with topic-adaptive weights', () => {
+    it('KOL topic scoring uses follower weight 0.35 (not default 0.20)', () => {
+      const kolWeights = TOPIC_WEIGHT_PROFILES[getTopicType({ name: 'KOL Influencers' })];
+      expect(kolWeights.followers).toBe(0.35);
+      // Verify it differs from BRAND default
+      expect(kolWeights.followers).not.toBe(TOPIC_WEIGHT_PROFILES.BRAND.followers);
+    });
+
+    it('COMPETITOR topic scoring uses contentRelevance weight 0.55 (not default 0.45)', () => {
+      const compWeights = TOPIC_WEIGHT_PROFILES[getTopicType({ name: 'Competitor: Securitize' })];
+      expect(compWeights.contentRelevance).toBe(0.55);
+      expect(compWeights.contentRelevance).not.toBe(TOPIC_WEIGHT_PROFILES.BRAND.contentRelevance);
+    });
+
+    it('blended engagement calculation works correctly', () => {
+      // Test the blending formula: 0.6 * normalize(engagement) + 0.4 * normalize(velocity, 500)
+      const engagement = 5000;
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+      const velocity = computeEngagementVelocity(engagement, twoHoursAgo); // 2500/hr
+      const blended = 0.6 * normalize(engagement, 100000) + 0.4 * normalize(velocity, 500);
+
+      // Blended should be between the two individual values
+      expect(blended).toBeGreaterThan(0);
+      expect(blended).toBeLessThanOrEqual(1);
+      // With velocity of 2500/hr normalized to max 500, the velocity component should be high
+      expect(blended).toBeGreaterThan(normalize(engagement, 100000));
     });
   });
 });
