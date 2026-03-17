@@ -6,10 +6,10 @@
 ## Track A: Email Campaigns
 
 ### Email List Management
-- [ ] **EMAL-01**: Team can create named email lists with descriptions
-- [ ] **EMAL-02**: Team can import subscribers from CSV files (email, first name, last name) with duplicate detection
-- [ ] **EMAL-03**: Team can view, search, and filter subscribers within a list
-- [ ] **EMAL-04**: Subscribers have status tracking (active, unsubscribed, bounced, complained)
+- [x] **EMAL-01**: Team can create named email lists with descriptions
+- [x] **EMAL-02**: Team can import subscribers from CSV files (email, first name, last name) with duplicate detection
+- [x] **EMAL-03**: Team can view, search, and filter subscribers within a list
+- [x] **EMAL-04**: Subscribers have status tracking (active, unsubscribed, bounced, complained)
 
 ### Email Templates
 - [ ] **ETPL-01**: System provides 4 starter templates (newsletter, announcement, product update, event invite)
@@ -55,10 +55,10 @@
 
 | ID | Description | Phase | Status |
 |----|-------------|-------|--------|
-| EMAL-01 | Create named email lists | 9 | Not started |
-| EMAL-02 | CSV subscriber import | 9 | Not started |
-| EMAL-03 | View/search/filter subscribers | 9 | Not started |
-| EMAL-04 | Subscriber status tracking | 9 | Not started |
+| EMAL-01 | Create named email lists | 9 | Complete |
+| EMAL-02 | CSV subscriber import | 9 | Complete |
+| EMAL-03 | View/search/filter subscribers | 9 | Complete |
+| EMAL-04 | Subscriber status tracking | 9 | Complete |
 | ETPL-01 | Starter templates | 10 | Not started |
 | ETPL-02 | Custom template editor | 10 | Not started |
 | ETPL-03 | AI subject/body suggestions | 10 | Not started |
