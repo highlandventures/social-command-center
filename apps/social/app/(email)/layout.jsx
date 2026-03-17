@@ -8,7 +8,8 @@ import { ThemeToggle } from '@/components/theme-toggle';
 
 const tabs = [
   { key: '/email/lists', label: 'Lists', icon: '\uD83D\uDCCB' },
-  // Future phases will add: Templates, Campaigns, Analytics
+  { key: '/email/templates', label: 'Templates', icon: '\uD83C\uDFA8' },
+  { key: '/email/campaigns', label: 'Campaigns', icon: '\u2709\uFE0F' },
 ];
 
 export default function EmailLayout({ children }) {
