@@ -35,7 +35,7 @@
 
 ### Hub Integration
 - [ ] **EHUB-01**: Email Campaigns module card on hub landing page is active (not "Coming Soon") and links to /email
-- [ ] **EHUB-02**: Email section has its own layout with sidebar navigation and back-to-hub link
+- [x] **EHUB-02**: Email section has its own layout with sidebar navigation and back-to-hub link
 
 ## Track B: Social Command Polish
 
@@ -74,7 +74,7 @@
 | EANL-02 | Email dashboard stats | 12 | Not started |
 | EANL-03 | Link/timeline analytics | 12 | Not started |
 | EHUB-01 | Hub card activation | 12 | Not started |
-| EHUB-02 | Email section layout | 9 | Not started |
+| EHUB-02 | Email section layout | 9 | Complete |
 | SLST-01 | AI semantic relevance | 13 | Complete |
 | SLST-02 | Topic-adaptive weights | 13 | Complete |
 | SLST-03 | Financial sentiment | 13 | Complete |

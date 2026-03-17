@@ -41,7 +41,7 @@
 - Phase 10 → 11 → 12 sequential (Track A chain)
 - Phase 14 last (benefits from email pages existing)
 
-- [ ] **Phase 9: Email Data Layer + List Management** - Prisma models, subscriber/list CRUD, CSV import, email section layout
+- [x] **Phase 9: Email Data Layer + List Management** - Prisma models, subscriber/list CRUD, CSV import, email section layout
 - [ ] **Phase 10: Template Builder + Campaign CRUD** - Starter templates, HTML editor, campaign builder, AI content suggestions
 - [ ] **Phase 11: Send Pipeline + Event Tracking** - Batched cron sending, open/click tracking, bounces, unsubscribe
 - [ ] **Phase 12: Campaign Analytics + Hub Integration** - Performance dashboard, campaign detail analytics, hub card activation
@@ -61,7 +61,7 @@
 
 Plans:
 - [x] 09-01-PLAN.md — Prisma email models (all 6) + tRPC routers for list CRUD and subscriber management
-- [ ] 09-02-PLAN.md — Email section layout, list management page, subscriber detail page with CSV import
+- [x] 09-02-PLAN.md — Email section layout, list management page, subscriber detail page with CSV import
 
 ### Phase 10: Template Builder + Campaign CRUD
 **Goal**: Team can create email templates, build campaigns with content editing and preview, and schedule sends
@@ -155,7 +155,7 @@ Phases 9+13 parallel → 10 → 11 → 12+14 parallel
 | 6. Export + Distribution | v1.1 | 3/3 | Complete | 2026-03-16 |
 | 7. Scheduling + Ad Hoc Reports | v1.1 | 3/3 | Complete | 2026-03-16 |
 | 8. Benchmarking | v1.1 | 3/3 | Complete | 2026-03-17 |
-| 9. Email Data Layer + Lists | v1.2 | 1/2 | In Progress | - |
+| 9. Email Data Layer + Lists | v1.2 | 2/2 | Complete | 2026-03-16 |
 | 10. Template Builder + Campaigns | v1.2 | 0/? | Not started | - |
 | 11. Send Pipeline + Tracking | v1.2 | 0/? | Not started | - |
 | 12. Analytics + Hub Integration | v1.2 | 0/? | Not started | - |
