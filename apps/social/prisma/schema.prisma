@@ -360,6 +360,14 @@ model ListeningHit {
   dismissReason          String?
   routedToInboxItemId    String?
 
+  // Phase 15: Signal Intelligence
+  actionType           ActionType?    // AI-classified actionability
+  authorTrustScore     Float?         // Composite author quality (0-1)
+  authorEngagementRate Float?         // Cached: engagements / followers
+  authorAccountAgeDays Int?           // Account age in days (if available)
+  authorIsVerified     Boolean        @default(false)
+  semanticRelevance    Float?         // AI semantic score (replaces pure keyword)
+
   query   ListeningQuery @relation(fields: [queryId], references: [id], onDelete: Cascade)
   topic   ListeningTopic @relation(fields: [topicId], references: [id])
   account Account?       @relation(fields: [accountId], references: [id])
@@ -380,6 +388,14 @@ enum Sentiment {
   POSITIVE
   NEUTRAL
   NEGATIVE
+}
+
+enum ActionType {
+  RESPOND      // Needs a direct reply (mention, question, complaint)
+  INTEL        // Competitive intelligence to catalog
+  OPPORTUNITY  // Content or engagement opportunity
+  CRISIS       // Negative sentiment needing immediate attention
+  FYI          // Informational, no action needed
 }
 
 model MonitoredSubreddit {
@@ -1075,6 +1091,93 @@ enum HomeTaskPriority {
   MEDIUM
   HIGH
   URGENT
+}
+
+// ============================================================
+// INTELLIGENCE TASKS & BRIEFINGS
+// ============================================================
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  DISMISSED
+  SNOOZED
+}
+
+enum TaskSourceType {
+  LISTENING
+  EMAIL
+  CALENDAR
+  CAMPAIGN
+  REPORT
+  MANUAL
+}
+
+enum TaskPriority {
+  CRITICAL    // Score 80-100: act now
+  HIGH        // Score 60-79: act today
+  MEDIUM      // Score 40-59: act this week
+  LOW         // Score 0-39: when you get to it
+}
+
+enum UserRole {
+  CMO
+  CONTENT_STRATEGIST
+  SOCIAL_MANAGER
+  GROWTH_ANALYST
+  KOL_MANAGER
+  GENERAL
+}
+
+model IntelligenceTask {
+  id              String          @id @default(cuid())
+  title           String          // Action-oriented: "Reply to @journalist about HELOC"
+  description     String?         // Additional context
+  sourceType      TaskSourceType  // Where the signal came from
+  sourceId        String?         // ID of the source record (listeningHitId, emailThreadId, etc.)
+  sourceUrl       String?         // Direct link to the source
+  actionType      String?         // Maps to Phase 15 ActionType (RESPOND/INTEL/OPPORTUNITY/CRISIS/FYI)
+  suggestedAction String?         // What to do: "Draft a reply addressing their question about..."
+  priorityScore   Int             @default(50)  // 0-100
+  priority        TaskPriority    @default(MEDIUM)
+  status          TaskStatus      @default(PENDING)
+  assignedRole    UserRole        @default(GENERAL)
+  dueDate         DateTime?
+  context         Json?           // Structured context: related signals, sender info, etc.
+  snoozedUntil    DateTime?
+  completedAt     DateTime?
+  dismissedAt     DateTime?
+  dismissReason   String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  // Link back to briefing that generated this task
+  briefingId      String?
+  briefing        WeeklyBriefing? @relation(fields: [briefingId], references: [id])
+
+  @@index([status, priorityScore])
+  @@index([assignedRole, status])
+  @@index([sourceType, sourceId])
+  @@map("intelligence_tasks")
+}
+
+model WeeklyBriefing {
+  id              String    @id @default(cuid())
+  weekStart       DateTime  // Monday of the briefing week
+  role            UserRole  @default(GENERAL)
+  summary         String    // AI-generated executive summary
+  topPriorities   Json      // Array of top 3-5 priority items
+  meetingsContext Json?     // Upcoming meetings with relevant context
+  signalsSummary  Json?     // Aggregated signal counts by type
+  campaignStatus  Json?     // In-flight campaign summaries
+  generatedAt     DateTime  @default(now())
+  generatedBy     String    @default("system") // "system" or userId
+
+  tasks           IntelligenceTask[]
+
+  @@unique([weekStart, role])
+  @@map("weekly_briefings")
 }
 
 // ============================================================

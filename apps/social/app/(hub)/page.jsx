@@ -256,11 +256,8 @@ function RecentActivity() {
 
   if (isLoading) {
     return (
-      <div className="mt-10">
-        <h3 className="text-sm font-semibold text-content-primary mb-3">Recent Activity</h3>
-        <div className="space-y-2">
-          {[...Array(3)].map((_, i) => <ActivityRowSkeleton key={i} />)}
-        </div>
+      <div className="space-y-2">
+        {[...Array(3)].map((_, i) => <ActivityRowSkeleton key={i} />)}
       </div>
     );
   }
@@ -271,7 +268,7 @@ function RecentActivity() {
     .sort((a, b) => new Date(a.scheduledFor) - new Date(b.scheduledFor));
 
   return (
-    <div className="mt-10 space-y-8">
+    <div className="space-y-8">
       {/* Upcoming Scheduled */}
       <ActivitySection
         title="Upcoming Scheduled"
@@ -485,6 +482,24 @@ function ModuleCard({ mod }) {
   return card;
 }
 
+// ── Greeting Helper ──────────────────────────────────────────
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+// ── Section Header ──────────────────────────────────────────
+function SectionHeader({ title }) {
+  return (
+    <div className="flex items-center gap-3 mb-4 mt-10">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-content-faint">{title}</h3>
+      <div className="flex-1 h-px bg-border" />
+    </div>
+  );
+}
+
 // ── Main Hub Page ───────────────────────────────────────────
 export default function HubPage() {
   const { user: clerkUser } = useUser();
@@ -496,10 +511,10 @@ export default function HubPage() {
       {/* Hero */}
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-content-primary mb-1">
-          {firstName ? `Welcome back, ${firstName}` : 'Welcome back'}
+          {firstName ? `${getGreeting()}, ${firstName}` : getGreeting()}
         </h2>
         <p className="text-content-muted">
-          Your marketing overview at a glance.
+          Here&apos;s what&apos;s on your plate today.
         </p>
       </div>
 
@@ -510,7 +525,7 @@ export default function HubPage() {
       <PendingReviewsBanner />
 
       {/* ── Home Hub: Calendar, Tasks, Email ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-10">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-2">
         {/* Left column: Calendar + Tasks */}
         <div className="lg:col-span-2 space-y-5">
           <CalendarSection />
@@ -518,12 +533,13 @@ export default function HubPage() {
         </div>
 
         {/* Right column: Email */}
-        <div>
+        <div className="lg:self-start lg:sticky lg:top-6">
           <EmailSection />
         </div>
       </div>
 
-      {/* Module grid */}
+      {/* Modules */}
+      <SectionHeader title="Modules" />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         {modules.map((mod) => (
           <ModuleCard key={mod.key} mod={mod} />
@@ -531,6 +547,7 @@ export default function HubPage() {
       </div>
 
       {/* Recent Activity */}
+      <SectionHeader title="Recent Activity" />
       <RecentActivity />
     </div>
   );

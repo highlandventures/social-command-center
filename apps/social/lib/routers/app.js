@@ -25,6 +25,7 @@ import { emailListsRouter } from './email-lists';
 import { emailSubscribersRouter } from './email-subscribers';
 import { emailTemplatesRouter } from './email-templates';
 import { emailCampaignsRouter } from './email-campaigns';
+import { intelligenceRouter } from './intelligence';
 
 export const appRouter = router({
   accounts: accountsRouter,
@@ -53,6 +54,7 @@ export const appRouter = router({
   emailSubscribers: emailSubscribersRouter,
   emailTemplates: emailTemplatesRouter,
   emailCampaigns: emailCampaignsRouter,
+  intelligence: intelligenceRouter,
 });
 
 /** @typedef {typeof appRouter} AppRouter */

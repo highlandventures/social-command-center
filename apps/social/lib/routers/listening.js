@@ -140,6 +140,7 @@ export const listeningRouter = router({
           platform: z.enum(['X', 'REDDIT']).optional(),
           sentiment: z.enum(['POSITIVE', 'NEUTRAL', 'NEGATIVE']).optional(),
           relevance: z.enum(['HIGH', 'MEDIUM', 'LOW', 'SPAM']).optional(),
+          actionType: z.enum(['RESPOND', 'INTEL', 'OPPORTUNITY', 'CRISIS', 'FYI']).optional(),
           timeRange: z.enum(['24h', '7d', '30d', '90d', 'all']).optional(),
           limit: z.number().min(1).max(100).default(50),
           cursor: z.string().nullish(),
@@ -147,7 +148,7 @@ export const listeningRouter = router({
       )
       .query(async ({ ctx, input }) => {
         const { prisma } = ctx;
-        const { topicId, topicIds, platform, sentiment, relevance, timeRange, limit = 50, cursor } = input || {};
+        const { topicId, topicIds, platform, sentiment, relevance, actionType, timeRange, limit = 50, cursor } = input || {};
 
         const where = { dismissed: false };
         // Multi-select brand filter: topicIds takes precedence over topicId
@@ -159,6 +160,7 @@ export const listeningRouter = router({
         if (platform) where.platform = platform;
         if (sentiment) where.sentiment = sentiment;
         if (relevance) where.aiRelevance = relevance;
+        if (actionType) where.actionType = actionType;
         // Time range filter
         if (timeRange && timeRange !== 'all') {
           const ms = { '24h': 24 * 3600000, '7d': 7 * 86400000, '30d': 30 * 86400000, '90d': 90 * 86400000 };
@@ -204,6 +206,9 @@ export const listeningRouter = router({
             time: h.detectedAt,
             topicName: h.topic?.name,
             queryString: h.query?.queryString,
+            actionType: h.actionType || 'FYI',
+            authorTrustScore: h.authorTrustScore || null,
+            semanticRelevance: h.semanticRelevance || null,
           })),
           nextCursor,
         };

@@ -126,6 +126,12 @@ function AddTaskForm({ onAdd }) {
     setExpanded(false);
   }
 
+  function handleKeyDown(e) {
+    if (e.key === 'Escape') {
+      setExpanded(false);
+    }
+  }
+
   if (!expanded) {
     return (
       <button
@@ -142,7 +148,7 @@ function AddTaskForm({ onAdd }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-lg border border-blue-400 bg-surface-card p-3 space-y-2">
+    <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="rounded-lg border border-blue-400 bg-surface-card p-3 space-y-2">
       <input
         autoFocus
         type="text"
@@ -151,7 +157,7 @@ function AddTaskForm({ onAdd }) {
         placeholder="Task title..."
         className="w-full text-sm bg-transparent text-content-primary placeholder:text-content-faint outline-none"
       />
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <select
           value={priority}
           onChange={(e) => setPriority(e.target.value)}
@@ -196,10 +202,34 @@ export default function TasksSection() {
     onSuccess: () => utils.tasks.list.invalidate(),
   });
   const updateMutation = trpc.tasks.update.useMutation({
-    onSuccess: () => utils.tasks.list.invalidate(),
+    onMutate: async (newData) => {
+      await utils.tasks.list.cancel();
+      const prev = utils.tasks.list.getData({});
+      utils.tasks.list.setData({}, (old) =>
+        (old || []).map(t => t.id === newData.id ? {
+          ...t,
+          ...newData,
+          completedAt: newData.status === 'DONE' ? new Date() : newData.status ? null : t.completedAt,
+        } : t)
+      );
+      return { prev };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prev) utils.tasks.list.setData({}, context.prev);
+    },
+    onSettled: () => utils.tasks.list.invalidate(),
   });
   const deleteMutation = trpc.tasks.delete.useMutation({
-    onSuccess: () => utils.tasks.list.invalidate(),
+    onMutate: async ({ id }) => {
+      await utils.tasks.list.cancel();
+      const prev = utils.tasks.list.getData({});
+      utils.tasks.list.setData({}, (old) => (old || []).filter(t => t.id !== id));
+      return { prev };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.prev) utils.tasks.list.setData({}, context.prev);
+    },
+    onSettled: () => utils.tasks.list.invalidate(),
   });
 
   const [showCompleted, setShowCompleted] = useState(false);
@@ -270,6 +300,13 @@ export default function TasksSection() {
       {/* Task list */}
       {!isLoading && (
         <div className="space-y-2">
+          {activeTasks.length === 0 && completedTasks.length === 0 && (
+            <div className="text-center py-4">
+              <p className="text-sm text-content-muted">No tasks yet</p>
+              <p className="text-xs text-content-faint mt-0.5">Add one to get started</p>
+            </div>
+          )}
+
           {activeTasks.map(task => (
             <TaskRow key={task.id} task={task} onToggle={handleToggle} onDelete={handleDelete} />
           ))}

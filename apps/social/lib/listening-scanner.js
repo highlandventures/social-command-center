@@ -13,6 +13,7 @@ import { XPlatformAdapter } from '@/lib/x-adapter';
 import { searchReddit, searchSubreddit, getSubredditPosts } from '@/lib/sociavault';
 import { analyzeSentimentBatch } from '@/lib/ai/sentiment';
 import { generateInsight } from '@/lib/ai';
+import { processNewSignalsToTasks } from '@/lib/intelligence-engine';
 
 // ── Reddit polling throttle ──────────────────────────────────
 // Reddit conversations move slowly; no need to poll every 10 min.
@@ -162,7 +163,7 @@ export function generateTopicDedupKey(topicId, platformPostId) {
 // Multiplier range: 0.5 (likely irrelevant) to 1.5 (highly relevant).
 // Graceful fallback: returns 1.0 multiplier for all hits if AI fails.
 
-export async function batchValidateRelevance(hits, topicContext) {
+export async function batchValidateRelevance(hits, topicContext, topicType = 'BRAND') {
   if (!hits || hits.length === 0) return [];
 
   const postSummaries = hits.map((h, i) => {
@@ -170,13 +171,24 @@ export async function batchValidateRelevance(hits, topicContext) {
     return `[${i}] Content: ${truncated}\nFollowers: ${h.authorFollowers || 0} | Engagement: ${h.engagementCount || 0}`;
   }).join('\n\n');
 
-  const context = `Topic: ${topicContext}\n\nValidate these ${hits.length} social media posts for relevance to the topic. For each post, assign a multiplier from 0.5 (likely irrelevant/spam) to 1.5 (highly relevant and on-topic).\n\nPosts:\n${postSummaries}\n\nReturn a JSON array of objects with: index (int), multiplier (float 0.5-1.5), reason (string, brief).`;
+  const context = `Topic: ${topicContext}\nTopic Type: ${topicType}\n\nEvaluate these ${hits.length} social media posts for relevance and actionability. Consider the topic type when classifying actions — for KOL topics, activations where the KOL mentions our brand are OPPORTUNITY. For competitor topics, product launches and pricing changes are INTEL.\n\nPosts:\n${postSummaries}\n\nReturn a JSON array of {index, multiplier, actionType, reason}.`;
 
   try {
     const result = await generateInsight('listening/relevance-validation', context, {
       model: 'claude-haiku-4-5-20251001',
       maxTokens: 1024,
-      systemPrompt: 'You are a relevance scoring assistant for social listening. Score each post with a multiplier from 0.5 (irrelevant) to 1.5 (highly relevant). Return a JSON array of {index, multiplier, reason}. Always respond with valid JSON.',
+      systemPrompt: `You are a social listening intelligence assistant. For each post, evaluate TWO things:
+
+1. RELEVANCE: Score as a multiplier from 0.5 (irrelevant/spam) to 1.5 (highly relevant and on-topic). Consider semantic meaning, not just keyword overlap — posts discussing the same concepts with different words should still score high.
+
+2. ACTIONABILITY: Classify what action (if any) this signal requires:
+   - RESPOND: Needs a direct reply (someone asking a question, making a complaint, requesting info, or a journalist/analyst inquiry about the brand)
+   - INTEL: Competitive intelligence to catalog (competitor launch, pricing change, feature announcement, market shift)
+   - OPPORTUNITY: Content or engagement opportunity (trending topic to piggyback, viral post to engage with, partnership signal, positive mention to amplify)
+   - CRISIS: Negative sentiment requiring immediate attention (brand attack, factual error going viral, executive controversy, security/legal issue being discussed)
+   - FYI: Informational only, no action needed (neutral mention, general industry discussion, background context)
+
+Return a JSON array of {index, multiplier, actionType, reason}. Always respond with valid JSON.`,
     });
 
     // Ensure we got an array back
@@ -184,10 +196,10 @@ export async function batchValidateRelevance(hits, topicContext) {
     // Sometimes AI wraps in an object
     if (result?.results && Array.isArray(result.results)) return result.results;
     // Fallback
-    return hits.map((_, i) => ({ index: i, multiplier: 1.0, reason: 'fallback' }));
+    return hits.map((_, i) => ({ index: i, multiplier: 1.0, actionType: 'FYI', reason: 'fallback' }));
   } catch (err) {
     console.warn('batchValidateRelevance failed (graceful fallback):', err.message);
-    return hits.map((_, i) => ({ index: i, multiplier: 1.0, reason: 'fallback' }));
+    return hits.map((_, i) => ({ index: i, multiplier: 1.0, actionType: 'FYI', reason: 'fallback' }));
   }
 }
 
@@ -417,6 +429,59 @@ export function analyzeSentiment(text) {
 export function normalize(value, maxExpected = 100000) {
   if (!value || value <= 0) return 0;
   return Math.min(Math.log1p(value) / Math.log1p(maxExpected), 1);
+}
+
+/**
+ * Compute a composite author trust score (0-1) based on multiple quality signals.
+ * Replaces the naive normalizedFollowers approach.
+ *
+ * Factors:
+ * - Engagement rate (engagements / followers) — high rate = quality audience
+ * - Follower count (log-scaled) — raw reach still matters, but diminishing returns
+ * - Account age — older accounts are more trustworthy
+ * - Verification — verified accounts get a boost
+ *
+ * @param {Object} params
+ * @param {number} params.followers - Follower/karma count
+ * @param {number} params.engagementCount - Total engagements on the post
+ * @param {number} params.accountAgeDays - Account age in days (0 if unknown)
+ * @param {boolean} params.isVerified - Whether the account is verified
+ * @param {string} params.platform - 'x' or 'reddit'
+ * @returns {number} Trust score 0-1
+ */
+export function computeAuthorTrust({ followers, engagementCount, accountAgeDays, isVerified, platform }) {
+  // Engagement rate: high engagement relative to followers = quality
+  const engRate = followers > 0 ? engagementCount / followers : 0;
+  // Normalize: 5% engagement rate is excellent
+  const engRateScore = Math.min(1, engRate / 0.05);
+
+  // Follower count: log-scaled to reduce impact of mega-accounts
+  // ln(1M) ≈ 13.8, ln(1K) ≈ 6.9, ln(100) ≈ 4.6
+  const followerScore = followers > 0 ? Math.min(1, Math.log(followers + 1) / Math.log(5000000)) : 0;
+
+  // Account age: penalize very new accounts (<30 days), reward established (>365 days)
+  const ageScore = accountAgeDays > 0
+    ? Math.min(1, accountAgeDays / 365)
+    : 0.5; // Unknown age gets neutral score
+
+  // New account penalty: accounts <30 days old get a hard penalty
+  const newAccountPenalty = accountAgeDays > 0 && accountAgeDays < 30 ? 0.3 : 1.0;
+
+  // Verification boost
+  const verificationBoost = isVerified ? 1.2 : 1.0;
+
+  // Platform-specific weighting
+  const weights = platform === 'reddit'
+    ? { engRate: 0.35, followers: 0.15, age: 0.50 }  // Reddit: karma age matters most
+    : { engRate: 0.40, followers: 0.30, age: 0.30 };  // X: engagement rate matters most
+
+  const raw = (
+    engRateScore * weights.engRate +
+    followerScore * weights.followers +
+    ageScore * weights.age
+  ) * newAccountPenalty * verificationBoost;
+
+  return Math.min(1, Math.max(0, raw));
 }
 
 // Stop words that survive length > 2 filter but aren't meaningful for relevance
@@ -796,7 +861,8 @@ IMPORTANT:
  * @returns {Object} Results summary { hitsCreated, topicsProcessed, errors }
  */
 export async function scanListeningTopics({ topicIds } = {}) {
-  const results = { hitsCreated: 0, topicsProcessed: 0, errors: [], redditSkipped: false };
+  const results = { hitsCreated: 0, topicsProcessed: 0, errors: [], redditSkipped: false, tasksCreated: 0 };
+  const newHits = []; // Track newly created hits for task generation
 
   try {
     // Create shared X adapter (uses TWITTERAPI_IO_API_KEY for reads internally)
@@ -983,7 +1049,14 @@ export async function scanListeningTopics({ topicIds } = {}) {
                 // Compute heuristic score
                 // Topic-adaptive weights from TOPIC_WEIGHT_PROFILES (SLST-02)
                 // Caps raised for crypto space (large accounts & viral posts)
-                const normalizedFollowers = normalize(authorFollowers, 5000000);
+                const authorTrust = computeAuthorTrust({
+                  followers: authorFollowers,
+                  engagementCount,
+                  accountAgeDays: 0,  // Not available from API yet
+                  isVerified: false,  // Not available from API yet
+                  platform: query.platform.toLowerCase(),
+                });
+                const normalizedFollowers = authorTrust; // Drop-in replacement — same range (0-1)
                 const contentRelevance = computeContentRelevance(
                   content,
                   query.queryString,
@@ -1065,27 +1138,31 @@ export async function scanListeningTopics({ topicIds } = {}) {
               }
             }
 
-            // ── AI Batch Validation (SLST-01) ──────────────────────
-            // Collect MEDIUM+ hits (heuristicScore > 0.35) for AI validation.
-            // Process in chunks of 15 to stay within token limits.
+            // ── AI Batch Validation (Phase 15: SGNL-01 + SGNL-03) ──────────────────────
+            // Phase 15: Validate ALL hits, not just MEDIUM+. Cost increase ~$0.06-0.13/day.
+            // AI validation now serves as the primary relevance signal, not just a multiplier.
+            // Process in chunks of 25 to keep API call count reasonable.
             if (scoredHits.length > 0 && process.env.ANTHROPIC_API_KEY) {
-              const mediumPlusHits = scoredHits.filter(h => h.heuristicScore > 0.35);
+              const hitsForValidation = scoredHits; // All hits get AI validation
 
-              if (mediumPlusHits.length > 0) {
+              if (hitsForValidation.length > 0) {
                 try {
-                  // Process in chunks of 15
-                  for (let chunk = 0; chunk < mediumPlusHits.length; chunk += 15) {
-                    const batch = mediumPlusHits.slice(chunk, chunk + 15);
+                  // Process in chunks of 25
+                  for (let chunk = 0; chunk < hitsForValidation.length; chunk += 25) {
+                    const batch = hitsForValidation.slice(chunk, chunk + 25);
                     const validations = await batchValidateRelevance(
                       batch.map(h => ({ content: h.content, authorFollowers: h.authorFollowersOrKarma, engagementCount: h.engagementCount })),
                       topic.name,
+                      getTopicType(topic),
                     );
 
-                    // Apply multipliers back to the scored hits
+                    // Apply multipliers, actionType, and semantic relevance back to scored hits
                     for (const v of validations) {
                       if (v.index >= 0 && v.index < batch.length) {
                         const targetHit = batch[v.index];
                         targetHit.heuristicScore = targetHit.heuristicScore * (v.multiplier || 1.0);
+                        targetHit.actionType = v.actionType || 'FYI'; // NEW: actionability classification
+                        targetHit.semanticRelevance = v.multiplier; // NEW: store the AI's semantic assessment
                       }
                     }
                   }
@@ -1105,8 +1182,16 @@ export async function scanListeningTopics({ topicIds } = {}) {
                 else if (scored.heuristicScore > 0.35) priorityTier = 'MEDIUM';
 
                 // Backward-compatible: still compute isActionable from threshold
+                // But RESPOND and CRISIS hits are always actionable regardless of score
                 const actionableThreshold = ACTIONABLE_THRESHOLDS[topic.pollingTier] || 0.5;
-                const isActionable = scored.heuristicScore > actionableThreshold;
+                const isActionable = scored.heuristicScore > actionableThreshold
+                  || scored.actionType === 'RESPOND'
+                  || scored.actionType === 'CRISIS';
+
+                // Compute author trust score and engagement rate
+                const authorEngagementRate = scored.authorFollowersOrKarma > 0
+                  ? scored.engagementCount / scored.authorFollowersOrKarma
+                  : null;
 
                 // Create ListeningHit
                 const listeningHit = await prisma.listeningHit.create({
@@ -1129,8 +1214,24 @@ export async function scanListeningTopics({ topicIds } = {}) {
                     sentiment: scored.sentiment,
                     isActionable,
                     aiRelevance: scored.aiRelevance,
+                    // Phase 15: Signal Intelligence fields
+                    actionType: scored.actionType || null,
+                    authorTrustScore: computeAuthorTrust({
+                      followers: scored.authorFollowersOrKarma || 0,
+                      engagementCount: scored.engagementCount || 0,
+                      accountAgeDays: 0,
+                      isVerified: false,
+                      platform: scored.platform.toLowerCase(),
+                    }),
+                    authorEngagementRate,
+                    authorAccountAgeDays: null, // Not available from APIs yet
+                    authorIsVerified: false, // Not available from APIs yet
+                    semanticRelevance: scored.semanticRelevance || null,
                   },
                 });
+
+                // Track for auto-task generation
+                newHits.push(listeningHit);
 
                 // If high-scoring, create InboxItem
                 if (isActionable) {
@@ -1284,6 +1385,20 @@ export async function scanListeningTopics({ topicIds } = {}) {
     } catch (err) {
       console.warn('Audience question analysis failed (non-blocking):', err.message);
       results.audienceQuestions = { questions: 0, clusters: 0, error: err.message };
+    }
+
+    // ── Auto-Task Generation ────────────────────────────────────
+    // Convert high-priority listening signals into actionable tasks (non-blocking)
+    try {
+      if (newHits.length > 0) {
+        const tasksCreated = await processNewSignalsToTasks(prisma, newHits, activeTopics);
+        results.tasksCreated = tasksCreated.length;
+        if (tasksCreated.length > 0) {
+          console.log(`[Intelligence] Created ${tasksCreated.length} tasks from ${newHits.length} new listening hits`);
+        }
+      }
+    } catch (err) {
+      console.warn('Auto-task generation failed (non-blocking):', err.message);
     }
 
     return results;

@@ -14,6 +14,26 @@ import {
 
 // ── Helpers ───────────────────────────────────────────────────
 
+function ActionTypeBadge({ type }) {
+  if (!type || type === 'FYI') return null;
+
+  const config = {
+    RESPOND: { label: 'Reply Needed', bg: 'bg-blue-100 dark:bg-blue-900/40', text: 'text-blue-700 dark:text-blue-300' },
+    INTEL: { label: 'Competitive Intel', bg: 'bg-purple-100 dark:bg-purple-900/40', text: 'text-purple-700 dark:text-purple-300' },
+    OPPORTUNITY: { label: 'Opportunity', bg: 'bg-green-100 dark:bg-green-900/40', text: 'text-green-700 dark:text-green-300' },
+    CRISIS: { label: 'Urgent', bg: 'bg-red-100 dark:bg-red-900/40', text: 'text-red-700 dark:text-red-300' },
+  };
+
+  const c = config[type];
+  if (!c) return null;
+
+  return (
+    <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${c.bg} ${c.text}`}>
+      {c.label}
+    </span>
+  );
+}
+
 function timeAgo(dateStr) {
   if (!dateStr) return '';
   const date = new Date(dateStr);
@@ -42,6 +62,7 @@ export default function ListeningPage() {
   const chartColors = useChartColors();
   const [subTab, setSubTab] = useState('feed');
   const [relevanceFilter, setRelevanceFilter] = useState('HIGH');
+  const [actionFilter, setActionFilter] = useState('all');
   const [selectedBrands, setSelectedBrands] = useState([]); // multi-select topic IDs
   const [platformFilter, setPlatformFilter] = useState('all'); // 'all' | 'X' | 'REDDIT'
   const [feedTimeRange, setFeedTimeRange] = useState('7d'); // '24h' | '7d' | '30d' | '90d' | 'all'
@@ -71,6 +92,7 @@ export default function ListeningPage() {
     ...(selectedBrands.length > 0 ? { topicIds: selectedBrands } : {}),
     ...(platformFilter !== 'all' ? { platform: platformFilter } : {}),
     ...(relevanceFilter !== 'all' ? { relevance: relevanceFilter } : {}),
+    ...(actionFilter !== 'all' ? { actionType: actionFilter } : {}),
     ...(feedTimeRange !== 'all' ? { timeRange: feedTimeRange } : {}),
   };
   const hitsQ = trpc.listening.hits.list.useQuery(
@@ -430,6 +452,21 @@ export default function ListeningPage() {
                   {f === 'all' ? 'All' : f}
                 </button>
               ))}
+            </div>
+
+            <div className="flex items-center gap-2 mb-4 flex-wrap">
+              <span className="text-sm text-content-muted">Action:</span>
+              {['all', 'RESPOND', 'CRISIS', 'OPPORTUNITY', 'INTEL'].map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setActionFilter(f)}
+                  className={`px-2.5 py-1 text-xs rounded-lg font-medium ${
+                    actionFilter === f ? 'bg-primary text-white' : 'bg-surface-page text-content-secondary'
+                  }`}
+                >
+                  {f === 'all' ? 'All Actions' : f.charAt(0) + f.slice(1).toLowerCase()}
+                </button>
+              ))}
               <div className="ml-auto">
                 <button
                   onClick={() => handleScanTopic(null)}
@@ -493,6 +530,7 @@ export default function ListeningPage() {
                         {hit.subreddit && <span className="text-xs text-orange-600 font-medium">{hit.subreddit}</span>}
                       </div>
                       <div className="flex items-center gap-2">
+                        <ActionTypeBadge type={hit.actionType} />
                         <RelevanceBadge level={hit.relevance} />
                         <SentimentDot sentiment={hit.sentiment?.toLowerCase()} />
                         <span className="text-xs text-content-faint">{timeAgo(hit.time)}</span>

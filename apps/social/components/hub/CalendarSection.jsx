@@ -10,12 +10,33 @@ function formatEventTime(dateStr, allDay) {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-function EventRow({ event }) {
+function isHappeningNow(event) {
+  if (event.allDay) return false;
+  const now = Date.now();
+  return new Date(event.start).getTime() <= now && new Date(event.end).getTime() > now;
+}
+
+function isNext(event, events) {
+  if (event.allDay) return false;
+  const now = Date.now();
+  const upcoming = events.filter(e => !e.allDay && new Date(e.start).getTime() > now);
+  return upcoming.length > 0 && upcoming[0].id === event.id;
+}
+
+function EventRow({ event, isNow, isUpNext }) {
   const startTime = formatEventTime(event.start, event.allDay);
   const endTime = event.allDay ? null : formatEventTime(event.end, false);
 
+  const borderColor = isNow
+    ? 'border-green-400 dark:border-green-600 bg-green-50/50 dark:bg-green-900/10'
+    : isUpNext
+    ? 'border-blue-300 dark:border-blue-700'
+    : 'border-border bg-surface-card';
+
+  const barColor = isNow ? 'bg-green-500' : 'bg-blue-500';
+
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-border bg-surface-card px-3 py-2.5">
+    <div className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 ${borderColor}`}>
       {/* Time */}
       <div className="flex-shrink-0 w-16 text-right">
         <span className="text-xs font-medium text-content-primary">{startTime}</span>
@@ -25,11 +46,23 @@ function EventRow({ event }) {
       </div>
 
       {/* Divider */}
-      <div className="w-0.5 self-stretch bg-blue-500 rounded-full flex-shrink-0" />
+      <div className={`w-0.5 self-stretch ${barColor} rounded-full flex-shrink-0`} />
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-content-primary truncate">{event.title}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-content-primary truncate">{event.title}</p>
+          {isNow && (
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 flex-shrink-0">
+              Now
+            </span>
+          )}
+          {isUpNext && (
+            <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 flex-shrink-0">
+              Next
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2 mt-0.5">
           {event.location && (
             <span className="text-xs text-content-muted truncate">{event.location}</span>
@@ -111,9 +144,13 @@ export default function CalendarSection() {
       {/* Event list */}
       {!isLoading && data?.connected && data.events.length > 0 && (
         <div className="space-y-2">
-          {data.events.map(event => (
-            <EventRow key={event.id} event={event} />
-          ))}
+          {data.events.map(event => {
+            const now = isHappeningNow(event);
+            const upNext = !now && isNext(event, data.events);
+            return (
+              <EventRow key={event.id} event={event} isNow={now} isUpNext={upNext} />
+            );
+          })}
         </div>
       )}
     </div>

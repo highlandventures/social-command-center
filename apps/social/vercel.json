@@ -11,6 +11,7 @@
     { "path": "/api/cron/poll-subreddit-metrics", "schedule": "0 4 * * *" },
     { "path": "/api/cron/aggregate-kol-metrics", "schedule": "0 5 * * *" },
     { "path": "/api/cron/triage-tickets", "schedule": "0 7 * * *" },
-    { "path": "/api/cron/run-schedules", "schedule": "*/15 * * * *" }
+    { "path": "/api/cron/run-schedules", "schedule": "*/15 * * * *" },
+    { "path": "/api/cron/generate-briefing", "schedule": "0 6 * * 1" }
   ]
 }

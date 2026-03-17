@@ -75,6 +75,16 @@ export default function EmailSection() {
             {data.messages.filter(m => m.isUnread).length} new
           </span>
         )}
+        {data?.connected && (
+          <a
+            href="https://mail.google.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-content-faint hover:text-blue-500 ml-auto transition-colors"
+          >
+            Open &rarr;
+          </a>
+        )}
       </div>
 
       {/* Loading */}

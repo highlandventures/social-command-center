@@ -10,6 +10,7 @@ import { AccountProvider } from '@/lib/account-context';
 import { ThemeToggle } from '@/components/theme-toggle';
 
 const tabs = [
+  { key: "/intelligence", label: "Intelligence", icon: "🧠" },
   { key: "/dashboard", label: "Dashboard", icon: "\uD83D\uDCCA" },
   { key: "/composer", label: "Composer", icon: "\u270F\uFE0F" },
   { key: "/reviews", label: "L&C Reviews", icon: "\uD83D\uDEE1\uFE0F" },
