@@ -23,6 +23,8 @@ import { tasksRouter } from './tasks';
 import { googleRouter } from './google';
 import { emailListsRouter } from './email-lists';
 import { emailSubscribersRouter } from './email-subscribers';
+import { emailTemplatesRouter } from './email-templates';
+import { emailCampaignsRouter } from './email-campaigns';
 
 export const appRouter = router({
   accounts: accountsRouter,
@@ -49,6 +51,8 @@ export const appRouter = router({
   google: googleRouter,
   emailLists: emailListsRouter,
   emailSubscribers: emailSubscribersRouter,
+  emailTemplates: emailTemplatesRouter,
+  emailCampaigns: emailCampaignsRouter,
 });
 
 /** @typedef {typeof appRouter} AppRouter */
