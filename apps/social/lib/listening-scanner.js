@@ -156,6 +156,41 @@ export function generateTopicDedupKey(topicId, platformPostId) {
   return `listening:dedup:${topicId}:${platformPostId}`;
 }
 
+// ── AI Batch Validation ─────────────────────────────────────
+// Batch-validate high-scoring listening hits through Claude Haiku.
+// Returns array of {index, multiplier, reason} for each hit.
+// Multiplier range: 0.5 (likely irrelevant) to 1.5 (highly relevant).
+// Graceful fallback: returns 1.0 multiplier for all hits if AI fails.
+
+export async function batchValidateRelevance(hits, topicContext) {
+  if (!hits || hits.length === 0) return [];
+
+  const postSummaries = hits.map((h, i) => {
+    const truncated = (h.content || '').slice(0, 500);
+    return `[${i}] Content: ${truncated}\nFollowers: ${h.authorFollowers || 0} | Engagement: ${h.engagementCount || 0}`;
+  }).join('\n\n');
+
+  const context = `Topic: ${topicContext}\n\nValidate these ${hits.length} social media posts for relevance to the topic. For each post, assign a multiplier from 0.5 (likely irrelevant/spam) to 1.5 (highly relevant and on-topic).\n\nPosts:\n${postSummaries}\n\nReturn a JSON array of objects with: index (int), multiplier (float 0.5-1.5), reason (string, brief).`;
+
+  try {
+    const result = await generateInsight('listening/relevance-validation', context, {
+      model: 'claude-haiku-4-5-20251001',
+      maxTokens: 1024,
+      systemPrompt: 'You are a relevance scoring assistant for social listening. Score each post with a multiplier from 0.5 (irrelevant) to 1.5 (highly relevant). Return a JSON array of {index, multiplier, reason}. Always respond with valid JSON.',
+    });
+
+    // Ensure we got an array back
+    if (Array.isArray(result)) return result;
+    // Sometimes AI wraps in an object
+    if (result?.results && Array.isArray(result.results)) return result.results;
+    // Fallback
+    return hits.map((_, i) => ({ index: i, multiplier: 1.0, reason: 'fallback' }));
+  } catch (err) {
+    console.warn('batchValidateRelevance failed (graceful fallback):', err.message);
+    return hits.map((_, i) => ({ index: i, multiplier: 1.0, reason: 'fallback' }));
+  }
+}
+
 // ── Actionable thresholds by polling tier ──
 const ACTIONABLE_THRESHOLDS = {
   HOT: 0.4,
@@ -319,11 +354,26 @@ const NEGATION_WORDS = ['not', 'no', 'never', "don't", "doesn't", "isn't", "won'
 
 export function analyzeSentiment(text) {
   const lower = text.toLowerCase();
-  const words = lower.split(/\s+/);
   let positiveCount = 0;
   let negativeCount = 0;
 
+  // ── Financial context pre-pass ───────────────────────────
+  // Check for ambiguous financial terms and resolve them via phrase context
+  // BEFORE the keyword loops to prevent double-counting.
+  const resolvedTerms = new Set();
+  for (const term of Object.keys(FINANCIAL_AMBIGUOUS_TERMS)) {
+    if (!lower.includes(term)) continue;
+    const sentiment = resolveFinancialSentiment(text, term);
+    if (sentiment !== null) {
+      resolvedTerms.add(term);
+      if (sentiment === 'positive') positiveCount++;
+      else if (sentiment === 'negative' || sentiment === 'bearish') negativeCount++;
+      // 'neutral' → no change (skip this term entirely)
+    }
+  }
+
   for (const kw of POSITIVE_KEYWORDS) {
+    if (resolvedTerms.has(kw)) continue; // Already resolved via financial context
     // Use word boundary matching to avoid false positives (e.g., "issue" in "tissue")
     let re;
     try { re = new RegExp(`\\b${kw}\\b`); } catch { re = null; }
@@ -341,6 +391,7 @@ export function analyzeSentiment(text) {
     }
   }
   for (const kw of NEGATIVE_KEYWORDS) {
+    if (resolvedTerms.has(kw)) continue; // Already resolved via financial context
     let re;
     try { re = new RegExp(`\\b${kw}\\b`); } catch { re = null; }
     const match = re ? re.exec(lower) : null;
@@ -785,6 +836,10 @@ export async function scanListeningTopics({ topicIds } = {}) {
 
     for (const topic of activeTopics) {
       try {
+        // ── Topic-adaptive weights (SLST-02) ──
+        const topicType = getTopicType(topic);
+        const weights = TOPIC_WEIGHT_PROFILES[topicType];
+
         for (const query of topic.queries) {
           try {
             let rawHits = [];
@@ -804,6 +859,7 @@ export async function scanListeningTopics({ topicIds } = {}) {
             let queryActionable = 0;
             let querySpam = 0;
             let queryHeuristicSum = 0;
+            const scoredHits = []; // Collect hits for batch AI validation before persisting
 
             for (const hit of rawHits) {
               try {
@@ -822,7 +878,19 @@ export async function scanListeningTopics({ topicIds } = {}) {
 
                 if (!platformPostId) continue;
 
-                // Dedupe against existing hits
+                // ── Cross-query dedup via Redis (SLST-05) ──
+                // Prevents the same post from appearing in multiple queries for one topic.
+                // Atomic SET NX: returns null if key already exists, 'OK' if set.
+                try {
+                  const topicDedupKey = generateTopicDedupKey(topic.id, platformPostId);
+                  const alreadyInTopic = await kv.set(topicDedupKey, '1', { ex: TOPIC_DEDUP_TTL_SECONDS, nx: true });
+                  if (alreadyInTopic === null) continue;
+                } catch (dedupErr) {
+                  // Redis unavailable — fall through to Prisma dedup (safe degradation)
+                  console.warn('Redis dedup check failed, falling back to Prisma:', dedupErr.message);
+                }
+
+                // Dedupe against existing hits (Prisma fallback)
                 const existing = await prisma.listeningHit.findFirst({
                   where: {
                     queryId: query.id,
@@ -913,10 +981,9 @@ export async function scanListeningTopics({ topicIds } = {}) {
                 if (isNaN(detectedAt.getTime())) detectedAt = new Date();
 
                 // Compute heuristic score
-                // Weights: 45% content relevance, 25% engagement, 20% followers, 10% recency
+                // Topic-adaptive weights from TOPIC_WEIGHT_PROFILES (SLST-02)
                 // Caps raised for crypto space (large accounts & viral posts)
                 const normalizedFollowers = normalize(authorFollowers, 5000000);
-                const normalizedEngagement = normalize(engagementCount, 100000);
                 const contentRelevance = computeContentRelevance(
                   content,
                   query.queryString,
@@ -927,28 +994,24 @@ export async function scanListeningTopics({ topicIds } = {}) {
                 // Skip entirely to avoid polluting the feed.
                 if (contentRelevance < 0.15 && !isKolTopic) continue;
 
+                // ── Engagement velocity blending (SLST-04) ──
+                // Blend absolute engagement (60%) with velocity (40%) for time-aware scoring
+                const velocity = computeEngagementVelocity(engagementCount, detectedAt);
+                const blendedEngagement = 0.6 * normalize(engagementCount, 100000) + 0.4 * normalize(velocity, 500);
+
                 // Recency factor: linear decay over 7 days (fresh posts score higher)
                 const postAgeHours = Math.max(0, (Date.now() - detectedAt.getTime()) / (1000 * 60 * 60));
                 const recencyFactor = Math.max(0, 1 - (postAgeHours / (7 * 24)));
 
+                // ── Topic-adaptive scoring (SLST-02) ──
                 const heuristicScore =
-                  normalizedFollowers * 0.20 +
-                  normalizedEngagement * 0.25 +
-                  contentRelevance * 0.45 +
-                  recencyFactor * 0.10;
+                  normalizedFollowers * weights.followers +
+                  blendedEngagement * weights.engagement +
+                  contentRelevance * weights.contentRelevance +
+                  recencyFactor * weights.recency;
 
                 // Sentiment analysis
                 const sentiment = analyzeSentiment(content);
-
-                // Priority tiers (replaces binary actionable)
-                let priorityTier = 'LOW';
-                if (heuristicScore > 0.75) priorityTier = 'CRITICAL';
-                else if (heuristicScore > 0.55) priorityTier = 'HIGH';
-                else if (heuristicScore > 0.35) priorityTier = 'MEDIUM';
-
-                // Backward-compatible: still compute isActionable from threshold
-                const actionableThreshold = ACTIONABLE_THRESHOLDS[topic.pollingTier] || 0.5;
-                const isActionable = heuristicScore > actionableThreshold;
 
                 // Determine aiRelevance using topic-aware key terms (works for competitors too)
                 const topicTerms = getTopicKeyTerms(topic);
@@ -969,27 +1032,103 @@ export async function scanListeningTopics({ topicIds } = {}) {
                   aiRelevance = 'SPAM';
                 }
 
+                // ── Collect scored hit for batch processing (SLST-01) ──
+                // Instead of creating ListeningHit immediately, collect all scored hits
+                // so we can batch-validate MEDIUM+ hits through AI before persisting.
+                scoredHits.push({
+                  queryId: query.id,
+                  topicId: topic.id,
+                  platform: query.platform,
+                  platformPostId: String(platformPostId),
+                  authorUsername: String(authorUsername),
+                  authorDisplayName,
+                  authorProfileImageUrl,
+                  authorFollowersOrKarma: authorFollowers,
+                  content: String(content),
+                  sourceUrl,
+                  subreddit: hit.subreddit || hit.subreddit_name_prefixed || null,
+                  parentThreadTitle: hit.link_title || hit.parent_title || null,
+                  detectedAt,
+                  engagementCount,
+                  heuristicScore,
+                  sentiment,
+                  aiRelevance,
+                  // Keep raw hit data for avatar sync
+                  _authorProfileImageUrl: authorProfileImageUrl,
+                  _queryPlatform: query.platform,
+                });
+              } catch (hitError) {
+                console.error(
+                  `Error processing listening hit for query ${query.id}:`,
+                  hitError,
+                );
+              }
+            }
+
+            // ── AI Batch Validation (SLST-01) ──────────────────────
+            // Collect MEDIUM+ hits (heuristicScore > 0.35) for AI validation.
+            // Process in chunks of 15 to stay within token limits.
+            if (scoredHits.length > 0 && process.env.ANTHROPIC_API_KEY) {
+              const mediumPlusHits = scoredHits.filter(h => h.heuristicScore > 0.35);
+
+              if (mediumPlusHits.length > 0) {
+                try {
+                  // Process in chunks of 15
+                  for (let chunk = 0; chunk < mediumPlusHits.length; chunk += 15) {
+                    const batch = mediumPlusHits.slice(chunk, chunk + 15);
+                    const validations = await batchValidateRelevance(
+                      batch.map(h => ({ content: h.content, authorFollowers: h.authorFollowersOrKarma, engagementCount: h.engagementCount })),
+                      topic.name,
+                    );
+
+                    // Apply multipliers back to the scored hits
+                    for (const v of validations) {
+                      if (v.index >= 0 && v.index < batch.length) {
+                        const targetHit = batch[v.index];
+                        targetHit.heuristicScore = targetHit.heuristicScore * (v.multiplier || 1.0);
+                      }
+                    }
+                  }
+                } catch (aiErr) {
+                  console.warn('AI batch validation failed (scores unchanged):', aiErr.message);
+                }
+              }
+            }
+
+            // ── Persist scored hits ──────────────────────────────────
+            for (const scored of scoredHits) {
+              try {
+                // Priority tiers (replaces binary actionable)
+                let priorityTier = 'LOW';
+                if (scored.heuristicScore > 0.75) priorityTier = 'CRITICAL';
+                else if (scored.heuristicScore > 0.55) priorityTier = 'HIGH';
+                else if (scored.heuristicScore > 0.35) priorityTier = 'MEDIUM';
+
+                // Backward-compatible: still compute isActionable from threshold
+                const actionableThreshold = ACTIONABLE_THRESHOLDS[topic.pollingTier] || 0.5;
+                const isActionable = scored.heuristicScore > actionableThreshold;
+
                 // Create ListeningHit
                 const listeningHit = await prisma.listeningHit.create({
                   data: {
-                    queryId: query.id,
-                    topicId: topic.id,
-                    platform: query.platform,
-                    platformPostId: String(platformPostId),
-                    authorUsername: String(authorUsername),
-                    authorDisplayName,
-                    authorProfileImageUrl,
-                    authorFollowersOrKarma: authorFollowers,
-                    content: String(content),
-                    sourceUrl,
-                    subreddit: hit.subreddit || hit.subreddit_name_prefixed || null,
-                    parentThreadTitle: hit.link_title || hit.parent_title || null,
-                    detectedAt,
-                    engagementCount,
-                    heuristicScore,
-                    sentiment,
+                    queryId: scored.queryId,
+                    topicId: scored.topicId,
+                    platform: scored.platform,
+                    platformPostId: scored.platformPostId,
+                    authorUsername: scored.authorUsername,
+                    authorDisplayName: scored.authorDisplayName,
+                    authorProfileImageUrl: scored.authorProfileImageUrl,
+                    authorFollowersOrKarma: scored.authorFollowersOrKarma,
+                    content: scored.content,
+                    sourceUrl: scored.sourceUrl,
+                    subreddit: scored.subreddit,
+                    parentThreadTitle: scored.parentThreadTitle,
+                    detectedAt: scored.detectedAt,
+                    engagementCount: scored.engagementCount,
+                    heuristicScore: scored.heuristicScore,
+                    sentiment: scored.sentiment,
                     isActionable,
-                    aiRelevance,
+                    aiRelevance: scored.aiRelevance,
                   },
                 });
 
@@ -998,11 +1137,11 @@ export async function scanListeningTopics({ topicIds } = {}) {
                   const inboxItem = await prisma.inboxItem.create({
                     data: {
                       accountId: topic.queries[0]?.accountId || undefined,
-                      platform: query.platform,
+                      platform: scored.platform,
                       itemType: 'MENTION',
-                      fromUsername: String(authorUsername),
-                      content: String(content),
-                      internalNotes: `Listening hit (score: ${heuristicScore.toFixed(2)}, priority: ${priorityTier}) from topic "${topic.name}"`,
+                      fromUsername: scored.authorUsername,
+                      content: scored.content,
+                      internalNotes: `Listening hit (score: ${scored.heuristicScore.toFixed(2)}, priority: ${priorityTier}) from topic "${topic.name}"`,
                     },
                   });
 
@@ -1014,15 +1153,15 @@ export async function scanListeningTopics({ topicIds } = {}) {
                 }
 
                 // Sync KOL avatar if this author matches a tracked KOL
-                if (authorProfileImageUrl && query.platform === 'X') {
+                if (scored._authorProfileImageUrl && scored._queryPlatform === 'X') {
                   try {
                     await prisma.kOL.updateMany({
                       where: {
-                        username: String(authorUsername),
+                        username: scored.authorUsername,
                         platform: 'X',
                         avatarUrl: null,
                       },
-                      data: { avatarUrl: authorProfileImageUrl },
+                      data: { avatarUrl: scored._authorProfileImageUrl },
                     });
                   } catch (err) {
                     console.warn('Avatar sync failed:', err.message);
@@ -1031,13 +1170,13 @@ export async function scanListeningTopics({ topicIds } = {}) {
 
                 results.hitsCreated++;
                 queryHitsCreated++;
-                queryHeuristicSum += heuristicScore;
+                queryHeuristicSum += scored.heuristicScore;
                 if (isActionable) queryActionable++;
-                if (aiRelevance === 'SPAM') querySpam++;
-              } catch (hitError) {
+                if (scored.aiRelevance === 'SPAM') querySpam++;
+              } catch (persistErr) {
                 console.error(
-                  `Error processing listening hit for query ${query.id}:`,
-                  hitError,
+                  `Error persisting listening hit for query ${scored.queryId}:`,
+                  persistErr,
                 );
               }
             }
