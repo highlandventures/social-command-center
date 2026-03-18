@@ -462,12 +462,12 @@ export const competitorsRouter = router({
       });
 
       // Get Figure's follower count for threat score comparison
-      const figureAccount = await prisma.socialAccount.findFirst({
-        where: { platform: 'X' },
-        orderBy: { followerCount: 'desc' },
-        select: { followerCount: true },
+      const figureAccountMetrics = await prisma.accountMetrics.findFirst({
+        where: { account: { platform: 'X', isActive: true } },
+        orderBy: { followers: 'desc' },
+        select: { followers: true },
       });
-      const figureFollowers = figureAccount?.followerCount || 1;
+      const figureFollowers = figureAccountMetrics?.followers || 1;
 
       return competitors.map((c) => {
         const metrics = c.metrics;

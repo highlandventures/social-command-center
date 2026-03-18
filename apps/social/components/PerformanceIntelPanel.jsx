@@ -136,7 +136,7 @@ function TierSection({ tierKey, posts, sparklines }) {
                 </div>
                 <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
                   <span className="text-[10px] font-bold text-content-primary">
-                    {post.metrics.engagementRate.toFixed(1)}%
+                    {post.metrics?.engagementRate != null ? post.metrics.engagementRate.toFixed(1) : '—'}%
                   </span>
                   <MiniSparkline
                     data={sparkPoints}
