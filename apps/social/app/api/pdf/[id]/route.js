@@ -1,6 +1,9 @@
 import { prisma } from '@/lib/db';
 import { put } from '@vercel/blob';
 import { renderReportPDF } from '@/lib/pdf-renderer';
+import { logger } from '@/lib/logger';
+
+const log = logger('api/pdf');
 
 export const maxDuration = 30;
 
@@ -23,8 +26,9 @@ export async function GET(req, { params }) {
       { access: 'public', contentType: 'application/pdf' }
     );
 
-    // Log delivery and increment downloads in parallel
-    await Promise.all([
+    // Log delivery and increment downloads in parallel — allSettled so
+    // a logging failure doesn't prevent returning the PDF URL
+    await Promise.allSettled([
       prisma.reportDelivery.create({
         data: {
           reportId: report.id,
@@ -41,7 +45,7 @@ export async function GET(req, { params }) {
 
     return Response.json({ url: blob.url });
   } catch (error) {
-    console.error('[PDF Export] Generation failed:', error);
+    log.error('PDF generation failed', { error, reportId: (await params).id });
     return Response.json(
       { error: 'PDF generation failed' },
       { status: 500 }

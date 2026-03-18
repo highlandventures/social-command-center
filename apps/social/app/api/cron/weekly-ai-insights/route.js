@@ -10,6 +10,9 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { generateInsight, AI_PREAMBLE } from '@/lib/ai';
+import { logger } from '@/lib/logger';
+
+const log = logger('cron/weekly-ai-insights');
 
 export const dynamic = 'force-dynamic';
 
@@ -167,7 +170,7 @@ Schema: {"summary":"string","performanceHighlights":[{"highlight":"string","metr
       },
     });
   } catch (error) {
-    console.error('weekly-ai-insights cron error:', error);
+    log.error('weekly-ai-insights cron error', { error });
     return NextResponse.json(
       { ok: false, error: error.message },
       { status: 500 },

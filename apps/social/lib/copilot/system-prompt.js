@@ -7,10 +7,15 @@ import { getTopPostsForAccount } from './brand-voice';
  * Target: ~1000 tokens total (role ~200, intel ~500, voice ~300).
  */
 export async function buildSystemPrompt({ accountId, postMode, platform }) {
-  const [intelSummary, brandExamples] = await Promise.all([
+  const [intelS, brandS] = await Promise.allSettled([
     getCondensedIntelSummary(),
     getTopPostsForAccount(accountId),
   ]);
+
+  const intelSummary = intelS.status === 'fulfilled'
+    ? intelS.value
+    : 'Intel data unavailable. Proceed without context.';
+  const brandExamples = brandS.status === 'fulfilled' ? brandS.value : [];
 
   const voiceSection = brandExamples.length > 0
     ? `## Brand Voice Examples

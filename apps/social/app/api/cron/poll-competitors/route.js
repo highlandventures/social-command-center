@@ -16,6 +16,9 @@ import { verifyCronAuth } from '@/lib/cron-auth';
 import { twitterApiIoRequest } from '@/lib/twitter-api';
 import { API_COSTS } from '@/lib/api-costs';
 import { generateInsight } from '@/lib/ai';
+import { logger } from '@/lib/logger';
+
+const log = logger('cron/poll-competitors');
 
 export const dynamic = 'force-dynamic';
 
@@ -200,12 +203,12 @@ export async function GET(request) {
           },
         });
 
-        console.log(
+        log.info(
           `  ${comp.name}: ${followersX} followers, ${postsCount} posts, ${mentionCount} mentions`,
         );
         results.competitorsProcessed++;
       } catch (compError) {
-        console.error(`Error processing competitor ${comp.name}:`, compError);
+        log.error(`Error processing competitor ${comp.name}`, { error: compError });
         results.errors.push({ competitor: comp.name, error: compError.message });
       }
     }
@@ -560,7 +563,7 @@ Return a JSON object with keys: themes, formats, strategyCards, contentGaps.`,
           },
         });
 
-        console.log('Competitor strategy AI analysis cached:', {
+        log.info('Competitor strategy AI analysis cached:', {
           themes: (aiResult.themes || []).length,
           formats: preComputedFormats.length,
           strategyCards: mergedStrategyCards.length,
@@ -568,13 +571,13 @@ Return a JSON object with keys: themes, formats, strategyCards, contentGaps.`,
         });
       }
     } catch (aiError) {
-      console.error('Competitor strategy AI analysis failed:', aiError.message);
+      log.error('Competitor strategy AI analysis failed', { error: aiError });
       results.errors.push({ step: 'ai_analysis', error: aiError.message });
     }
 
     return NextResponse.json({ ok: true, ...results });
   } catch (error) {
-    console.error('poll-competitors cron error:', error);
+    log.error('poll-competitors cron error', { error });
     return NextResponse.json(
       { ok: false, error: error.message },
       { status: 500 },

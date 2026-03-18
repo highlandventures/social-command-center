@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db';
  * for inclusion in the co-pilot system prompt (~500 tokens).
  */
 export async function getCondensedIntelSummary() {
-  const [perfInsight, compInsight, audInsight] = await Promise.all([
+  const [perfS, compS, audS] = await Promise.allSettled([
     prisma.aIInsight.findFirst({
       where: { insightType: 'PERFORMANCE_PATTERN', dismissed: false },
       orderBy: { generatedAt: 'desc' },
@@ -19,6 +19,10 @@ export async function getCondensedIntelSummary() {
       orderBy: { generatedAt: 'desc' },
     }),
   ]);
+
+  const perfInsight = perfS.status === 'fulfilled' ? perfS.value : null;
+  const compInsight = compS.status === 'fulfilled' ? compS.value : null;
+  const audInsight = audS.status === 'fulfilled' ? audS.value : null;
 
   const sections = [];
   if (perfInsight?.content) {
