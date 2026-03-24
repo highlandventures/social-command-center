@@ -18,13 +18,14 @@ export const postsRouter = router({
         platform: z.enum(['X', 'REDDIT']).optional(),
         since: z.string().optional(), // ISO date string e.g. '2026-03-01'
         until: z.string().optional(), // ISO date string e.g. '2026-03-31'
+        excludeReplies: z.boolean().optional(), // Filter out reply tweets
         limit: z.number().min(1).max(500).default(20),
         cursor: z.string().nullish(),
       }).default({})
     )
     .query(async ({ ctx, input }) => {
       const { prisma } = ctx;
-      const { status, accountId, platform, since, until, limit, cursor } = input;
+      const { status, accountId, platform, since, until, excludeReplies, limit, cursor } = input;
 
       const where = {};
       if (status) where.status = status;
@@ -34,6 +35,9 @@ export const postsRouter = router({
         where.publishedAt = {};
         if (since) where.publishedAt.gte = new Date(since + 'T00:00:00Z');
         if (until) where.publishedAt.lte = new Date(until + 'T23:59:59.999Z');
+      }
+      if (excludeReplies) {
+        where.content = { not: { startsWith: '@' } };
       }
 
       const posts = await prisma.post.findMany({
