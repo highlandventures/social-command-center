@@ -107,8 +107,13 @@ export default function DashboardPage() {
     { staleTime: 30_000, keepPreviousData: true }
   );
 
+  // Follower growth always shows 12 months regardless of date picker
+  const followerGrowthInput = useMemo(() => {
+    const base = detailAccount ? { accountId: detailAccount } : {};
+    return { ...base, range: '365d' };
+  }, [detailAccount]);
   const followerGrowthQ = trpc.analytics.followerGrowth.useQuery(
-    detailQueryInput,
+    followerGrowthInput,
     { staleTime: 30_000, keepPreviousData: true }
   );
 
