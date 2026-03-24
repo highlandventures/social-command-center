@@ -251,6 +251,66 @@ export const listeningRouter = router({
   }),
 
   /**
+   * listening.toplineMetrics
+   * Aggregated counts (total, sentiment, platform, actionType) respecting
+   * the same filters used by hits.list so the numbers match the feed.
+   */
+  toplineMetrics: protectedProcedure
+    .input(
+      z.object({
+        topicId: z.string().optional(),
+        topicIds: z.array(z.string()).optional(),
+        platform: z.enum(['X', 'REDDIT']).optional(),
+        relevance: z.enum(['HIGH', 'MEDIUM', 'LOW', 'SPAM']).optional(),
+        actionType: z.enum(['RESPOND', 'INTEL', 'OPPORTUNITY', 'CRISIS', 'FYI']).optional(),
+        timeRange: z.enum(['24h', '7d', '30d', '90d', 'all']).optional(),
+      }).optional()
+    )
+    .query(async ({ ctx, input }) => {
+      const { topicId, topicIds, platform, relevance, actionType, timeRange } = input || {};
+
+      const where = { dismissed: false };
+      if (topicIds?.length > 0) {
+        where.topicId = { in: topicIds };
+      } else if (topicId) {
+        where.topicId = topicId;
+      }
+      if (platform) where.platform = platform;
+      if (relevance) where.aiRelevance = relevance;
+      if (actionType) where.actionType = actionType;
+      if (timeRange && timeRange !== 'all') {
+        const ms = { '24h': 24 * 3600000, '7d': 7 * 86400000, '30d': 30 * 86400000, '90d': 90 * 86400000 };
+        where.detectedAt = { gte: new Date(Date.now() - ms[timeRange]) };
+      }
+
+      const [total, bySentiment, byPlatform, byAction] = await Promise.all([
+        ctx.prisma.listeningHit.count({ where }),
+        ctx.prisma.listeningHit.groupBy({ by: ['sentiment'], where, _count: true }),
+        ctx.prisma.listeningHit.groupBy({ by: ['platform'], where, _count: true }),
+        ctx.prisma.listeningHit.groupBy({ by: ['actionType'], where, _count: true }),
+      ]);
+
+      const sentiment = Object.fromEntries(bySentiment.map((s) => [s.sentiment || 'NEUTRAL', s._count]));
+      const platforms = Object.fromEntries(byPlatform.map((p) => [p.platform, p._count]));
+      const actions = Object.fromEntries(byAction.map((a) => [a.actionType || 'FYI', a._count]));
+
+      const positive = sentiment.POSITIVE || 0;
+      const negative = sentiment.NEGATIVE || 0;
+      const neutral = sentiment.NEUTRAL || 0;
+      const sentimentTotal = positive + negative + neutral;
+      const positivePct = sentimentTotal > 0 ? Math.round((positive / sentimentTotal) * 100) : 0;
+      const negativePct = sentimentTotal > 0 ? Math.round((negative / sentimentTotal) * 100) : 0;
+
+      return {
+        total,
+        sentiment: { positive, negative, neutral, positivePct, negativePct },
+        platforms,
+        actions,
+        actionable: (actions.RESPOND || 0) + (actions.CRISIS || 0) + (actions.OPPORTUNITY || 0),
+      };
+    }),
+
+  /**
    * listening.mentionMetrics
    * Get volume metrics and sentiment breakdown for the last 7 and 30 days.
    */

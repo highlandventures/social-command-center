@@ -9,7 +9,7 @@ import {
 import { trpc } from '@/lib/trpc-client';
 import {
   COLORS, PlatformBadge, RelevanceBadge, SentimentDot,
-  TabButton, SectionTitle, Skeleton, useChartColors,
+  TabButton, SectionTitle, Skeleton, MetricCard, MetricCardSkeleton, useChartColors,
 } from '@/components/ui';
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -97,6 +97,13 @@ export default function ListeningPage() {
   };
   const hitsQ = trpc.listening.hits.list.useQuery(
     Object.keys(hitsInput).length > 0 ? hitsInput : undefined,
+    { staleTime: 15_000, keepPreviousData: true },
+  );
+  const toplineInput = { ...hitsInput };
+  delete toplineInput.limit;
+  delete toplineInput.cursor;
+  const toplineQ = trpc.listening.toplineMetrics.useQuery(
+    Object.keys(toplineInput).length > 0 ? toplineInput : undefined,
     { staleTime: 15_000, keepPreviousData: true },
   );
   const topicsQ = trpc.listening.topics.list.useQuery(undefined, { staleTime: 30_000, keepPreviousData: true });
@@ -418,6 +425,34 @@ export default function ListeningPage() {
 
       {/* ── Feed sub-tab ─── */}
       {subTab === 'feed' && (
+        <div>
+          {/* Topline metrics */}
+          {toplineQ.isLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+              {[1, 2, 3, 4].map((i) => <MetricCardSkeleton key={i} />)}
+            </div>
+          ) : toplineQ.data ? (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+              <MetricCard label="Total Mentions" value={toplineQ.data.total.toLocaleString()} />
+              <MetricCard
+                label="Positive Sentiment"
+                value={`${toplineQ.data.sentiment.positivePct}%`}
+                delta={undefined}
+                benchmark={toplineQ.data.sentiment.positive > 0 ? { label: 'Positive', value: `${toplineQ.data.sentiment.positive} mentions` } : undefined}
+              />
+              <MetricCard
+                label="Negative Sentiment"
+                value={`${toplineQ.data.sentiment.negativePct}%`}
+                benchmark={toplineQ.data.sentiment.negative > 0 ? { label: 'Negative', value: `${toplineQ.data.sentiment.negative} mentions` } : undefined}
+              />
+              <MetricCard
+                label="Actionable"
+                value={toplineQ.data.actionable.toLocaleString()}
+                benchmark={toplineQ.data.total > 0 ? { label: 'Of total', value: `${Math.round((toplineQ.data.actionable / toplineQ.data.total) * 100)}%` } : undefined}
+              />
+            </div>
+          ) : null}
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-3">
             <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -642,6 +677,7 @@ export default function ListeningPage() {
               </div>
             </div>
           </div>
+        </div>
         </div>
       )}
 
