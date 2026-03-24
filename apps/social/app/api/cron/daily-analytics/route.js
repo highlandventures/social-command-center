@@ -221,6 +221,36 @@ export async function GET(request) {
       }
     }
 
+    // ── Deduplicate ListeningHits ──
+    // During the cron outage, Redis dedup keys expired and the same posts were
+    // re-imported with fresh detectedAt timestamps. Keep oldest per platformPostId+topicId.
+    try {
+      // Find all platformPostId+topicId combos that have duplicates
+      const dupes = await prisma.$queryRaw`
+        SELECT "platformPostId", "topicId", COUNT(*) as cnt, MIN(id) as keep_id
+        FROM listening_hits
+        WHERE "platformPostId" IS NOT NULL
+        GROUP BY "platformPostId", "topicId"
+        HAVING COUNT(*) > 1
+      `;
+
+      if (dupes.length > 0) {
+        const keepIds = dupes.map(d => d.keep_id);
+        const dupePlatformPostIds = dupes.map(d => d.platformPostId);
+
+        const deleted = await prisma.listeningHit.deleteMany({
+          where: {
+            platformPostId: { in: dupePlatformPostIds },
+            id: { notIn: keepIds },
+          },
+        });
+        console.log(`[daily-analytics] Deduped ${deleted.count} duplicate ListeningHits (${dupes.length} groups)`);
+        results.listeningHitsDeduped = deleted.count;
+      }
+    } catch (dedupErr) {
+      console.error('[daily-analytics] ListeningHit dedup failed:', dedupErr.message);
+    }
+
     // ── Backfill null actionType on ListeningHits ──
     // Hits created before Phase 15 have actionType=null. Set to FYI so filters work.
     try {
