@@ -25,7 +25,7 @@ async function logSociaVaultCall(endpoint, statusCode, responseTime) {
         method: 'GET',
         statusCode,
         responseTime,
-        estimatedCost: API_COSTS.SOCIAVAULT,
+        estimatedCost: (statusCode >= 200 && statusCode < 300) ? API_COSTS.SOCIAVAULT : 0,
       },
     });
   } catch (err) {

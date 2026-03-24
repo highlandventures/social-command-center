@@ -880,8 +880,27 @@ export async function scanListeningTopics({ topicIds } = {}) {
         }
       }
     } catch (err) {
-      console.warn('KV read for Reddit poll throttle failed:', err.message);
-      // If KV is unreachable, poll Reddit anyway to be safe
+      console.warn('KV read for Reddit poll throttle failed, checking Prisma fallback:', err.message);
+      // Fallback: check last successful SociaVault call in APICallLog
+      try {
+        const lastSociaVaultCall = await prisma.aPICallLog.findFirst({
+          where: { provider: 'sociavault', statusCode: { gte: 200, lt: 300 } },
+          orderBy: { timestamp: 'desc' },
+          select: { timestamp: true },
+        });
+        if (lastSociaVaultCall) {
+          const elapsed = Date.now() - new Date(lastSociaVaultCall.timestamp).getTime();
+          if (elapsed < REDDIT_POLL_INTERVAL_MS) {
+            shouldPollReddit = false;
+            results.redditSkipped = true;
+          }
+        }
+      } catch (prismaErr) {
+        console.warn('Prisma fallback for Reddit throttle also failed:', prismaErr.message);
+        // Both KV and Prisma unavailable — skip Reddit to be safe (don't burn credits)
+        shouldPollReddit = false;
+        results.redditSkipped = true;
+      }
     }
 
     const where = { active: true };

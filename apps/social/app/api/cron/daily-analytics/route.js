@@ -221,6 +221,37 @@ export async function GET(request) {
       }
     }
 
+    // ── APICallLog cleanup: purge miscounted failed calls ──
+    // Fix: prior bug logged estimatedCost > 0 for non-2xx responses.
+    // This deletes those phantom cost entries. Idempotent after first run.
+    try {
+      const purged = await prisma.aPICallLog.deleteMany({
+        where: {
+          OR: [
+            { statusCode: { lt: 200 } },
+            { statusCode: { gte: 300 } },
+          ],
+          estimatedCost: { gt: 0 },
+        },
+      });
+      if (purged.count > 0) {
+        console.log(`[daily-analytics] Purged ${purged.count} miscounted failed-call log entries`);
+      }
+    } catch (purgeErr) {
+      console.error('[daily-analytics] Failed-call purge failed:', purgeErr.message);
+    }
+
+    // ── APICallLog retention: delete entries older than 30 days ──
+    try {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const deleted = await prisma.aPICallLog.deleteMany({
+        where: { timestamp: { lt: thirtyDaysAgo } },
+      });
+      console.log(`[daily-analytics] Cleaned up ${deleted.count} old APICallLog entries`);
+    } catch (cleanupErr) {
+      console.error('[daily-analytics] APICallLog cleanup failed:', cleanupErr.message);
+    }
+
     return NextResponse.json({ ok: true, ...results });
   } catch (error) {
     console.error('daily-analytics cron error:', error);

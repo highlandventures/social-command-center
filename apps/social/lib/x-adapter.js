@@ -51,7 +51,7 @@ class XOfficialClient {
           method,
           statusCode: res.status,
           responseTime: Date.now() - start,
-          estimatedCost: method === 'POST' ? API_COSTS.X_OFFICIAL_POST : API_COSTS.X_OFFICIAL_GET,
+          estimatedCost: (res.status >= 200 && res.status < 300) ? (method === 'POST' ? API_COSTS.X_OFFICIAL_POST : API_COSTS.X_OFFICIAL_GET) : 0,
         },
       });
     } catch { /* logging failed */ }
@@ -154,7 +154,7 @@ class TwitterAPIioClient {
         method: 'GET',
         statusCode: res.status,
         responseTime: Date.now() - start,
-        estimatedCost: API_COSTS.TWITTERAPI_IO,
+        estimatedCost: (res.status >= 200 && res.status < 300) ? API_COSTS.TWITTERAPI_IO : 0,
       },
     });
 

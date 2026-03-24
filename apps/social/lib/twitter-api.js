@@ -29,7 +29,7 @@ export async function twitterApiIoRequest(apiKey, path, params = {}, opts = {}) 
       method: 'GET',
       statusCode: res.status,
       responseTime: Date.now() - start,
-      estimatedCost: API_COSTS.TWITTERAPI_IO,
+      estimatedCost: (res.status >= 200 && res.status < 300) ? API_COSTS.TWITTERAPI_IO : 0,
       ...(opts.accountId ? { accountId: opts.accountId } : {}),
     },
   });

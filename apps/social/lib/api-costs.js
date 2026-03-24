@@ -12,8 +12,8 @@ export const API_COSTS = {
   // Reddit OAuth API — $0.24 per 1K calls (estimated)
   REDDIT_OAUTH: 0.00024,
 
-  // SociaVault — $29 per 6K credits
-  SOCIAVAULT: 0.0048,
+  // SociaVault — $79 per 20K credits
+  SOCIAVAULT: 0.00395,
 
   // X Official API (Basic tier)
   X_OFFICIAL_GET: 0.003,

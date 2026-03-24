@@ -8,12 +8,12 @@ export const kv = createClient({
 
 // Cache TTLs (in seconds) per data type — from spec §2.3
 export const CACHE_TTL = {
-  USER_PROFILE: 86400,       // 24 hours
+  USER_PROFILE: 3600,        // 1 hour
   POST_METRICS_OLD: 21600,   // 6 hours (posts >48h old)
   POST_METRICS_FRESH: 900,   // 15 minutes (posts <48h old)
   FOLLOWER_COUNT: 43200,     // 12 hours
   MENTIONS: 300,             // 5 minutes
-  SEARCH_RESULTS: 1800,      // 30 minutes
+  SEARCH_RESULTS: 600,       // 10 minutes
   ACCOUNT_ANALYTICS: 3600,   // 1 hour
 };
 
