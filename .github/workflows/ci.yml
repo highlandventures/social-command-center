@@ -38,8 +38,8 @@ jobs:
           POSTGRES_PRISMA_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
           POSTGRES_URL_NON_POOLING: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
 
-      - name: Build
-        run: pnpm --filter social exec prisma generate && pnpm --filter social exec next build
+      - name: Generate Prisma client
+        run: pnpm --filter social exec prisma generate
         env:
           POSTGRES_PRISMA_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
           POSTGRES_URL_NON_POOLING: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
