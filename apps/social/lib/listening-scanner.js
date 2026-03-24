@@ -976,9 +976,10 @@ export async function scanListeningTopics({ topicIds } = {}) {
                 }
 
                 // Dedupe against existing hits (Prisma fallback)
+                // Check at topic level (not just query) to catch cross-query dupes
                 const existing = await prisma.listeningHit.findFirst({
                   where: {
-                    queryId: query.id,
+                    topicId: topic.id,
                     platformPostId: String(platformPostId),
                   },
                 });

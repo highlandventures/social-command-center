@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import {
   LineChart, Line, AreaChart, Area, ScatterChart, Scatter,
-  Cell, XAxis, YAxis, CartesianGrid, Tooltip,
+  Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer,
 } from 'recharts';
 import { trpc } from '@/lib/trpc-client';
@@ -265,6 +265,7 @@ export default function DashboardPage() {
                   <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
                   <Line type="monotone" dataKey="followers" stroke={chartColors.green} strokeWidth={2} name="Total" dot={false} />
                   {followerAccounts.map((name, i) => (
                     <Line key={name} type="monotone" dataKey={name} stroke={['#60a5fa', '#f59e0b', '#a78bfa', '#f472b6'][i % 4]} strokeWidth={1.5} strokeDasharray="4 2" name={`@${name}`} dot={false} />
@@ -880,6 +881,7 @@ export default function DashboardPage() {
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
                 {followerAccounts.map((name, i) => (
                   <Line key={name} type="monotone" dataKey={name} stroke={['#60a5fa', '#f59e0b', '#a78bfa', '#f472b6'][i % 4]} strokeWidth={2} name={`@${name}`} dot={false} />
                 ))}

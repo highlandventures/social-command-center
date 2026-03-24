@@ -20,24 +20,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
       - name: Setup Node 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Cache node_modules
-        uses: actions/cache@v4
-        with:
-          path: apps/social/node_modules
-          key: ${{ runner.os }}-node-modules-social-${{ hashFiles('apps/social/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-social-
+          cache: pnpm
 
       - name: Install dependencies
-        run: cd apps/social && npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Validate Prisma schema
-        run: cd apps/social && npx prisma validate
+        run: pnpm --filter social exec prisma validate
 
       - name: Build
-        run: cd apps/social && npm run build
+        run: pnpm --filter social exec prisma generate && pnpm --filter social exec next build
+        env:
+          DATABASE_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
