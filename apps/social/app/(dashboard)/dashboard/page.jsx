@@ -16,7 +16,7 @@ import { useSelectedAccount } from '@/lib/account-context';
 
 // ── Fallback / empty data shapes ────────────────────────────
 const EMPTY_ENGAGEMENT = [];
-const EMPTY_FOLLOWER = [];
+const EMPTY_FOLLOWER = { series: [], accounts: [] };
 const EMPTY_ACCOUNTS = [];
 const EMPTY_SENTIMENT_OVER_TIME = [];
 const EMPTY_SENTIMENT_BY_PLATFORM = [];
@@ -134,7 +134,10 @@ export default function DashboardPage() {
   const dashboard = dashboardQ.data ?? {};
   const accounts = accountBreakdownQ.data ?? EMPTY_ACCOUNTS;
   const engagementData = engagementTrendQ.data ?? EMPTY_ENGAGEMENT;
-  const followerData = followerGrowthQ.data ?? EMPTY_FOLLOWER;
+  const followerRaw = followerGrowthQ.data ?? EMPTY_FOLLOWER;
+  // Support both old (array) and new ({ series, accounts }) response shapes
+  const followerData = Array.isArray(followerRaw) ? followerRaw : followerRaw.series;
+  const followerAccounts = Array.isArray(followerRaw) ? [] : (followerRaw.accounts || []);
 
   const brandSentimentOverTime = sentimentQ.data?.overTime ?? EMPTY_SENTIMENT_OVER_TIME;
   const brandSentimentByPlatform = sentimentQ.data?.byPlatform ?? EMPTY_SENTIMENT_BY_PLATFORM;
@@ -257,13 +260,16 @@ export default function DashboardPage() {
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={240}>
-                <AreaChart data={followerData}>
+                <LineChart data={followerData}>
                   <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                   <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
-                  <Area type="monotone" dataKey="followers" stroke={chartColors.green} fill={chartColors.fillGreen} strokeWidth={2} name="Followers" />
-                </AreaChart>
+                  <Line type="monotone" dataKey="followers" stroke={chartColors.green} strokeWidth={2} name="Total" dot={false} />
+                  {followerAccounts.map((name, i) => (
+                    <Line key={name} type="monotone" dataKey={name} stroke={['#60a5fa', '#f59e0b', '#a78bfa', '#f472b6'][i % 4]} strokeWidth={1.5} strokeDasharray="4 2" name={`@${name}`} dot={false} />
+                  ))}
+                </LineChart>
               </ResponsiveContainer>
             )}
           </div>
@@ -858,7 +864,7 @@ export default function DashboardPage() {
           )}
         </div>
         <div className="bg-surface-card rounded-xl border border-border p-5">
-          <SectionTitle>Follower Growth (All Accounts)</SectionTitle>
+          <SectionTitle>Follower Growth (Per Account)</SectionTitle>
           {followerGrowthQ.isLoading ? (
             <Skeleton className="h-[200px] w-full" />
           ) : followerData.length === 0 ? (
@@ -869,13 +875,15 @@ export default function DashboardPage() {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={followerData}>
+              <LineChart data={followerData}>
                 <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
-                <Area type="monotone" dataKey="followers" stroke={chartColors.green} fill={chartColors.fillGreen} strokeWidth={2} name="Total Followers" />
-              </AreaChart>
+                {followerAccounts.map((name, i) => (
+                  <Line key={name} type="monotone" dataKey={name} stroke={['#60a5fa', '#f59e0b', '#a78bfa', '#f472b6'][i % 4]} strokeWidth={2} name={`@${name}`} dot={false} />
+                ))}
+              </LineChart>
             </ResponsiveContainer>
           )}
         </div>

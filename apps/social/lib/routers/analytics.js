@@ -341,8 +341,9 @@ export const analyticsRouter = router({
       if (input.accountId) fgAcctWhere.id = input.accountId;
       const accounts = await prisma.account.findMany({
         where: fgAcctWhere,
-        select: { id: true },
+        select: { id: true, username: true },
       });
+      const accountNames = Object.fromEntries(accounts.map(a => [a.id, a.username]));
       const lastBefore = {};
       for (const a of accounts) {
         const prev = await prisma.accountMetrics.findFirst({
@@ -364,33 +365,40 @@ export const analyticsRouter = router({
       // Sort dates and forward-fill per account
       const sortedDates = Object.keys(byDateAccount).sort();
       const lastKnown = { ...lastBefore }; // carry-forward tracker per account
-      const byDate = {};
+      const byDate = {}; // { dateKey: { total, perAccount: { username: count } } }
 
       for (const dateKey of sortedDates) {
         let dayTotal = 0;
         const dayData = byDateAccount[dateKey];
+        const perAccount = {};
+
         for (const accountId of Object.keys(dayData)) {
           const val = dayData[accountId];
+          const name = accountNames[accountId] || accountId;
           if (val > 0) {
             lastKnown[accountId] = val;
             dayTotal += val;
+            perAccount[name] = val;
           } else if (lastKnown[accountId]) {
-            // Forward-fill: use the last known non-zero value
             dayTotal += lastKnown[accountId];
+            perAccount[name] = lastKnown[accountId];
           }
         }
         // Include accounts that had data before but not on this day
         for (const accountId of Object.keys(lastKnown)) {
+          const name = accountNames[accountId] || accountId;
           if (!dayData[accountId] && lastKnown[accountId]) {
             dayTotal += lastKnown[accountId];
+            perAccount[name] = lastKnown[accountId];
           }
         }
-        if (dayTotal > 0) byDate[dateKey] = dayTotal;
+        if (dayTotal > 0) byDate[dateKey] = { total: dayTotal, perAccount };
       }
 
-      const entries = Object.entries(byDate).map(([date, followers]) => ({
+      const entries = Object.entries(byDate).map(([date, data]) => ({
         date,
-        followers,
+        followers: data.total,
+        ...data.perAccount,
       }));
 
       // If we have 0 or 1 data points, backfill from account creation dates
@@ -431,10 +439,14 @@ export const analyticsRouter = router({
 
       // Calculate net change from first data point for growth visualization
       const baseline = entries[0]?.followers ?? 0;
-      return entries.map((entry) => ({
+      const enriched = entries.map((entry) => ({
         ...entry,
         netChange: entry.followers - baseline,
       }));
+
+      // Return data + account names for per-account chart lines
+      const acctNames = accounts.map(a => a.username).filter(Boolean);
+      return { series: enriched, accounts: acctNames };
     }),
 
   /**
