@@ -221,6 +221,21 @@ export async function GET(request) {
       }
     }
 
+    // ── Backfill null actionType on ListeningHits ──
+    // Hits created before Phase 15 have actionType=null. Set to FYI so filters work.
+    try {
+      const backfilled = await prisma.listeningHit.updateMany({
+        where: { actionType: null },
+        data: { actionType: 'FYI' },
+      });
+      if (backfilled.count > 0) {
+        console.log(`[daily-analytics] Backfilled ${backfilled.count} ListeningHits with actionType=FYI`);
+        results.listeningHitsBackfilled = backfilled.count;
+      }
+    } catch (backfillErr) {
+      console.error('[daily-analytics] ListeningHit actionType backfill failed:', backfillErr.message);
+    }
+
     // ── APICallLog cleanup: purge miscounted failed calls ──
     // Fix: prior bug logged estimatedCost > 0 for non-2xx responses.
     // This deletes those phantom cost entries. Idempotent after first run.
