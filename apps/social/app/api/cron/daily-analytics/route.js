@@ -221,6 +221,20 @@ export async function GET(request) {
       }
     }
 
+    // ── Fix broken sourceUrls containing 'undefined' ──
+    try {
+      const fixedUrls = await prisma.listeningHit.updateMany({
+        where: { sourceUrl: { contains: 'undefined' } },
+        data: { sourceUrl: null },
+      });
+      if (fixedUrls.count > 0) {
+        console.log(`[daily-analytics] Fixed ${fixedUrls.count} broken sourceUrls`);
+        results.brokenUrlsFixed = fixedUrls.count;
+      }
+    } catch (urlErr) {
+      console.error('[daily-analytics] sourceUrl fix failed:', urlErr.message);
+    }
+
     // ── Deduplicate ListeningHits ──
     // During the cron outage, Redis dedup keys expired and the same posts were
     // re-imported with fresh detectedAt timestamps. Keep oldest per platformPostId+topicId.

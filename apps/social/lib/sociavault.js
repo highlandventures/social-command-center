@@ -212,9 +212,11 @@ function normalizeRedditPosts(apiResponse) {
       content: (post.title || '') + (post.selftext ? `\n${post.selftext}` : '') + (post.body || ''),
       title: post.title || null,
       subreddit: subredditName ? `r/${subredditName.replace(/^r\//, '')}` : (post.subreddit_name_prefixed || null),
-      permalink: post.permalink
-        ? post.permalink.startsWith('http') ? post.permalink : `https://reddit.com${post.permalink}`
-        : (post.url || null),
+      permalink: (post.permalink || post.url)
+        ? (post.permalink || post.url).startsWith('http')
+          ? (post.permalink || post.url)
+          : `https://reddit.com${post.permalink || post.url}`
+        : null,
       ups: post.ups || post.votes || post.score || post.upvotes || 0,
       num_comments: post.num_comments || post.comments || 0,
       created_utc: post.created_utc || post.created || null,

@@ -1043,12 +1043,12 @@ export async function scanListeningTopics({ topicIds } = {}) {
                   (hit.likeCount || hit.public_metrics?.like_count || hit.ups || 0) +
                   (hit.retweetCount || hit.public_metrics?.retweet_count || 0) +
                   (hit.replyCount || hit.public_metrics?.reply_count || hit.num_comments || 0);
-                const sourceUrl =
-                  hit.url || hit.permalink
-                    ? hit.permalink?.startsWith('http')
-                      ? hit.permalink
-                      : `https://reddit.com${hit.permalink}`
-                    : null;
+                const rawPermalink = hit.permalink || hit.url || null;
+                const sourceUrl = rawPermalink
+                  ? rawPermalink.startsWith('http')
+                    ? rawPermalink
+                    : `https://reddit.com${rawPermalink}`
+                  : null;
 
                 // Extract original post timestamp first (needed for recency factor)
                 let detectedAt = new Date();
