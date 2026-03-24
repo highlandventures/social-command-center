@@ -50,8 +50,12 @@ export default function CalendarPage() {
   const today = new Date();
   const todayDay = today.getFullYear() === currentMonth.year && today.getMonth() === currentMonth.month ? today.getDate() : null;
 
+  // ── Date range for current month view ────────────────────
+  const monthStart = `${currentMonth.year}-${String(currentMonth.month + 1).padStart(2, '0')}-01`;
+  const monthEnd = `${currentMonth.year}-${String(currentMonth.month + 1).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+
   // ── tRPC queries ──────────────────────────────────────────
-  const postsQ = trpc.posts.list.useQuery(undefined, { staleTime: 15_000 });
+  const postsQ = trpc.posts.list.useQuery({ since: monthStart, until: monthEnd, limit: 500 }, { staleTime: 15_000 });
   const accountsQ = trpc.accounts.list.useQuery(undefined, { staleTime: 60_000 });
   const testAccountIds = useMemo(() => {
     return new Set((accountsQ.data ?? []).filter((a) => a.isTest).map((a) => a.id));

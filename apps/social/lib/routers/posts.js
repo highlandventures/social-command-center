@@ -16,18 +16,25 @@ export const postsRouter = router({
         status: z.enum(['DRAFT', 'SCHEDULED', 'PENDING_APPROVAL', 'APPROVED', 'PUBLISHED', 'FAILED']).optional(),
         accountId: z.string().optional(),
         platform: z.enum(['X', 'REDDIT']).optional(),
-        limit: z.number().min(1).max(100).default(20),
+        since: z.string().optional(), // ISO date string e.g. '2026-03-01'
+        until: z.string().optional(), // ISO date string e.g. '2026-03-31'
+        limit: z.number().min(1).max(500).default(20),
         cursor: z.string().nullish(),
       }).default({})
     )
     .query(async ({ ctx, input }) => {
       const { prisma } = ctx;
-      const { status, accountId, platform, limit, cursor } = input;
+      const { status, accountId, platform, since, until, limit, cursor } = input;
 
       const where = {};
       if (status) where.status = status;
       if (accountId) where.accountId = accountId;
       if (platform) where.platform = platform;
+      if (since || until) {
+        where.publishedAt = {};
+        if (since) where.publishedAt.gte = new Date(since + 'T00:00:00Z');
+        if (until) where.publishedAt.lte = new Date(until + 'T23:59:59.999Z');
+      }
 
       const posts = await prisma.post.findMany({
         where,
