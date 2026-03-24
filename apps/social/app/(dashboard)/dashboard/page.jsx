@@ -42,9 +42,14 @@ function chartInterval(range, startDate, endDate) {
   return map[range] || 6;
 }
 
-// Format date tick: show "Mar 1" style for readability
+// Format date tick: show "Mar" for monthly, "Mar 1" for daily
 function formatDateTick(dateStr) {
   if (!dateStr) return '';
+  // Monthly format: "2026-03" → "Mar 2026"
+  if (dateStr.length === 7) {
+    const [y, m] = dateStr.split('-');
+    return new Date(+y, +m - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  }
   const d = new Date(dateStr + 'T00:00:00Z');
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
@@ -143,8 +148,23 @@ export default function DashboardPage() {
   const engagementData = engagementTrendQ.data ?? EMPTY_ENGAGEMENT;
   const followerRaw = followerGrowthQ.data ?? EMPTY_FOLLOWER;
   // Support both old (array) and new ({ series, accounts }) response shapes
-  const followerData = Array.isArray(followerRaw) ? followerRaw : followerRaw.series;
+  const followerDaily = Array.isArray(followerRaw) ? followerRaw : followerRaw.series;
   const followerAccounts = Array.isArray(followerRaw) ? [] : (followerRaw.accounts || []);
+
+  // Aggregate daily follower data to monthly (last value per month)
+  const followerData = useMemo(() => {
+    if (!followerDaily || followerDaily.length === 0) return [];
+    const byMonth = {};
+    for (const entry of followerDaily) {
+      const monthKey = entry.date?.slice(0, 7); // "2026-03"
+      if (!monthKey) continue;
+      byMonth[monthKey] = entry; // last entry per month wins
+    }
+    return Object.values(byMonth).map(entry => ({
+      ...entry,
+      date: entry.date?.slice(0, 7), // show as "2026-03"
+    }));
+  }, [followerDaily]);
 
   const brandSentimentOverTime = sentimentQ.data?.overTime ?? EMPTY_SENTIMENT_OVER_TIME;
   const brandSentimentByPlatform = sentimentQ.data?.byPlatform ?? EMPTY_SENTIMENT_BY_PLATFORM;
