@@ -34,12 +34,19 @@ function chartInterval(range, startDate, endDate) {
   if (range === 'custom' && startDate && endDate) {
     const days = Math.ceil((new Date(endDate) - new Date(startDate)) / (24*60*60*1000));
     if (days <= 14) return 1;
-    if (days <= 60) return 4;
-    if (days <= 180) return 10;
-    return 20;
+    if (days <= 60) return 6;
+    if (days <= 180) return 14;
+    return 30;
   }
-  const map = { '7d': 1, '30d': 4, '90d': 10, '365d': 30 };
+  const map = { '7d': 1, '30d': 6, '90d': 14, '365d': 30 };
   return map[range] || 6;
+}
+
+// Format date tick: show "Mar 1" style for readability
+function formatDateTick(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T00:00:00Z');
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 // Dynamic range label for display
@@ -241,7 +248,7 @@ export default function DashboardPage() {
             <ResponsiveContainer width="100%" height={240}>
               <LineChart data={engagementData}>
                 <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} />
+                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} tickFormatter={formatDateTick} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
                 <Line type="monotone" dataKey="engagementRate" stroke={COLORS.blue} strokeWidth={2} dot={false} name="Eng. Rate %" />
@@ -262,7 +269,7 @@ export default function DashboardPage() {
               <ResponsiveContainer width="100%" height={240}>
                 <LineChart data={followerData}>
                   <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} tickFormatter={formatDateTick} />
                   <YAxis tick={{ fontSize: 11 }} />
                   <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
@@ -856,7 +863,7 @@ export default function DashboardPage() {
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={engagementData}>
                 <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} />
+                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} tickFormatter={formatDateTick} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
                 <Line type="monotone" dataKey="engagementRate" stroke={COLORS.blue} strokeWidth={2} dot={false} name="Eng. Rate %" />
@@ -878,7 +885,7 @@ export default function DashboardPage() {
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={followerData}>
                 <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} />
+                <XAxis dataKey="date" tick={{ fontSize: 11 }} interval={xInterval} tickFormatter={formatDateTick} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip contentStyle={{ backgroundColor: chartColors.tooltipBg, border: `1px solid ${chartColors.tooltipBorder}`, borderRadius: 8, color: chartColors.tooltipText }} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
