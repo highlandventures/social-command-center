@@ -15,6 +15,8 @@ function getBaseUrl() {
   return `http://localhost:${process.env.PORT ?? 3000}`;
 }
 
+const bypassAuth = process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true';
+
 export default function Providers({ children }) {
   const [queryClient] = useState(
     () =>
@@ -39,17 +41,19 @@ export default function Providers({ children }) {
     })
   );
 
-  return (
-    <ClerkProvider>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <trpc.Provider client={trpcClient} queryClient={queryClient}>
-          <QueryClientProvider client={queryClient}>
-            <ToastProvider>
-              {children}
-            </ToastProvider>
-          </QueryClientProvider>
-        </trpc.Provider>
-      </ThemeProvider>
-    </ClerkProvider>
+  const inner = (
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <trpc.Provider client={trpcClient} queryClient={queryClient}>
+        <QueryClientProvider client={queryClient}>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </QueryClientProvider>
+      </trpc.Provider>
+    </ThemeProvider>
   );
+
+  // Always wrap with ClerkProvider so useUser() never throws.
+  // Auth *enforcement* is bypassed in middleware, not here.
+  return <ClerkProvider>{inner}</ClerkProvider>;
 }
