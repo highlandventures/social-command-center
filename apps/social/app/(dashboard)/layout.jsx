@@ -3,8 +3,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { useUser, useClerk } from '@clerk/nextjs';
 import { trpc } from '@/lib/trpc-client';
+import { useUser, useClerk } from '@clerk/nextjs';
+
+function useUserSafe() {
+  return useUser();
+}
+
+function useClerkSafe() {
+  return useClerk();
+}
 import { Avatar } from '@/components/ui';
 import { AccountProvider } from '@/lib/account-context';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -24,8 +32,8 @@ const tabs = [
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
-  const { user: clerkUser } = useUser();
-  const { signOut } = useClerk();
+  const { user: clerkUser } = useUserSafe();
+  const { signOut } = useClerkSafe();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null); // null = "All Accounts"

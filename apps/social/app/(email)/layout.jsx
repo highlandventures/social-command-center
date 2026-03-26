@@ -3,8 +3,15 @@
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { useUser, useClerk } from '@clerk/nextjs';
 import { ThemeToggle } from '@/components/theme-toggle';
+
+import { useUser, useClerk } from '@clerk/nextjs';
+function useUserSafe() {
+  return useUser();
+}
+function useClerkSafe() {
+  return useClerk();
+}
 
 const tabs = [
   { key: '/email/lists', label: 'Lists', icon: '\uD83D\uDCCB' },
@@ -14,8 +21,8 @@ const tabs = [
 
 export default function EmailLayout({ children }) {
   const pathname = usePathname();
-  const { user: clerkUser } = useUser();
-  const { signOut } = useClerk();
+  const { user: clerkUser } = useUserSafe();
+  const { signOut } = useClerkSafe();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 

@@ -1,8 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useUser } from '@clerk/nextjs';
 import { trpc } from '@/lib/trpc-client';
+
+import { useUser } from '@clerk/nextjs';
+function useUserSafe() {
+  return useUser();
+}
 import { PlatformBadge, Skeleton } from '@/components/ui';
 import CalendarSection from '@/components/hub/CalendarSection';
 import EmailSection from '@/components/hub/EmailSection';
@@ -502,7 +506,7 @@ function SectionHeader({ title }) {
 
 // ── Main Hub Page ───────────────────────────────────────────
 export default function HubPage() {
-  const { user: clerkUser } = useUser();
+  const { user: clerkUser } = useUserSafe();
   const firstName = clerkUser?.firstName
     || (clerkUser?.primaryEmailAddress?.emailAddress || '').split('@')[0];
 

@@ -1,7 +1,15 @@
 'use client';
 
-import { useUser, useClerk } from '@clerk/nextjs';
 import { useState, useEffect } from 'react';
+import { useUser, useClerk } from '@clerk/nextjs';
+
+function useUserSafe() {
+  return useUser();
+}
+
+function useClerkSafe() {
+  return useClerk();
+}
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -13,8 +21,8 @@ const sections = [
 
 export default function HubLayout({ children }) {
   const pathname = usePathname();
-  const { user: clerkUser } = useUser();
-  const { signOut } = useClerk();
+  const { user: clerkUser } = useUserSafe();
+  const { signOut } = useClerkSafe();
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
