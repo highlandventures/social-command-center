@@ -322,10 +322,11 @@ export default function ComposerPage() {
   };
 
   return (
-    <div className="flex flex-col" style={{ height: 'calc(100vh - 160px)', minHeight: '600px' }}>
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 64px)', minHeight: '600px' }}>
       {/* Top toolbar */}
-      <div className="flex flex-wrap items-center gap-2 mb-4 pb-3 border-b border-border">
-        <div className="flex items-center gap-2 mr-auto flex-wrap">
+      <div className="flex flex-wrap items-center gap-3 mb-4 px-1">
+        {/* Left: Platform + Account + Mode */}
+        <div className="flex items-center gap-2.5 flex-wrap">
           <div className="flex items-center gap-0.5 bg-surface-secondary rounded-lg p-0.5">
             {[
               { key: 'X', label: '\u{1D54F}' },
@@ -350,7 +351,7 @@ export default function ComposerPage() {
           <select
             value={selectedAccount}
             onChange={(e) => setSelectedAccount(e.target.value)}
-            className="text-sm border border-border rounded-lg px-2.5 py-1.5 bg-surface-card"
+            className="text-sm border border-border rounded-lg px-2.5 py-1.5 bg-surface-card text-content-primary"
           >
             {platformAccounts.map((a) => (
                 <option key={a.id} value={a.username}>
@@ -386,15 +387,20 @@ export default function ComposerPage() {
             </span>
           )}
         </div>
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Right: Actions */}
         <div className="flex items-center gap-2 flex-wrap">
           {editingPostId && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg">
-              <span className="text-[10px] font-medium text-amber-700 dark:text-amber-300">
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg">
+              <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
                 Editing {editingPostStatus === 'SCHEDULED' ? 'scheduled post' : 'draft'}
               </span>
               <button
                 onClick={cancelEditing}
-                className="text-[10px] text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 font-bold ml-0.5"
+                className="text-xs text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200 font-bold ml-0.5"
               >
                 ✕
               </button>
@@ -403,7 +409,7 @@ export default function ComposerPage() {
           <button
             onClick={handleSaveDraft}
             disabled={createMutation.isLoading || updateMutation.isLoading}
-            className="px-2.5 py-1.5 text-xs text-content-secondary border border-border rounded-lg hover:bg-surface-hover"
+            className="px-3 py-1.5 text-xs text-content-secondary border border-border rounded-lg hover:bg-surface-hover transition-colors"
           >
             {(createMutation.isLoading || updateMutation.isLoading) ? 'Saving...' : editingPostId ? 'Update Draft' : 'Save Draft'}
           </button>
@@ -412,14 +418,14 @@ export default function ComposerPage() {
               type="date"
               value={scheduleDate}
               onChange={(e) => setScheduleDate(e.target.value)}
-              className="text-xs bg-transparent border-none outline-none w-[130px] cursor-pointer"
+              className="text-xs bg-transparent border-none outline-none w-[120px] cursor-pointer text-content-primary"
             />
             <span className="text-content-faint text-xs">|</span>
             <input
               type="time"
               value={scheduleTime}
               onChange={(e) => setScheduleTime(e.target.value)}
-              className="text-xs bg-transparent border-none outline-none w-[85px] cursor-pointer"
+              className="text-xs bg-transparent border-none outline-none w-[80px] cursor-pointer text-content-primary"
             />
           </div>
           <label className="flex items-center gap-1.5 cursor-pointer select-none">
@@ -429,12 +435,12 @@ export default function ComposerPage() {
               onChange={(e) => setRequestLcReview(e.target.checked)}
               className="w-3.5 h-3.5 rounded border-border accent-amber-500"
             />
-            <span className="text-[10px] text-content-secondary whitespace-nowrap">L&C Review</span>
+            <span className="text-xs text-content-secondary whitespace-nowrap">L&C Review</span>
           </label>
           <button
             onClick={handleSchedule}
             disabled={approvalCreateMutation.isLoading}
-            className={`px-3 py-1.5 text-white text-xs rounded-lg font-medium ${
+            className={`px-4 py-1.5 text-white text-xs rounded-lg font-medium transition-colors ${
               requestLcReview
                 ? 'bg-amber-600 hover:bg-amber-700'
                 : 'bg-blue-600 hover:bg-blue-700'
@@ -443,13 +449,13 @@ export default function ComposerPage() {
             {approvalCreateMutation.isLoading
               ? 'Submitting...'
               : requestLcReview
-              ? 'Schedule & Submit for Review'
+              ? 'Submit for Review'
               : 'Schedule'}
           </button>
           <button
             onClick={handlePublishNow}
             disabled={publishMutation.isLoading}
-            className="px-3 py-1.5 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded-lg hover:bg-gray-800 dark:hover:bg-gray-200 font-medium"
+            className="px-4 py-1.5 bg-content-primary text-surface-page text-xs rounded-lg hover:opacity-90 font-medium transition-opacity"
           >
             {publishMutation.isLoading ? 'Publishing...' : 'Publish Now'}
           </button>
@@ -457,13 +463,13 @@ export default function ComposerPage() {
       </div>
 
       {/* Main content: editor | preview | sidebar */}
-      <div
-        className="flex-1 min-h-0 grid gap-4"
-        style={{ gridTemplateColumns: 'minmax(300px, 1fr) minmax(320px, 1fr) minmax(200px, 260px)' }}
-      >
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_1fr_280px] gap-5">
         {/* COLUMN 1: Editor */}
-        <div className="flex flex-col min-h-0">
-          <h3 className="text-xs font-semibold text-content-faint uppercase tracking-wider mb-2">Compose</h3>
+        <div className="flex flex-col min-h-0 bg-surface-card rounded-xl border border-border p-4">
+          <h3 className="text-xs font-semibold text-content-muted uppercase tracking-wider mb-3 flex items-center gap-2">
+            <span className="w-5 h-5 rounded-md bg-blue-600 flex items-center justify-center text-white text-[9px] font-bold">1</span>
+            Compose
+          </h3>
           <div className="flex-1 min-h-0 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
             {/* Thread editor */}
             {postMode === 'thread' && selectedPlatform === 'X' && (
@@ -718,8 +724,11 @@ export default function ComposerPage() {
         </div>
 
         {/* COLUMN 2: Live Preview */}
-        <div className="flex flex-col min-h-0">
-          <h3 className="text-xs font-semibold text-content-faint uppercase tracking-wider mb-2">Live Preview</h3>
+        <div className="flex flex-col min-h-0 bg-surface-card rounded-xl border border-border p-4">
+          <h3 className="text-xs font-semibold text-content-muted uppercase tracking-wider mb-3 flex items-center gap-2">
+            <span className="w-5 h-5 rounded-md bg-green-600 flex items-center justify-center text-white text-[9px] font-bold">2</span>
+            Live Preview
+          </h3>
           <div className="flex-1 min-h-0 overflow-y-auto pr-1" style={{ scrollbarWidth: 'thin' }}>
             {selectedPlatform === 'X' && postMode === 'article' ? (
               /* X Article preview */
@@ -1043,7 +1052,7 @@ export default function ComposerPage() {
         </div>
 
         {/* COLUMN 3: Sidebar - Drafts & Queue */}
-        <div className="flex flex-col min-h-0 border-l border-border pl-4">
+        <div className="flex flex-col min-h-0 bg-surface-card rounded-xl border border-border p-4">
           <div className="flex items-center gap-0.5 mb-2 bg-surface-secondary rounded-lg p-0.5">
             {[
               { key: 'drafts', label: 'Drafts', count: drafts.length },
