@@ -18,7 +18,12 @@ function devMiddleware() {
 
 const clerkHandler = clerkMiddleware(async (auth, request) => {
   if (!isPublicRoute(request)) {
-    await auth.protect();
+    const { userId } = await auth();
+    if (!userId) {
+      const signInUrl = new URL('/auth/signin', request.url);
+      signInUrl.searchParams.set('redirect_url', request.url);
+      return NextResponse.redirect(signInUrl);
+    }
   }
 });
 
