@@ -836,18 +836,28 @@ export default function DashboardPage() {
 
         {/* Sentiment Drivers */}
         <div className="mt-4 border-t border-border-secondary pt-4">
-          <div className="text-xs font-medium text-content-muted uppercase tracking-wider mb-3">Sentiment Drivers — Trending Phrases</div>
+          <div className="text-xs font-medium text-content-muted uppercase tracking-wider mb-3">Sentiment Drivers — What&apos;s Shaping Brand Perception</div>
           {brandSentimentDrivers.length === 0 ? (
             <div className="py-6 text-center">
               <p className="text-sm text-content-muted">Not enough conversation data to detect themes yet.</p>
               <p className="text-xs text-content-faint mt-1">Drivers appear when recurring phrases are found across 3+ listening hits.</p>
             </div>
           ) : (
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-            {brandSentimentDrivers.map((d) => (
-              <div key={d.theme} className="p-3 rounded-lg border border-border-secondary bg-surface-page hover:bg-surface-card transition-colors">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-content-primary">{d.theme}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {brandSentimentDrivers.map((d) => {
+              const bk = d.breakdown || {};
+              const total = (bk.positive || 0) + (bk.neutral || 0) + (bk.negative || 0) || 1;
+              const posPct = Math.round(((bk.positive || 0) / total) * 100);
+              const negPct = Math.round(((bk.negative || 0) / total) * 100);
+              const neuPct = 100 - posPct - negPct;
+              return (
+              <div key={d.theme} className="p-4 rounded-lg border border-border-secondary bg-surface-page hover:bg-surface-card transition-colors">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-content-primary">{d.theme}</span>
+                    <TrendArrow direction={d.trend} />
+                  </div>
                   <span
                     className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
                       d.impact === 'high'
@@ -857,20 +867,52 @@ export default function DashboardPage() {
                         : 'bg-surface-secondary text-content-muted'
                     }`}
                   >
-                    {d.impact} impact
+                    {d.impact}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <div className={`text-lg font-bold ${d.sentiment >= 70 ? 'text-green-600' : d.sentiment >= 50 ? 'text-amber-600' : 'text-red-500'}`}>
+
+                {/* Sentiment score + insight */}
+                <div className="flex items-baseline gap-2 mb-2">
+                  <div className={`text-2xl font-bold ${d.sentiment >= 70 ? 'text-green-600' : d.sentiment >= 50 ? 'text-amber-600' : 'text-red-500'}`}>
                     {d.sentiment}
                   </div>
-                  <TrendArrow direction={d.trend} />
+                  <span className="text-[11px] text-content-muted">{d.volume} mentions</span>
                 </div>
-                <div className="text-[10px] text-content-muted">
-                  <span className="font-medium text-content-secondary">&quot;{d.topKeyword}&quot;</span> &middot; {d.volume} mentions
+                {d.insight && (
+                  <p className="text-[11px] text-content-secondary mb-2.5">{d.insight}</p>
+                )}
+
+                {/* Sentiment breakdown bar */}
+                <div className="flex h-1.5 rounded-full overflow-hidden mb-3 bg-surface-secondary">
+                  {posPct > 0 && <div className="bg-green-500" style={{ width: `${posPct}%` }} />}
+                  {neuPct > 0 && <div className="bg-gray-300 dark:bg-gray-600" style={{ width: `${neuPct}%` }} />}
+                  {negPct > 0 && <div className="bg-red-500" style={{ width: `${negPct}%` }} />}
                 </div>
+                <div className="flex justify-between text-[10px] text-content-faint mb-3">
+                  <span className="text-green-600">{posPct}% positive</span>
+                  <span>{neuPct}% neutral</span>
+                  <span className="text-red-500">{negPct}% negative</span>
+                </div>
+
+                {/* Sample quotes */}
+                {d.samples && d.samples.length > 0 && (
+                  <div className="space-y-1.5 border-t border-border-secondary pt-2.5">
+                    <div className="text-[10px] font-medium text-content-muted uppercase tracking-wider">Sample mentions</div>
+                    {d.samples.slice(0, 2).map((sample, idx) => (
+                      <div key={idx} className="text-[11px] text-content-secondary leading-relaxed pl-2 border-l-2 border-border-secondary">
+                        <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${
+                          sample.sentiment === 'positive' ? 'bg-green-500' :
+                          sample.sentiment === 'negative' ? 'bg-red-500' : 'bg-gray-400'
+                        }`} />
+                        &ldquo;{sample.text}&rdquo;
+                        <span className="text-content-faint ml-1">— {sample.platform}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
           )}
         </div>

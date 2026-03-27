@@ -832,11 +832,22 @@ export const analyticsRouter = router({
         // Skip if either word is a number with $ prefix (price like "$100")
         if (/^\$\d/.test(words[i]) || /^\$\d/.test(words[i + 1])) continue;
 
-        if (!phraseMap[bigram]) phraseMap[bigram] = { positive: 0, negative: 0, neutral: 0, total: 0 };
+        if (!phraseMap[bigram]) phraseMap[bigram] = { positive: 0, negative: 0, neutral: 0, total: 0, samples: [] };
         phraseMap[bigram].total++;
         if (s === 'positive') phraseMap[bigram].positive++;
         else if (s === 'negative') phraseMap[bigram].negative++;
         else phraseMap[bigram].neutral++;
+        // Collect up to 3 sample snippets per phrase (trimmed for display)
+        if (phraseMap[bigram].samples.length < 3) {
+          const raw = (hit.content || '').replace(/https?:\/\/\S+/g, '').trim();
+          const snippet = raw.length > 180 ? raw.slice(0, 177) + '…' : raw;
+          phraseMap[bigram].samples.push({
+            text: snippet,
+            sentiment: s,
+            platform: hit.platform || 'unknown',
+            date: hit.publishedAt || hit.createdAt,
+          });
+        }
       }
     }
 
@@ -852,7 +863,11 @@ export const analyticsRouter = router({
         const trend = sentiment >= 60 ? 'up' : sentiment <= 40 ? 'down' : 'flat';
         // Sentiment strength = how far from neutral (50)
         const sentimentStrength = Math.abs(sentiment - 50);
-        return { phrase, sentiment, sentimentStrength, volume: d.total, impact, trend };
+        return {
+          phrase, sentiment, sentimentStrength, volume: d.total, impact, trend,
+          positive: d.positive, negative: d.negative, neutral: d.neutral,
+          samples: d.samples || [],
+        };
       })
       // Rank by combo of volume and sentiment strength (favor interesting + frequent)
       .sort((a, b) => (b.volume * b.sentimentStrength) - (a.volume * a.sentimentStrength));
@@ -870,10 +885,23 @@ export const analyticsRouter = router({
       if (dedupedPhrases.length >= 5) break;
     }
 
-    // Format as driver cards with human-readable theme names
+    // Format as driver cards with human-readable theme names + context
     const drivers = dedupedPhrases.map((p) => {
       // Title-case the phrase
       const theme = p.phrase.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      // Generate a plain-English summary of what this driver means
+      const pctPositive = Math.round((p.positive / p.volume) * 100);
+      const pctNegative = Math.round((p.negative / p.volume) * 100);
+      let insight;
+      if (pctPositive >= 70) {
+        insight = `Strongly positive — ${pctPositive}% of ${p.volume} mentions are favorable.`;
+      } else if (pctNegative >= 50) {
+        insight = `Concerning — ${pctNegative}% of ${p.volume} mentions are negative.`;
+      } else if (pctPositive >= 50) {
+        insight = `Mostly positive — ${pctPositive}% favorable across ${p.volume} mentions.`;
+      } else {
+        insight = `Mixed sentiment — ${pctPositive}% positive, ${pctNegative}% negative across ${p.volume} mentions.`;
+      }
       return {
         theme,
         sentiment: p.sentiment,
@@ -881,6 +909,9 @@ export const analyticsRouter = router({
         volume: p.volume,
         impact: p.impact,
         trend: p.trend,
+        insight,
+        breakdown: { positive: p.positive, neutral: p.neutral, negative: p.negative },
+        samples: p.samples,
       };
     });
 
