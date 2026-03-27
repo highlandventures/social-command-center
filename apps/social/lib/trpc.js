@@ -8,8 +8,10 @@ import { kv } from './redis';
  * tRPC Context — available in every procedure
  * Includes: prisma client, Redis KV, and the current user session.
  */
+const ctxBypassAuth = (process.env.BYPASS_AUTH === 'true' || process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true') && process.env.NODE_ENV === 'development';
+
 export async function createContext({ req, res }) {
-  const session = await getSession();
+  const session = ctxBypassAuth ? null : await getSession();
   return {
     prisma,
     kv,
@@ -36,7 +38,18 @@ export const publicProcedure = t.procedure;
 /**
  * Middleware that enforces authentication.
  */
-const enforceAuth = t.middleware(({ ctx, next }) => {
+const bypassAuth = process.env.BYPASS_AUTH === 'true' && process.env.NODE_ENV === 'development';
+
+const enforceAuth = t.middleware(async ({ ctx, next }) => {
+  if (bypassAuth && !ctx.session?.user) {
+    // Dev-only: resolve first user from DB as fallback when auth is bypassed
+    const devUser = await ctx.prisma.user.findFirst({ orderBy: { createdAt: 'asc' } });
+    if (devUser) {
+      return next({
+        ctx: { ...ctx, session: { user: devUser }, user: devUser },
+      });
+    }
+  }
   if (!ctx.session?.user) {
     throw new TRPCError({ code: 'UNAUTHORIZED', message: 'You must be signed in.' });
   }

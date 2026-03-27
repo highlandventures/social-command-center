@@ -62,6 +62,24 @@
     --color-skeleton: 41 37 36;
 
     --color-scrollbar-thumb: 68 64 60;
+
+    /* Composer surfaces — warm charcoal */
+    --color-composer-canvas: 17 18 20;
+    --color-composer-s0: 24 25 28;
+    --color-composer-s1: 30 32 36;
+    --color-composer-s2: 38 40 45;
+    --color-composer-s3: 46 48 54;
+    --color-composer-inset: 13 14 16;
+
+    /* Composer text */
+    --color-composer-ink: 228 229 233;
+    --color-composer-ink2: 147 149 160;
+    --color-composer-ink3: 107 109 122;
+    --color-composer-ink-muted: 69 71 79;
+
+    /* Accent + Co-Pilot amber */
+    --color-accent: 74 158 255;
+    --color-copilot: 240 184 96;
   }
 }
 

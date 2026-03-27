@@ -2,7 +2,8 @@
 
 import { useRef, useCallback, useEffect } from 'react';
 
-export default function CopilotInput({ input, handleInputChange, handleSubmit, isLoading }) {
+export default function CopilotInput({ input: rawInput, handleInputChange, handleSubmit, isLoading }) {
+  const input = rawInput ?? '';
   const textareaRef = useRef(null);
 
   // Auto-grow textarea

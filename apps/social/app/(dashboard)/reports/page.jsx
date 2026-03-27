@@ -20,6 +20,7 @@ export default function ReportsPage() {
   const chartColors = useChartColors();
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedReport, setGeneratedReport] = useState(null);
+  const [generateError, setGenerateError] = useState(null);
 
   // ── tRPC queries ──────────────────────────────────────────
   const reportsQ = trpc.reports.list.useQuery(undefined, { staleTime: 30_000 });
@@ -31,10 +32,13 @@ export default function ReportsPage() {
     onSuccess: (data) => {
       utils.reports.list.invalidate();
       setIsGenerating(false);
+      setGenerateError(null);
       setGeneratedReport(data);
     },
-    onError: () => {
+    onError: (err) => {
+      console.error('Report generation failed:', err);
       setIsGenerating(false);
+      setGenerateError(err.message || 'Report generation failed. Please try again.');
     },
   });
 
@@ -59,6 +63,7 @@ export default function ReportsPage() {
     if (!aiPrompt.trim()) return;
     setIsGenerating(true);
     setGeneratedReport(null);
+    setGenerateError(null);
     generateMutation.mutate({
       title: `${reportTypeLabels[reportType] || 'Custom'} Report — ${new Date().toLocaleDateString()}`,
       reportType,
@@ -187,6 +192,20 @@ export default function ReportsPage() {
                   <div className="w-8 h-8 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3" />
                   <p className="text-sm text-content-muted">Generating your report with AI...</p>
                   <p className="text-xs text-content-faint mt-1">This may take 15-30 seconds</p>
+                </div>
+              ) : generateError ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-3">
+                    <span className="text-red-600 dark:text-red-400 text-lg">!</span>
+                  </div>
+                  <p className="text-sm font-medium text-red-600 dark:text-red-400 mb-1">Report generation failed</p>
+                  <p className="text-xs text-content-muted max-w-md text-center">{generateError}</p>
+                  <button
+                    onClick={handleGenerate}
+                    className="mt-4 px-4 py-2 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium"
+                  >
+                    Try Again
+                  </button>
                 </div>
               ) : generatedReport ? (
                 <div>

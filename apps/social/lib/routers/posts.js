@@ -217,23 +217,40 @@ export const postsRouter = router({
           const accessToken = await getValidToken(post.account);
           const adapter = new XPlatformAdapter(accessToken);
 
-          if (post.contentType === 'THREAD' && post.threadPosts.length > 0) {
-            const tweetTexts = [post.content, ...post.threadPosts.map((t) => t.content)];
-            const results = await adapter.publishThread(tweetTexts);
-            platformPostId = results[0]?.data?.id;
+          if (post.contentType === 'THREAD') {
+            // Thread tweets may be stored as child Post records (threadPosts)
+            // OR as a single content field joined by \n---\n (composer format)
+            let tweetTexts;
+            if (post.threadPosts.length > 0) {
+              tweetTexts = [post.content, ...post.threadPosts.map((t) => t.content)];
+            } else if (post.content.includes('\n---\n')) {
+              tweetTexts = post.content.split('\n---\n').map((t) => t.trim()).filter(Boolean);
+            } else {
+              tweetTexts = [post.content];
+            }
 
-            for (let i = 0; i < post.threadPosts.length; i++) {
-              const childResult = results[i + 1];
-              if (childResult?.data?.id) {
-                await prisma.post.update({
-                  where: { id: post.threadPosts[i].id },
-                  data: {
-                    platformPostId: childResult.data.id,
-                    status: 'PUBLISHED',
-                    publishedAt: new Date(),
-                  },
-                });
+            if (tweetTexts.length > 1) {
+              const results = await adapter.publishThread(tweetTexts);
+              platformPostId = results[0]?.data?.id;
+
+              // Update child post records if they exist
+              for (let i = 0; i < post.threadPosts.length; i++) {
+                const childResult = results[i + 1];
+                if (childResult?.data?.id) {
+                  await prisma.post.update({
+                    where: { id: post.threadPosts[i].id },
+                    data: {
+                      platformPostId: childResult.data.id,
+                      status: 'PUBLISHED',
+                      publishedAt: new Date(),
+                    },
+                  });
+                }
               }
+            } else {
+              // Single tweet, despite THREAD type
+              const result = await adapter.publishTweet(tweetTexts[0]);
+              platformPostId = result?.data?.id;
             }
           } else if (post.contentType === 'ARTICLE') {
             const result = await adapter.publishArticle(post.articleTitle || '', post.content);

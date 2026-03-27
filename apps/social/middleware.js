@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
 const isPublicRoute = createRouteMatcher([
   '/auth/signin(.*)',
@@ -9,11 +10,19 @@ const isPublicRoute = createRouteMatcher([
   '/api/webhooks/(.*)',
 ]);
 
-export default clerkMiddleware(async (auth, request) => {
+const bypassAuth = (process.env.BYPASS_AUTH === 'true' || process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true') && process.env.NODE_ENV === 'development';
+
+function devMiddleware() {
+  return NextResponse.next();
+}
+
+const clerkHandler = clerkMiddleware(async (auth, request) => {
   if (!isPublicRoute(request)) {
     await auth.protect();
   }
 });
+
+export default bypassAuth ? devMiddleware : clerkHandler;
 
 export const config = {
   matcher: [
