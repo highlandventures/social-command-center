@@ -765,6 +765,8 @@ export const analyticsRouter = router({
     const stopPhrases = new Set([
       'read more','click here','check out','learn more','find out',
       'sign up','last week','next week','right now','let know',
+      'mar 2026','feb 2026','jan 2026','apr 2026','may 2026',
+      'jun 2026','jul 2026','aug 2026','sep 2026','oct 2026',
     ]);
     // Filter out generic crypto/market noise that isn't brand-relevant
     const noiseTerms = new Set([
@@ -772,7 +774,14 @@ export const analyticsRouter = router({
       'matic','dot','link','atom','near','apt','sui','sei','arb','usdt',
       'usdc','busd','gmt','nft','nfts','airdrop','binance','coinbase',
       'bybit','okx','kucoin','pump','dump','moon','hodl','fomo',
+      'leo','ton','icp','fil','hbar','vet','algo','egld','theta',
+      'ftm','mana','sand','axs','gala','imx','ape','ldo','mkr',
+      'snx','crv','aave','uni','cake','sushi','comp',
     ]);
+    // Known Figure ecosystem tickers — these are NOT noise
+    const figureTickers = new Set(['$figr','$ylds','$hash','$prime','figr','ylds','hash','prime']);
+    // Detect market roundup posts (lists of many token prices)
+    const MARKET_ROUNDUP_RE = /\b(BTC|ETH|SOL|BNB|XRP|ADA|DOGE|TRX|AVAX|DOT):\s*\$[\d,.]+/gi;
 
     for (const hit of recentHits) {
       if (!hit.content) continue;
@@ -805,14 +814,23 @@ export const analyticsRouter = router({
       const isBrandRelevant = strictBrandPatterns.some((re) => re.test(rawContent));
       if (!isBrandRelevant) continue; // Skip non-brand content entirely
 
+      // Skip market roundup posts (lists prices for many tokens)
+      const roundupMatches = rawContent.match(MARKET_ROUNDUP_RE);
+      if (roundupMatches && roundupMatches.length >= 3) continue;
+
       for (let i = 0; i < words.length - 1; i++) {
         const bigram = `${words[i]} ${words[i + 1]}`;
         // Skip brand-only phrases, stop phrases, and crypto noise
         if (brandTerms.has(words[i]) && brandTerms.has(words[i + 1])) continue;
         if (stopPhrases.has(bigram)) continue;
         if (noiseTerms.has(words[i]) || noiseTerms.has(words[i + 1])) continue;
+        // Skip any $TICKER that isn't a known Figure ticker
+        if (/^\$\w+$/.test(words[i]) && !figureTickers.has(words[i])) continue;
+        if (/^\$\w+$/.test(words[i + 1]) && !figureTickers.has(words[i + 1])) continue;
         // Skip phrases that are just prices/numbers (e.g., "$100", "031")
         if (/^\$?\d+$/.test(words[i]) && /^\$?\d+$/.test(words[i + 1])) continue;
+        // Skip if either word is a number with $ prefix (price like "$100")
+        if (/^\$\d/.test(words[i]) || /^\$\d/.test(words[i + 1])) continue;
 
         if (!phraseMap[bigram]) phraseMap[bigram] = { positive: 0, negative: 0, neutral: 0, total: 0 };
         phraseMap[bigram].total++;

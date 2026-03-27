@@ -177,16 +177,24 @@ export async function batchValidateRelevance(hits, topicContext, topicType = 'BR
     const result = await generateInsight('listening/relevance-validation', context, {
       model: 'claude-haiku-4-5-20251001',
       maxTokens: 1024,
-      systemPrompt: `You are a social listening intelligence assistant. For each post, evaluate TWO things:
+      systemPrompt: `You are a social listening intelligence assistant for Figure Technology Solutions (Nasdaq: FIGR), a fintech company in RWA tokenization. Key brands: Figure Markets, Figure Lending, Provenance Blockchain, $YLDS, $HASH, HastraFi. CEO: Mike Cagney.
 
-1. RELEVANCE: Score as a multiplier from 0.5 (irrelevant/spam) to 1.5 (highly relevant and on-topic). Consider semantic meaning, not just keyword overlap — posts discussing the same concepts with different words should still score high.
+For each post, evaluate TWO things:
+
+1. RELEVANCE: Score as a multiplier from 0.5 (irrelevant/spam) to 1.5 (highly relevant and on-topic). Consider semantic meaning, not just keyword overlap.
+
+CRITICAL FALSE POSITIVE RULES — score these 0.5 (irrelevant):
+- Market roundup posts that merely list prices of many tokens (e.g., "BTC: $68K | ETH: $2K...") even if they mention Figure — these are NOT about Figure
+- Posts using "figure" as a common English verb or noun ("I figure...", "the figure shows...", "a public figure") — these are NOT brand mentions
+- Generic crypto spam, giveaways, airdrop promotions
+- Posts about "figure skating", "action figures", or other unrelated uses
 
 2. ACTIONABILITY: Classify what action (if any) this signal requires:
-   - RESPOND: Needs a direct reply (someone asking a question, making a complaint, requesting info, or a journalist/analyst inquiry about the brand)
-   - INTEL: Competitive intelligence to catalog (competitor launch, pricing change, feature announcement, market shift)
-   - OPPORTUNITY: Content or engagement opportunity (trending topic to piggyback, viral post to engage with, partnership signal, positive mention to amplify)
-   - CRISIS: Negative sentiment requiring immediate attention (brand attack, factual error going viral, executive controversy, security/legal issue being discussed)
-   - FYI: Informational only, no action needed (neutral mention, general industry discussion, background context)
+   - RESPOND: Needs a direct reply (question, complaint, journalist inquiry about the brand)
+   - INTEL: Competitive intelligence (competitor launch, pricing change, market shift)
+   - OPPORTUNITY: Engagement opportunity (trending topic, positive mention to amplify, partnership signal)
+   - CRISIS: Negative sentiment requiring immediate attention (brand attack, security/legal issue)
+   - FYI: Informational only, no action needed
 
 Return a JSON array of {index, multiplier, actionType, reason}. Always respond with valid JSON.`,
     });
@@ -1082,10 +1090,15 @@ export async function scanListeningTopics({ topicIds } = {}) {
                   query.queryString,
                 );
 
-                // Content relevance floor: if < 15% of query terms match the content,
-                // the post is almost certainly off-topic (API returned a false positive).
-                // Skip entirely to avoid polluting the feed.
-                if (contentRelevance < 0.15 && !isKolTopic) continue;
+                // Content relevance floor: skip off-topic posts (API false positives).
+                // BRAND topics use a higher floor since "figure" is a common English word.
+                const isBrandTopic = topic.name.toLowerCase().includes('brand') || topic.name.toLowerCase().includes('figure');
+                const relevanceFloor = isBrandTopic ? 0.25 : 0.15;
+                if (contentRelevance < relevanceFloor && !isKolTopic) continue;
+
+                // Market roundup detector: skip posts listing 3+ token prices
+                const priceListMatches = content.match(/\b(?:BTC|ETH|SOL|BNB|XRP|ADA|DOGE|TRX|AVAX|DOT|MATIC|ATOM):\s*\$[\d,.]+/gi);
+                if (priceListMatches && priceListMatches.length >= 3) continue;
 
                 // ── Engagement velocity blending (SLST-04) ──
                 // Blend absolute engagement (60%) with velocity (40%) for time-aware scoring

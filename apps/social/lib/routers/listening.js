@@ -934,4 +934,92 @@ ALWAYS respond with valid JSON only — no markdown fencing, no text before or a
 
       return { updated, total: hits.length, errors };
     }),
+
+  /**
+   * listening.suggestRefinements
+   * Analyzes queries with high noise rates and suggests improvements.
+   * Samples spam/dismissed hits to understand what noise looks like,
+   * then asks AI how to tighten the queries.
+   */
+  suggestRefinements: protectedProcedure
+    .input(z.object({ topicId: z.string().optional() }).optional())
+    .mutation(async ({ ctx, input }) => {
+      const { prisma } = ctx;
+
+      // Find queries with > 30% noise rate
+      const queryWhere = { active: true, totalHits: { gt: 5 } };
+      if (input?.topicId) {
+        queryWhere.topicId = input.topicId;
+      }
+
+      const noisyQueries = await prisma.listeningQuery.findMany({
+        where: queryWhere,
+        include: { topic: { select: { name: true } } },
+      });
+
+      const queriesNeedingHelp = noisyQueries.filter((q) => {
+        const noiseCount = (q.spamHits || 0) + (q.dismissedHits || 0);
+        return q.totalHits > 0 && (noiseCount / q.totalHits) > 0.3;
+      });
+
+      if (queriesNeedingHelp.length === 0) {
+        return { suggestions: [], message: 'All queries have acceptable noise levels (< 30%).' };
+      }
+
+      // Sample noise hits for each query
+      const suggestions = [];
+      for (const q of queriesNeedingHelp.slice(0, 5)) { // Cap at 5 queries per call
+        const noiseHits = await prisma.listeningHit.findMany({
+          where: {
+            queryId: q.id,
+            OR: [
+              { aiRelevance: 'SPAM' },
+              { dismissed: true },
+              { heuristicScore: { lt: 0.3 } },
+            ],
+          },
+          select: { content: true },
+          orderBy: { detectedAt: 'desc' },
+          take: 10,
+        });
+
+        if (noiseHits.length < 3) continue;
+
+        const noiseSamples = noiseHits
+          .map((h) => (h.content || '').slice(0, 200))
+          .join('\n---\n');
+
+        const noiseRate = Math.round(((q.spamHits + q.dismissedHits) / q.totalHits) * 100);
+
+        const result = await generateInsight('listening/suggest-refinement', {
+          topic: q.topic.name,
+          platform: q.platform,
+          currentQuery: q.queryString,
+          negativeKeywords: q.negativeKeywords || [],
+          noiseRate: `${noiseRate}%`,
+          noiseSamples,
+        }, {
+          model: 'claude-haiku-4-5-20251001',
+          maxTokens: 512,
+          systemPrompt: `You are a search query optimization expert. Analyze why a social listening query is capturing noise, and suggest a tighter query.
+
+Return JSON: {"diagnosis": "brief explanation of why noise is getting through", "suggestedQuery": "improved query string", "suggestedNegativeKeywords": ["word1", "word2"], "confidence": "HIGH|MEDIUM|LOW"}
+
+Rules for X/Twitter queries: use quoted phrases, OR/AND, -exclusions, min_faves:, lang:en
+Rules for Reddit queries: simpler boolean, use negativeKeywords for exclusion (no - operator)`,
+        });
+
+        suggestions.push({
+          queryId: q.id,
+          topicName: q.topic.name,
+          platform: q.platform,
+          currentQuery: q.queryString,
+          noiseRate: `${noiseRate}%`,
+          totalHits: q.totalHits,
+          ...(result || {}),
+        });
+      }
+
+      return { suggestions };
+    }),
 });
