@@ -113,7 +113,7 @@ class XOfficialClient {
   }
 
   async getOwnAccountAnalytics(userId) {
-    return this.request('GET', `/users/${userId}?user.fields=public_metrics,description,profile_image_url`);
+    return this.request('GET', `/users/${userId}?user.fields=public_metrics,description,profile_image_url,verified_type`);
   }
 
   /**

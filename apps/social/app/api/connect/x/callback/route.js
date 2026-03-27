@@ -82,9 +82,9 @@ export async function GET(request) {
     const tokenData = await tokenResponse.json();
     const { access_token, refresh_token, expires_in } = tokenData;
 
-    // Fetch user profile from X API
+    // Fetch user profile from X API (include verified_type for tier detection)
     const userResponse = await fetch(
-      'https://api.x.com/2/users/me?user.fields=profile_image_url,public_metrics',
+      'https://api.x.com/2/users/me?user.fields=profile_image_url,public_metrics,verified_type',
       {
         headers: {
           Authorization: `Bearer ${access_token}`,
@@ -112,6 +112,20 @@ export async function GET(request) {
       ? new Date(Date.now() + expires_in * 1000)
       : null;
 
+    // Detect X subscription tier from verified_type
+    // X API returns: "blue" (Premium), "business" (Org), "government", or empty
+    const verifiedType = user.verified_type || '';
+    let subscriptionTier = 'free';
+    let isVerified = false;
+    if (verifiedType === 'business') {
+      subscriptionTier = 'premium_plus'; // Org accounts have full feature access
+      isVerified = true;
+    } else if (verifiedType === 'blue' || verifiedType === 'government') {
+      subscriptionTier = 'premium'; // Blue/gov = Premium (25K chars, longer video, etc.)
+      isVerified = true;
+    }
+    const followerCount = user.public_metrics?.followers_count ?? null;
+
     // Upsert account record (update if same platform + platformUserId exists)
     await prisma.account.upsert({
       where: {
@@ -129,6 +143,9 @@ export async function GET(request) {
         avatarUrl: user.profile_image_url || null,
         isActive: true,
         connectedAt: new Date(),
+        subscriptionTier,
+        isVerified,
+        followerCount,
       },
       create: {
         platform: 'X',
@@ -139,6 +156,9 @@ export async function GET(request) {
         username: user.username,
         displayName: user.name,
         avatarUrl: user.profile_image_url || null,
+        subscriptionTier,
+        isVerified,
+        followerCount,
       },
     });
 

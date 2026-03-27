@@ -85,6 +85,30 @@ export async function GET(request) {
             results.errors.push({ accountId: account.id, error: `Follower count 0 for @${account.username}` });
           }
 
+          // Sync subscription tier from profile data
+          // TwitterAPI.io returns isBlueVerified, verified_type, or similar fields
+          const profileData = tweets[0]?.author || {};
+          const verifiedType = profileData.verified_type || profileData.verifiedType || '';
+          const isBlue = profileData.isBlueVerified || profileData.is_blue_verified || false;
+          let detectedTier = account.subscriptionTier || 'free'; // keep existing if no signal
+          let detectedVerified = account.isVerified || false;
+          if (verifiedType === 'Business' || verifiedType === 'business') {
+            detectedTier = 'premium_plus';
+            detectedVerified = true;
+          } else if (verifiedType === 'Blue' || verifiedType === 'blue' || verifiedType === 'Government' || verifiedType === 'government' || isBlue) {
+            detectedTier = 'premium';
+            detectedVerified = true;
+          }
+          // Update account with fresh follower count + tier
+          await prisma.account.update({
+            where: { id: account.id },
+            data: {
+              followerCount: followers || undefined,
+              subscriptionTier: detectedTier,
+              isVerified: detectedVerified,
+            },
+          });
+
           if (debugMode) {
             results.debug.push({
               account: account.username,
