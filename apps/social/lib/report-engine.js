@@ -377,8 +377,11 @@ export async function generateEnrichedReport({ reportType, dateStart, dateEnd, b
       : null,
   };
 
-  // 7. Validate
-  validateReportContent(content);
+  // 7. Validate (warn on issues but still return partial report)
+  const validation = validateReportContent(content);
+  if (!validation.success) {
+    console.warn('Report content validation issues:', validation.error?.issues);
+  }
 
   return content;
 }

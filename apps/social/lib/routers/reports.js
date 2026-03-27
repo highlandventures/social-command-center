@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { TRPCError } from '@trpc/server';
 import { router, protectedProcedure } from '../trpc';
 import { generateWeeklyReport, generateCompetitiveAnalysis, generateListeningSummary } from '../ai/reports';
 import { generateEnrichedReport, getPreviousPeriod } from '../report-engine';
@@ -69,20 +70,20 @@ export const reportsRouter = router({
       const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-      // Create initial report record with GENERATING status
-      const report = await prisma.report.create({
-        data: {
-          title,
-          reportType,
-          prompt: prompt ?? null,
-          content: {},
-          aiPct: 0,
-          createdById: user.id,
-          status: 'GENERATING',
-        },
-      });
-
+      let report;
       try {
+        // Create initial report record with GENERATING status
+        report = await prisma.report.create({
+          data: {
+            title,
+            reportType,
+            prompt: prompt ?? null,
+            content: {},
+            aiPct: 0,
+            createdById: user.id,
+            status: 'GENERATING',
+          },
+        });
         // Enriched path: WEEKLY_PERFORMANCE, MONTHLY_SUMMARY, CUSTOM
         if (reportType === 'WEEKLY_PERFORMANCE' || reportType === 'MONTHLY_SUMMARY' || reportType === 'CUSTOM') {
           let dateStart, dateEnd;
@@ -196,23 +197,31 @@ export const reportsRouter = router({
       } catch (err) {
         console.error('Report generation error:', err);
 
-        // On failure: save partial content with error, set FAILED status
-        return prisma.report.update({
-          where: { id: report.id },
-          data: {
-            content: {
-              kpis: [],
-              executiveSummary: `Report generation failed: ${err.message}`,
-              sentimentThemes: null,
-              charts: [],
-              recommendations: [],
-              topContent: [],
-              coveragePeriod: { start: '', end: '' },
-              benchmarkPeriod: null,
+        // Save FAILED status to the report record so it's visible in the repository
+        if (report?.id) {
+          await prisma.report.update({
+            where: { id: report.id },
+            data: {
+              content: {
+                kpis: [],
+                executiveSummary: `Report generation failed: ${err.message}`,
+                sentimentThemes: null,
+                charts: [],
+                recommendations: [],
+                topContent: [],
+                coveragePeriod: { start: '', end: '' },
+                benchmarkPeriod: null,
+              },
+              aiPct: 0,
+              status: 'FAILED',
             },
-            aiPct: 0,
-            status: 'FAILED',
-          },
+          });
+        }
+
+        // Always throw so the client's onError fires and shows the error UI
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Report generation failed: ${err.message}`,
         });
       }
     }),
