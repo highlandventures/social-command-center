@@ -803,73 +803,114 @@ export default function ComposerPage() {
                 </div>
               </div>
             ) : selectedPlatform === 'X' ? (
-              /* X Post / Thread preview */
+              /* X Post / Thread preview — native X dark theme */
               <div
-                className="rounded-2xl border border-border overflow-hidden"
+                className="rounded-2xl overflow-hidden"
                 style={{
                   background: '#000',
                   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
                 }}
               >
-                <div className="flex items-center justify-between px-4 py-2 border-b border-gray-800">
-                  <div className="flex items-center gap-2">
-                    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                    </svg>
-                    <span className="text-white text-[10px] font-medium">{isThread ? 'Thread' : 'Post'}</span>
-                  </div>
-                  {isThread && <span className="text-[10px] text-gray-500">{activeTweets.length} posts</span>}
-                </div>
                 <div>
                   {(isThread ? tweets : [tweets[0] || ''])
                     .filter((t) => t !== undefined)
                     .map((tweet, i, arr) => {
-                      const isLast = i === arr.filter((t) => (t || '').trim()).length - 1;
+                      const nonEmpty = arr.filter((t) => (t || '').trim());
+                      const isLast = i === nonEmpty.length - 1;
                       const tweetText = tweet || '';
+                      const avatarUrl = selectedAccountObj?.avatarUrl;
+                      const displayName = selectedAccountObj?.displayName || selectedAccount || 'Account';
+                      const initials = displayName.slice(0, 2).toUpperCase();
                       return (
-                        <div
-                          key={i}
-                          className={`px-3 pt-2.5 ${isLast ? 'pb-1' : 'pb-0'} ${i > 0 ? 'border-t border-gray-800/50' : ''}`}
-                        >
-                          <div className="flex gap-2.5">
+                        <div key={i} className="px-4 pt-3 pb-0">
+                          <div className="flex gap-3">
+                            {/* Avatar + thread connector */}
                             <div className="flex flex-col items-center flex-shrink-0">
-                              <div className="w-9 h-9 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center">
-                                <span className="text-white text-[10px] font-bold">{(selectedAccountObj?.displayName || selectedAccount || '').slice(0, 2).toUpperCase()}</span>
-                              </div>
+                              {avatarUrl ? (
+                                <img src={avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover" />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-[#333639] flex items-center justify-center">
+                                  <span className="text-[#e7e9ea] text-xs font-bold">{initials}</span>
+                                </div>
+                              )}
                               {isThread && !isLast && tweetText.trim() && (
-                                <div className="w-0.5 flex-1 bg-gray-700 mt-1 min-h-[6px]" />
+                                <div className="w-[2px] flex-1 bg-[#333639] mt-1 min-h-[8px]" />
                               )}
                             </div>
-                            <div className="flex-1 min-w-0 pb-2.5">
-                              <div className="flex items-center gap-1 leading-tight flex-wrap">
-                                <span className="text-[13px] font-bold text-white">{selectedAccountObj?.displayName || selectedAccount}</span>
-                                <svg viewBox="0 0 22 22" className="w-[14px] h-[14px] flex-shrink-0" style={{ fill: '#1d9bf0' }}>
-                                  <path d="M20.396 11c-.018-.646-.215-1.275-.57-1.816-.354-.54-.852-.972-1.438-1.246.223-.607.27-1.264.14-1.897-.131-.634-.437-1.218-.882-1.687-.47-.445-1.053-.75-1.687-.882-.633-.13-1.29-.083-1.897.14-.273-.587-.704-1.086-1.245-1.44S11.647 1.62 11 1.604c-.646.017-1.273.213-1.813.568s-.969.855-1.24 1.44c-.608-.223-1.267-.272-1.902-.14-.635.13-1.22.436-1.69.882-.445.47-.749 1.055-.878 1.69-.13.633-.08 1.29.144 1.896-.587.274-1.087.705-1.443 1.245-.356.54-.555 1.17-.574 1.817.02.647.218 1.276.574 1.817.356.54.856.972 1.443 1.245-.224.606-.274 1.263-.144 1.896.13.636.433 1.221.878 1.69.47.446 1.055.752 1.69.883.635.13 1.294.083 1.902-.141.27.587.7 1.086 1.24 1.44.54.354 1.167.551 1.813.568.647-.016 1.276-.213 1.817-.567s.972-.854 1.245-1.44c.604.223 1.261.272 1.894.14.633-.132 1.217-.438 1.684-.883.447-.468.752-1.054.883-1.69.132-.634.085-1.294-.138-1.9.586-.272 1.084-.703 1.438-1.241.355-.54.551-1.17.569-1.816zM9.662 14.85l-3.429-3.428 1.293-1.302 2.072 2.072 4.4-4.794 1.347 1.246z" />
+                            {/* Tweet content */}
+                            <div className="flex-1 min-w-0 pb-3">
+                              <div className="flex items-center gap-1 leading-none">
+                                <span className="text-[15px] font-bold text-[#e7e9ea]">{displayName}</span>
+                                <svg viewBox="0 0 22 22" className="w-[18px] h-[18px] flex-shrink-0" aria-label="Verified">
+                                  <path fill="#1d9bf0" d="M20.396 11c-.018-.646-.215-1.275-.57-1.816-.354-.54-.852-.972-1.438-1.246.223-.607.27-1.264.14-1.897-.131-.634-.437-1.218-.882-1.687-.47-.445-1.053-.75-1.687-.882-.633-.13-1.29-.083-1.897.14-.273-.587-.704-1.086-1.245-1.44S11.647 1.62 11 1.604c-.646.017-1.273.213-1.813.568s-.969.855-1.24 1.44c-.608-.223-1.267-.272-1.902-.14-.635.13-1.22.436-1.69.882-.445.47-.749 1.055-.878 1.69-.13.633-.08 1.29.144 1.896-.587.274-1.087.705-1.443 1.245-.356.54-.555 1.17-.574 1.817.02.647.218 1.276.574 1.817.356.54.856.972 1.443 1.245-.224.606-.274 1.263-.144 1.896.13.636.433 1.221.878 1.69.47.446 1.055.752 1.69.883.635.13 1.294.083 1.902-.141.27.587.7 1.086 1.24 1.44.54.354 1.167.551 1.813.568.647-.016 1.276-.213 1.817-.567s.972-.854 1.245-1.44c.604.223 1.261.272 1.894.14.633-.132 1.217-.438 1.684-.883.447-.468.752-1.054.883-1.69.132-.634.085-1.294-.138-1.9.586-.272 1.084-.703 1.438-1.241.355-.54.551-1.17.569-1.816zM9.662 14.85l-3.429-3.428 1.293-1.302 2.072 2.072 4.4-4.794 1.347 1.246z" />
                                 </svg>
-                                <span className="text-[13px] text-gray-500">@{selectedAccount} &middot; now</span>
+                                <span className="text-[15px] text-[#71767b]">@{selectedAccount}</span>
+                                <span className="text-[15px] text-[#71767b]">&middot;</span>
+                                <span className="text-[15px] text-[#71767b]">now</span>
                               </div>
-                              <div className="mt-0.5">
+                              <div className="mt-1">
                                 {tweetText.trim() ? (
-                                  <p className="text-[13px] text-white leading-[1.4] whitespace-pre-wrap break-words">
+                                  <p className="text-[15px] text-[#e7e9ea] leading-[1.3125] whitespace-pre-wrap break-words">
                                     {tweetText}
                                   </p>
                                 ) : (
-                                  <p className="text-[13px] text-gray-600 italic">Start typing...</p>
+                                  <p className="text-[15px] text-[#71767b] italic">Start typing...</p>
                                 )}
                               </div>
                               {tweetText.length > 280 && (
-                                <div className="mt-1 bg-red-500/10 border border-red-500/20 rounded px-2 py-0.5 inline-block">
-                                  <span className="text-[10px] text-red-400 font-medium">
-                                    +{tweetText.length - 280} over limit
+                                <div className="mt-1.5 bg-[#67000d]/30 border border-[#f4212e]/30 rounded-lg px-2.5 py-1 inline-block">
+                                  <span className="text-[13px] text-[#f4212e] font-medium">
+                                    {tweetText.length - 280} characters over limit
                                   </span>
                                 </div>
                               )}
-                              <div className="flex items-center gap-5 mt-2 text-gray-600">
-                                {['\uD83D\uDCAC', '\uD83D\uDD01', '\u2764\uFE0F', '\uD83D\uDCCA'].map((e, j) => (
-                                  <span key={j} className="text-[11px] cursor-pointer hover:text-gray-400">
-                                    {e}
-                                  </span>
-                                ))}
+                              {/* Native X engagement bar */}
+                              <div className="flex items-center justify-between mt-3 max-w-[425px]">
+                                {/* Reply */}
+                                <div className="flex items-center gap-1 group/btn cursor-pointer">
+                                  <div className="p-2 rounded-full group-hover/btn:bg-[#1d9bf0]/10 transition-colors">
+                                    <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] fill-[#71767b] group-hover/btn:fill-[#1d9bf0] transition-colors">
+                                      <path d="M1.751 10c0-4.42 3.584-8 8.005-8h4.366c4.49 0 8.129 3.64 8.129 8.13 0 2.96-1.607 5.68-4.196 7.11l-8.054 4.46v-3.69h-.067c-4.49.1-8.183-3.51-8.183-8.01zm8.005-6c-3.317 0-6.005 2.69-6.005 6 0 3.37 2.77 6.08 6.138 6.01l.351-.01h1.761v2.3l5.087-2.81c1.951-1.08 3.163-3.13 3.163-5.36 0-3.39-2.744-6.13-6.129-6.13H9.756z" />
+                                    </svg>
+                                  </div>
+                                </div>
+                                {/* Repost */}
+                                <div className="flex items-center gap-1 group/btn cursor-pointer">
+                                  <div className="p-2 rounded-full group-hover/btn:bg-[#00ba7c]/10 transition-colors">
+                                    <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] fill-[#71767b] group-hover/btn:fill-[#00ba7c] transition-colors">
+                                      <path d="M4.5 3.88l4.432 4.14-1.364 1.46L5.5 7.55V16c0 1.1.896 2 2 2H13v2H7.5c-2.209 0-4-1.79-4-4V7.55L1.432 9.48.068 8.02 4.5 3.88zM16.5 6H11V4h5.5c2.209 0 4 1.79 4 4v8.45l2.068-1.93 1.364 1.46-4.432 4.14-4.432-4.14 1.364-1.46 2.068 1.93V8c0-1.1-.896-2-2-2z" />
+                                    </svg>
+                                  </div>
+                                </div>
+                                {/* Like */}
+                                <div className="flex items-center gap-1 group/btn cursor-pointer">
+                                  <div className="p-2 rounded-full group-hover/btn:bg-[#f91880]/10 transition-colors">
+                                    <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] fill-[#71767b] group-hover/btn:fill-[#f91880] transition-colors">
+                                      <path d="M16.697 5.5c-1.222-.06-2.679.51-3.89 2.16l-.805 1.09-.806-1.09C9.984 6.01 8.526 5.44 7.304 5.5c-1.243.07-2.349.78-2.91 1.91-.552 1.12-.633 2.78.479 4.82 1.074 1.97 3.257 4.27 7.129 6.61 3.87-2.34 6.052-4.64 7.126-6.61 1.111-2.04 1.03-3.7.477-4.82-.561-1.13-1.666-1.84-2.908-1.91zm4.187 7.69c-1.351 2.48-4.001 5.12-8.379 7.67l-.503.3-.504-.3c-4.379-2.55-7.029-5.19-8.382-7.67-1.36-2.5-1.41-4.86-.514-6.67.887-1.79 2.647-2.91 4.601-3.01 1.651-.09 3.368.56 4.798 2.01 1.429-1.45 3.146-2.1 4.796-2.01 1.954.1 3.714 1.22 4.601 3.01.896 1.81.846 4.17-.514 6.67z" />
+                                    </svg>
+                                  </div>
+                                </div>
+                                {/* Views */}
+                                <div className="flex items-center gap-1 group/btn cursor-pointer">
+                                  <div className="p-2 rounded-full group-hover/btn:bg-[#1d9bf0]/10 transition-colors">
+                                    <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] fill-[#71767b] group-hover/btn:fill-[#1d9bf0] transition-colors">
+                                      <path d="M8.75 21V3h2v18h-2zM18 21V8.5h2V21h-2zM4 21v-5.5h2V21H4z" />
+                                    </svg>
+                                  </div>
+                                </div>
+                                {/* Bookmark + Share */}
+                                <div className="flex items-center gap-0">
+                                  <div className="p-2 rounded-full hover:bg-[#1d9bf0]/10 transition-colors cursor-pointer">
+                                    <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] fill-[#71767b] hover:fill-[#1d9bf0] transition-colors">
+                                      <path d="M4 4.5C4 3.12 5.119 2 6.5 2h11C18.881 2 20 3.12 20 4.5v18.44l-8-5.71-8 5.71V4.5zM6.5 4c-.276 0-.5.22-.5.5v14.56l6-4.29 6 4.29V4.5c0-.28-.224-.5-.5-.5h-11z" />
+                                    </svg>
+                                  </div>
+                                  <div className="p-2 rounded-full hover:bg-[#1d9bf0]/10 transition-colors cursor-pointer">
+                                    <svg viewBox="0 0 24 24" className="w-[18px] h-[18px] fill-[#71767b] hover:fill-[#1d9bf0] transition-colors">
+                                      <path d="M12 2.59l5.7 5.7-1.41 1.42L13 6.41V16h-2V6.41l-3.3 3.3-1.41-1.42L12 2.59zM21 15l-.02 3.51c0 1.38-1.12 2.49-2.5 2.49H5.5C4.11 21 3 19.88 3 18.5V15h2v3.5c0 .28.22.5.5.5h12.98c.28 0 .5-.22.5-.5L19 15h2z" />
+                                    </svg>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -877,174 +918,83 @@ export default function ComposerPage() {
                       );
                     })}
                   {isThread && activeTweets.length > 1 && (
-                    <div className="px-3 py-2 border-t border-gray-800">
-                      <span className="text-[13px] text-blue-400 font-medium">Show this thread</span>
-                    </div>
-                  )}
-                </div>
-                {/* Predicted performance */}
-                <div className="px-3 py-2.5 border-t border-gray-800 bg-gray-900/50">
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <svg viewBox="0 0 24 24" className="w-3 h-3 fill-blue-400">
-                      <path d="M8.75 21V3h2v18h-2zM18 21V8.5h2V21h-2zM4 21v-5.5h2V21H4z" />
-                    </svg>
-                    <span className="text-[10px] text-content-faint font-medium">
-                      {prediction ? 'AI Predicted' : 'Predicted'}
-                    </span>
-                    <div className="flex-1" />
-                    <button
-                      onClick={handlePredict}
-                      disabled={predictMutation.isLoading}
-                      className="text-[10px] text-blue-400 hover:text-blue-300 font-medium disabled:opacity-50"
-                    >
-                      {predictMutation.isLoading ? 'Analyzing...' : prediction ? 'Re-predict' : 'Predict with AI'}
-                    </button>
-                  </div>
-                  {prediction ? (
-                    <>
-                      <div className="grid grid-cols-4 gap-1">
-                        {[
-                          { label: 'Impressions', value: prediction.impressions || '—', good: true },
-                          { label: 'Engagements', value: prediction.engagements || '—', good: true },
-                          { label: 'Eng. Rate', value: prediction.engagementRate || '—', good: true },
-                          { label: 'Confidence', value: prediction.confidence || '—', good: false },
-                        ].map((p, k) => (
-                          <div key={k} className="text-center">
-                            <div className={`text-[11px] font-semibold ${p.good ? 'text-green-400' : 'text-content-faint'}`}>
-                              {typeof p.value === 'number' ? p.value.toLocaleString() : p.value}
-                            </div>
-                            <div className="text-[9px] text-gray-600">{p.label}</div>
-                          </div>
-                        ))}
-                      </div>
-                      {prediction.suggestions && (
-                        <p className="text-[10px] text-gray-400 mt-1.5 leading-relaxed">{prediction.suggestions}</p>
-                      )}
-                    </>
-                  ) : (
-                    <div className="grid grid-cols-4 gap-1">
-                      {[
-                        { label: 'Impressions', value: isThread ? '~18-24K' : '~5-8K', good: true },
-                        { label: 'Engagements', value: isThread ? '~850-1.2K' : '~200-400', good: true },
-                        { label: 'Eng. Rate', value: isThread ? '~6.2-7.8%' : '~3.5-4.5%', good: true },
-                        { label: 'Clicks', value: isThread ? '~120-200' : '~40-80', good: false },
-                      ].map((p, k) => (
-                        <div key={k} className="text-center">
-                          <div className={`text-[11px] font-semibold ${p.good ? 'text-green-400' : 'text-content-faint'}`}>
-                            {p.value}
-                          </div>
-                          <div className="text-[9px] text-gray-600">{p.label}</div>
-                        </div>
-                      ))}
+                    <div className="px-4 py-3 border-t border-[#2f3336]">
+                      <span className="text-[15px] text-[#1d9bf0] hover:underline cursor-pointer">Show this thread</span>
                     </div>
                   )}
                 </div>
               </div>
             ) : (
-              /* Reddit preview */
+              /* Reddit preview — native Reddit dark theme */
               <div
-                className="rounded-2xl border border-border overflow-hidden"
+                className="rounded-2xl overflow-hidden"
                 style={{
-                  background: '#1a1a1b',
+                  background: '#0e1113',
                   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
                 }}
               >
-                <div className="flex items-center gap-2 px-3 py-2 border-b border-[#343536]" style={{ background: '#1a1a1b' }}>
-                  <svg viewBox="0 0 20 20" className="w-5 h-5 fill-[#FF4500]">
-                    <path d="M16.5 8c-.02-1.13-.94-2.04-2.07-2.02-.55.01-1.07.24-1.46.63-.97-.67-2.14-1.06-3.37-1.12l.61-2.84 1.98.42c.02.78.66 1.4 1.44 1.38.79-.02 1.42-.67 1.4-1.46-.02-.78-.67-1.4-1.46-1.38-.53.01-1.01.3-1.24.76L10.2 2l-.73 3.47c-1.28.04-2.5.44-3.51 1.13-.89-.88-2.33-.87-3.21.02-.88.89-.87 2.33.02 3.21-.16.47-.24.96-.24 1.46 0 3.36 3.38 6.08 7.54 6.08s7.54-2.72 7.54-6.08c0-.48-.08-.96-.23-1.42.47-.43.75-1.04.74-1.68H16.5z" />
-                  </svg>
-                  <span className="text-[#D7DADC] text-xs font-medium">Reddit Preview</span>
-                </div>
-                <div className="flex" style={{ background: '#1a1a1b' }}>
-                  <div className="flex flex-col items-center gap-0.5 px-2.5 py-3" style={{ background: '#161617' }}>
-                    <svg viewBox="0 0 20 20" className="w-5 h-5 fill-[#818384] hover:fill-[#FF4500] cursor-pointer">
-                      <path d="M12.877 19H7.123A1.125 1.125 0 016 17.877V11H2.126a1.114 1.114 0 01-1.007-.7 1.249 1.249 0 01.171-1.343L9.166.368a1.128 1.128 0 011.668.004l7.872 8.581a1.252 1.252 0 01.176 1.348 1.114 1.114 0 01-1.005.7H14v6.877A1.125 1.125 0 0112.877 19z" />
-                    </svg>
-                    <span className="text-xs font-bold text-[#D7DADC]">1</span>
-                    <svg viewBox="0 0 20 20" className="w-5 h-5 fill-[#818384] hover:fill-[#7193FF] cursor-pointer">
-                      <path d="M7.123 1h5.754A1.125 1.125 0 0114 2.123V9h3.874a1.114 1.114 0 011.007.7 1.249 1.249 0 01-.171 1.343l-7.872 8.589a1.128 1.128 0 01-1.668-.004L1.29 11.04a1.252 1.252 0 01-.176-1.348A1.114 1.114 0 012.126 9H6V2.123A1.125 1.125 0 017.123 1z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1 p-3 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-2 text-[11px]">
-                      <div className="w-5 h-5 rounded-full bg-[#FF4500] flex items-center justify-center">
-                        <span className="text-white text-[8px] font-bold">r/</span>
-                      </div>
-                      <span className="font-bold text-[#D7DADC]">{redditSubreddit || 'r/subreddit'}</span>
-                      <span className="text-[#818384]">&middot; Posted by u/{selectedAccount || 'username'} &middot; now</span>
+                {/* Post card */}
+                <div className="rounded-xl m-2" style={{ background: '#1a1a1b', border: '1px solid #343536' }}>
+                  <div className="flex">
+                    {/* Vote column */}
+                    <div className="flex flex-col items-center gap-1 px-3 py-3 rounded-l-xl" style={{ background: '#161617' }}>
+                      <svg viewBox="0 0 20 20" className="w-6 h-6 fill-[#818384] hover:fill-[#FF4500] cursor-pointer transition-colors">
+                        <path d="M12.877 19H7.123A1.125 1.125 0 016 17.877V11H2.126a1.114 1.114 0 01-1.007-.7 1.249 1.249 0 01.171-1.343L9.166.368a1.128 1.128 0 011.668.004l7.872 8.581a1.252 1.252 0 01.176 1.348 1.114 1.114 0 01-1.005.7H14v6.877A1.125 1.125 0 0112.877 19z" />
+                      </svg>
+                      <span className="text-[12px] font-bold text-[#D7DADC]">1</span>
+                      <svg viewBox="0 0 20 20" className="w-6 h-6 fill-[#818384] hover:fill-[#7193FF] cursor-pointer transition-colors">
+                        <path d="M7.123 1h5.754A1.125 1.125 0 0114 2.123V9h3.874a1.114 1.114 0 011.007.7 1.249 1.249 0 01-.171 1.343l-7.872 8.589a1.128 1.128 0 01-1.668-.004L1.29 11.04a1.252 1.252 0 01-.176-1.348A1.114 1.114 0 012.126 9H6V2.123A1.125 1.125 0 017.123 1z" />
+                      </svg>
                     </div>
-                    <h3 className="text-base font-semibold text-[#D7DADC] mb-2 leading-snug">
-                      {redditTitle || tweets[0]?.split('\n')[0]?.slice(0, 80) || 'Post title here'}
-                    </h3>
-                    <div className="text-[13px] text-[#D7DADC]/80 leading-relaxed whitespace-pre-wrap break-words">
-                      {tweets[0] || <span className="text-[#818384] italic">Start typing...</span>}
-                    </div>
-                    <div className="flex items-center gap-4 mt-3 pt-2 border-t border-[#343536] text-[11px] text-[#818384] font-bold">
-                      <span className="flex items-center gap-1 hover:bg-[#343536] px-2 py-1 rounded cursor-pointer">
-                        0 Comments
-                      </span>
-                      <span className="flex items-center gap-1 hover:bg-[#343536] px-2 py-1 rounded cursor-pointer">
-                        Share
-                      </span>
-                      <span className="flex items-center gap-1 hover:bg-[#343536] px-2 py-1 rounded cursor-pointer">
-                        Save
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                {/* Predicted performance - Reddit */}
-                <div className="px-3 py-2.5 border-t border-[#343536]" style={{ background: '#161617' }}>
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <span className="text-[10px] text-[#818384] font-medium">
-                      {prediction ? 'AI Predicted Performance' : 'Predicted Performance'}
-                    </span>
-                    <div className="flex-1" />
-                    <button
-                      onClick={handlePredict}
-                      disabled={predictMutation.isLoading}
-                      className="text-[10px] text-[#FF4500] hover:text-[#ff6634] font-medium disabled:opacity-50"
-                    >
-                      {predictMutation.isLoading ? 'Analyzing...' : prediction ? 'Re-predict' : 'Predict with AI'}
-                    </button>
-                  </div>
-                  {prediction ? (
-                    <>
-                      <div className="grid grid-cols-4 gap-1">
-                        {[
-                          { label: 'Upvotes', value: prediction.upvotes || prediction.engagements || '—', good: true },
-                          { label: 'Comments', value: prediction.comments || '—', good: true },
-                          { label: 'Eng. Rate', value: prediction.engagementRate || '—', good: true },
-                          { label: 'Confidence', value: prediction.confidence || '—', good: false },
-                        ].map((p, k) => (
-                          <div key={k} className="text-center">
-                            <div className={`text-[11px] font-semibold ${p.good ? 'text-[#FF4500]' : 'text-[#818384]'}`}>
-                              {typeof p.value === 'number' ? p.value.toLocaleString() : p.value}
-                            </div>
-                            <div className="text-[9px] text-[#818384]">{p.label}</div>
-                          </div>
-                        ))}
-                      </div>
-                      {prediction.suggestions && (
-                        <p className="text-[10px] text-[#818384] mt-1.5 leading-relaxed">{prediction.suggestions}</p>
-                      )}
-                    </>
-                  ) : (
-                    <div className="grid grid-cols-4 gap-1">
-                      {[
-                        { label: 'Upvotes', value: '~15-40', good: true },
-                        { label: 'Comments', value: '~5-12', good: true },
-                        { label: 'Upvote Ratio', value: '~85-92%', good: true },
-                        { label: 'Cross-posts', value: '~1-3', good: false },
-                      ].map((p, k) => (
-                        <div key={k} className="text-center">
-                          <div className={`text-[11px] font-semibold ${p.good ? 'text-[#FF4500]' : 'text-[#818384]'}`}>
-                            {p.value}
-                          </div>
-                          <div className="text-[9px] text-[#818384]">{p.label}</div>
+                    {/* Content */}
+                    <div className="flex-1 p-3 min-w-0">
+                      {/* Post meta */}
+                      <div className="flex items-center gap-1.5 mb-2">
+                        <div className="w-5 h-5 rounded-full bg-[#FF4500] flex items-center justify-center flex-shrink-0">
+                          <span className="text-white text-[8px] font-bold">r/</span>
                         </div>
-                      ))}
+                        <span className="text-[12px] font-bold text-[#D7DADC] hover:underline cursor-pointer">{redditSubreddit || 'r/subreddit'}</span>
+                        <span className="text-[12px] text-[#818384]">&middot;</span>
+                        <span className="text-[12px] text-[#818384]">Posted by u/{selectedAccount || 'username'}</span>
+                        <span className="text-[12px] text-[#818384]">&middot; just now</span>
+                      </div>
+                      {/* Title */}
+                      <h3 className="text-[18px] font-semibold text-[#D7DADC] mb-2 leading-snug">
+                        {redditTitle || tweets[0]?.split('\n')[0]?.slice(0, 80) || 'Post title here'}
+                      </h3>
+                      {/* Body */}
+                      <div className="text-[14px] text-[#D7DADC]/90 leading-relaxed whitespace-pre-wrap break-words mb-3">
+                        {tweets[0] || <span className="text-[#818384] italic">Start typing...</span>}
+                      </div>
+                      {/* Action bar */}
+                      <div className="flex items-center gap-1 text-[12px] text-[#818384] font-bold">
+                        <button className="flex items-center gap-1.5 hover:bg-[#343536] px-2 py-1.5 rounded transition-colors">
+                          <svg viewBox="0 0 20 20" className="w-4 h-4 fill-current">
+                            <path d="M7.725 19.872a.718.718 0 01-.633-.372.735.735 0 01-.031-.727l1.89-3.768H4.383A1.63 1.63 0 012.77 13.38L4.53 6.27a1.656 1.656 0 011.596-1.22h4.1l.18-.8c.183-.816.897-1.393 1.733-1.393h3.24c.476 0 .93.193 1.26.537.333.344.51.806.493 1.28l-.555 15.592a.724.724 0 01-.722.688H7.725z" />
+                          </svg>
+                          0 Comments
+                        </button>
+                        <button className="flex items-center gap-1.5 hover:bg-[#343536] px-2 py-1.5 rounded transition-colors">
+                          <svg viewBox="0 0 20 20" className="w-4 h-4 fill-current">
+                            <path d="M18.942 7.058L12.8.912a1.5 1.5 0 00-2.562 1.06v2.756c-4.678.394-7.903 2.922-8.877 6.988-.33 1.378.243 2.27.838 2.27.415 0 .7-.25.962-.622 1.328-1.887 3.396-3.062 6.252-3.422l.825-.104v3.188a1.5 1.5 0 002.562 1.06l6.143-6.168a1.5 1.5 0 000-2.12z" />
+                          </svg>
+                          Share
+                        </button>
+                        <button className="flex items-center gap-1.5 hover:bg-[#343536] px-2 py-1.5 rounded transition-colors">
+                          <svg viewBox="0 0 20 20" className="w-4 h-4 fill-current">
+                            <path d="M4 4.5C4 3.12 5.119 2 6.5 2h7C14.881 2 16 3.12 16 4.5v13.94l-6-4.29-6 4.29V4.5z" />
+                          </svg>
+                          Save
+                        </button>
+                        <button className="flex items-center gap-1.5 hover:bg-[#343536] px-2 py-1.5 rounded transition-colors">
+                          <svg viewBox="0 0 20 20" className="w-4 h-4 fill-current">
+                            <path d="M10 20c-.264 0-.528-.101-.729-.302a15.089 15.089 0 01-1.69-2.036C5.712 15.178 3 11.322 3 8.5a7 7 0 1114 0c0 2.822-2.712 6.678-4.581 9.162a15.088 15.088 0 01-1.69 2.036.992.992 0 01-.729.302z" />
+                          </svg>
+                          Hide
+                        </button>
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
             )}
