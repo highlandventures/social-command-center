@@ -746,11 +746,20 @@ export const analyticsRouter = router({
     const phraseMap = {}; // phrase -> { positive, negative, neutral, total }
     const brandTerms = new Set([
       'figure','figr','figure_tech','figuretechnology','figure markets',
-      'figuretech','figure technology',
+      'figuretech','figure technology','provenance','provenancefdn',
+      'hastra','hastrafi','highland','ylds','heloc','home equity',
+      'lending','mortgage',
     ]);
     const stopPhrases = new Set([
       'read more','click here','check out','learn more','find out',
       'sign up','last week','next week','right now','let know',
+    ]);
+    // Filter out generic crypto/market noise that isn't brand-relevant
+    const noiseTerms = new Set([
+      'btc','eth','sol','xrp','bnb','ada','doge','shib','trx','avax',
+      'matic','dot','link','atom','near','apt','sui','sei','arb','usdt',
+      'usdc','busd','gmt','nft','nfts','airdrop','binance','coinbase',
+      'bybit','okx','kucoin','pump','dump','moon','hodl','fomo',
     ]);
 
     for (const hit of recentHits) {
@@ -779,11 +788,19 @@ export const analyticsRouter = router({
       const words = cleaned.split(' ').filter((w) => w.length > 2 && !stopwords.has(w));
 
       // Extract bigrams (2-word phrases)
+      // Only include phrases from hits that mention a brand term (brand-relevant content)
+      const contentLower = cleaned;
+      const isBrandRelevant = [...brandTerms].some((t) => contentLower.includes(t));
+      if (!isBrandRelevant) continue; // Skip non-brand content entirely
+
       for (let i = 0; i < words.length - 1; i++) {
         const bigram = `${words[i]} ${words[i + 1]}`;
-        // Skip if it's just brand name repetition or stop phrases
+        // Skip brand-only phrases, stop phrases, and crypto noise
         if (brandTerms.has(words[i]) && brandTerms.has(words[i + 1])) continue;
         if (stopPhrases.has(bigram)) continue;
+        if (noiseTerms.has(words[i]) || noiseTerms.has(words[i + 1])) continue;
+        // Skip phrases that are just prices/numbers (e.g., "$100", "031")
+        if (/^\$?\d+$/.test(words[i]) && /^\$?\d+$/.test(words[i + 1])) continue;
 
         if (!phraseMap[bigram]) phraseMap[bigram] = { positive: 0, negative: 0, neutral: 0, total: 0 };
         phraseMap[bigram].total++;
