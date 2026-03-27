@@ -846,6 +846,7 @@ export const analyticsRouter = router({
             sentiment: s,
             platform: hit.platform || 'unknown',
             date: hit.publishedAt || hit.createdAt,
+            url: hit.sourceUrl || null,
           });
         }
       }

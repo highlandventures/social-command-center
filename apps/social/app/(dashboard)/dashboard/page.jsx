@@ -26,6 +26,28 @@ const EMPTY_POST_SCATTER = [];
 const EMPTY_POST_TABLE = [];
 const EMPTY_HEATMAP = [];
 
+// Regex matching Figure ecosystem brand terms for highlighting in quotes
+const BRAND_HIGHLIGHT_RE = /(\bFigure\b|\bFIGR\b|\b\$?YLDS\b|\bProvenance\b|\bHastra\b|\bHastraFi\b|\bHighland\b|\bFigure\s*Markets\b|\bFigure\s*Tech(?:nology)?\b|\btokeniz(?:ed|ation)\b|\bRWA\b|\breal\s*world\s*asset\b|\bHELOC\b|\bPRIME\b|\b\$?HASH\b)/gi;
+
+/** Split text into segments, marking brand-term matches for highlighting */
+function highlightBrandTerms(text) {
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+  BRAND_HIGHLIGHT_RE.lastIndex = 0;
+  while ((match = BRAND_HIGHLIGHT_RE.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push({ text: text.slice(lastIndex, match.index), highlight: false });
+    }
+    parts.push({ text: match[0], highlight: true });
+    lastIndex = BRAND_HIGHLIGHT_RE.lastIndex;
+  }
+  if (lastIndex < text.length) {
+    parts.push({ text: text.slice(lastIndex), highlight: false });
+  }
+  return parts.length ? parts : [{ text, highlight: false }];
+}
+
 // Helper: format date as YYYY-MM-DD
 function toDateStr(d) { return d.toISOString().slice(0, 10); }
 
@@ -894,20 +916,39 @@ export default function DashboardPage() {
                   <span className="text-red-500">{negPct}% negative</span>
                 </div>
 
-                {/* Sample quotes */}
+                {/* Sample quotes — brand terms highlighted, clickable to source */}
                 {d.samples && d.samples.length > 0 && (
                   <div className="space-y-1.5 border-t border-border-secondary pt-2.5">
                     <div className="text-[10px] font-medium text-content-muted uppercase tracking-wider">Sample mentions</div>
-                    {d.samples.slice(0, 2).map((sample, idx) => (
-                      <div key={idx} className="text-[11px] text-content-secondary leading-relaxed pl-2 border-l-2 border-border-secondary">
-                        <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 ${
-                          sample.sentiment === 'positive' ? 'bg-green-500' :
-                          sample.sentiment === 'negative' ? 'bg-red-500' : 'bg-gray-400'
-                        }`} />
-                        &ldquo;{sample.text}&rdquo;
-                        <span className="text-content-faint ml-1">— {sample.platform}</span>
-                      </div>
-                    ))}
+                    {d.samples.slice(0, 2).map((sample, idx) => {
+                      const quoteContent = (
+                        <div className={`text-[11px] text-content-secondary leading-relaxed pl-2 border-l-2 ${
+                          sample.sentiment === 'positive' ? 'border-green-400' :
+                          sample.sentiment === 'negative' ? 'border-red-400' : 'border-border-secondary'
+                        } ${sample.url ? 'hover:bg-surface-secondary/50 rounded-r cursor-pointer transition-colors' : ''}`}>
+                          <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle ${
+                            sample.sentiment === 'positive' ? 'bg-green-500' :
+                            sample.sentiment === 'negative' ? 'bg-red-500' : 'bg-gray-400'
+                          }`} />
+                          &ldquo;{highlightBrandTerms(sample.text).map((seg, si) =>
+                            seg.highlight
+                              ? <span key={si} className="font-semibold text-accent-primary">{seg.text}</span>
+                              : <span key={si}>{seg.text}</span>
+                          )}&rdquo;
+                          <span className="text-content-faint ml-1">
+                            — {sample.platform}
+                            {sample.url && <span className="ml-1 text-accent-primary">↗</span>}
+                          </span>
+                        </div>
+                      );
+                      return sample.url ? (
+                        <a key={idx} href={sample.url} target="_blank" rel="noopener noreferrer" className="block no-underline">
+                          {quoteContent}
+                        </a>
+                      ) : (
+                        <div key={idx}>{quoteContent}</div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
