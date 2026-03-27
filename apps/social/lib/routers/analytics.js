@@ -744,6 +744,18 @@ export const analyticsRouter = router({
     // Instead of grouping by topic name, extract recurring 2-3 word phrases
     // that appear across hits and measure their sentiment correlation.
     const phraseMap = {}; // phrase -> { positive, negative, neutral, total }
+    // Strict brand terms — used with word-boundary regex to avoid matching
+    // common English words like "figure" in "the $180 million figure"
+    const strictBrandPatterns = [
+      /\bfigr\b/i, /\bfigure\s*(tech|markets|technology)\b/i,
+      /\b\$?ylds\b/i, /\bfigure_tech\b/i, /\bfiguretech\b/i,
+      /\bprovenance\b/i, /\bprovenancefdn\b/i,
+      /\bhastra\b/i, /\bhastrafi\b/i,
+      /\bhighland\s*(ventures|vc)\b/i,
+      /\bheloc\b/i, /\bhome\s*equity\b/i,
+      /\btokeniz/i, /\brwa\b/i, /\breal\s*world\s*asset/i,
+    ];
+    // Keep the set for bigram-level filtering (exact word matches)
     const brandTerms = new Set([
       'figure','figr','figure_tech','figuretechnology','figure markets',
       'figuretech','figure technology','provenance','provenancefdn',
@@ -788,9 +800,9 @@ export const analyticsRouter = router({
       const words = cleaned.split(' ').filter((w) => w.length > 2 && !stopwords.has(w));
 
       // Extract bigrams (2-word phrases)
-      // Only include phrases from hits that mention a brand term (brand-relevant content)
-      const contentLower = cleaned;
-      const isBrandRelevant = [...brandTerms].some((t) => contentLower.includes(t));
+      // Only include phrases from hits that mention a brand term (strict matching)
+      const rawContent = hit.content || '';
+      const isBrandRelevant = strictBrandPatterns.some((re) => re.test(rawContent));
       if (!isBrandRelevant) continue; // Skip non-brand content entirely
 
       for (let i = 0; i < words.length - 1; i++) {
