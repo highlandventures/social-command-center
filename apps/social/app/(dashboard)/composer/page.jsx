@@ -110,7 +110,7 @@ export default function ComposerPage() {
     }
     setAiLoading(true);
     setAiSuggestion(null);
-    optimizeMutation.mutate({ tweets: nonEmpty });
+    optimizeMutation.mutate({ tweets: nonEmpty, charLimit, accountTier });
   }, [tweets, postMode, optimizeMutation, toast]);
 
   const handleApplyAiSuggestions = useCallback(() => {
@@ -170,6 +170,21 @@ export default function ComposerPage() {
       setSelectedAccount(platformAccounts[0].username);
     }
   }, [selectedPlatform, platformAccounts.length]);
+
+  // ── Tier-aware limits ────────────────────────────────────
+  const accountTier = selectedAccountObj?.subscriptionTier || 'free';
+  const isPremium = accountTier === 'premium' || accountTier === 'premium_plus';
+  const isPremiumPlus = accountTier === 'premium_plus';
+  const charLimit = selectedPlatform === 'X'
+    ? (isPremium ? 25000 : 280)
+    : 40000; // Reddit has very high limit
+  const canPostArticles = isPremiumPlus;
+  const tierLabel = {
+    free: 'Free',
+    basic: 'Basic',
+    premium: 'Premium',
+    premium_plus: 'Premium+',
+  }[accountTier] || 'Free';
 
   const contentTypeMap = { single: 'POST', thread: 'THREAD', article: 'ARTICLE' };
 
@@ -381,9 +396,19 @@ export default function ComposerPage() {
               ))}
             </div>
           )}
-          {postMode === 'article' && (
+          {/* Account tier badge */}
+          {selectedPlatform === 'X' && (
+            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+              isPremiumPlus ? 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
+              isPremium ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' :
+              'bg-surface-secondary text-content-muted'
+            }`}>
+              {tierLabel}{isPremium ? ` \u2022 ${(charLimit / 1000).toFixed(0)}K chars` : ' \u2022 280 chars'}
+            </span>
+          )}
+          {postMode === 'article' && !canPostArticles && (
             <span className="text-[10px] px-2 py-0.5 bg-amber-50 dark:bg-amber-900/30 text-amber-700 rounded-full font-medium">
-              Premium+ required
+              Premium+ required for Articles
             </span>
           )}
         </div>
@@ -494,14 +519,14 @@ export default function ComposerPage() {
                       </div>
                       <span
                         className={`text-[10px] font-medium tabular-nums ${
-                          tweet.length > 280
+                          tweet.length > charLimit
                             ? 'text-red-500'
-                            : tweet.length > 252
+                            : tweet.length > charLimit * 0.9
                             ? 'text-amber-500'
                             : 'text-gray-300'
                         }`}
                       >
-                        {tweet.length}/280
+                        {tweet.length.toLocaleString()}/{charLimit > 1000 ? `${(charLimit / 1000).toFixed(0)}K` : charLimit}
                       </span>
                     </div>
                     <textarea
@@ -521,9 +546,9 @@ export default function ComposerPage() {
                           : 'Continue the thread...'
                       }
                     />
-                    {tweet.length > 280 && (
+                    {tweet.length > charLimit && (
                       <div className="mt-1 text-[10px] text-red-500 bg-red-50 rounded px-2 py-0.5 inline-block">
-                        +{tweet.length - 280} over limit
+                        +{(tweet.length - charLimit).toLocaleString()} over limit
                       </div>
                     )}
                     <div className="flex items-center gap-1.5 mt-1.5 pt-1.5 border-t border-border-secondary">
@@ -603,7 +628,7 @@ export default function ComposerPage() {
                     {selectedPlatform === 'REDDIT' ? 'Post body (Markdown)' : 'Post'}
                   </span>
                   {selectedPlatform === 'X' && (
-                    <span className="text-[10px] text-content-faint">{tweets[0]?.length || 0}/280</span>
+                    <span className="text-[10px] text-content-faint">{(tweets[0]?.length || 0).toLocaleString()}/{charLimit > 1000 ? `${(charLimit / 1000).toFixed(0)}K` : charLimit}</span>
                   )}
                 </div>
                 {selectedPlatform === 'REDDIT' && (
@@ -700,7 +725,13 @@ export default function ComposerPage() {
                         <p className="text-[11px] text-blue-800 leading-relaxed">
                           {postMode === 'article'
                             ? `Articles with 800-1,500 words get the most engagement. You're at ~${articleBody.split(/\s+/).length} words. Consider adding subheadings every 200-300 words.`
-                            : `This thread has ${activeTweets.length} tweets (optimal: 5-7). Click "✨ Optimize" to get AI-powered suggestions.`}
+                            : isPremium
+                            ? `Premium account — you can post up to 25K chars per tweet. ${isThread
+                                ? `This thread has ${activeTweets.length} tweets. Consider consolidating into fewer, richer posts.`
+                                : 'Consider a single long-form post instead of a thread for deeper engagement.'}`
+                            : `This thread has ${activeTweets.length} tweets (optimal: 5-7). ${charLimit === 280
+                                ? 'Upgrade to X Premium for 25K character posts.'
+                                : ''} Click "✨ Optimize" to get AI-powered suggestions.`}
                         </p>
                         <button
                           onClick={handleAiOptimize}
@@ -857,10 +888,10 @@ export default function ComposerPage() {
                                   <p className="text-[15px] text-[#71767b] italic">Start typing...</p>
                                 )}
                               </div>
-                              {tweetText.length > 280 && (
+                              {tweetText.length > charLimit && (
                                 <div className="mt-1.5 bg-[#67000d]/30 border border-[#f4212e]/30 rounded-lg px-2.5 py-1 inline-block">
                                   <span className="text-[13px] text-[#f4212e] font-medium">
-                                    {tweetText.length - 280} characters over limit
+                                    {(tweetText.length - charLimit).toLocaleString()} characters over limit
                                   </span>
                                 </div>
                               )}

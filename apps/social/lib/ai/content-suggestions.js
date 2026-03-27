@@ -97,14 +97,26 @@ Schema: {"ideas":[{"title":"string","platform":"X|REDDIT","format":"POST|THREAD|
  * @param {Array} tweets - Array of draft tweet strings in thread order
  * @returns {{ optimizedTweets: Array, suggestions: Array, estimatedImprovement: string }}
  */
-export async function optimizeThread(tweets) {
+export async function optimizeThread(tweets, options = {}) {
+  const { charLimit = 280, accountTier = 'free' } = options;
+  const isPremium = accountTier === 'premium' || accountTier === 'premium_plus';
+  const tierContext = isPremium
+    ? `This is an X Premium account with a ${charLimit.toLocaleString()} character limit per post.
+You can suggest consolidating short tweets into fewer, richer long-form posts.
+Premium accounts get better reach with in-depth content — suggest adding context, data, and examples.
+Consider whether a thread is even necessary or if a single long-form post would perform better.`
+    : `This is a free-tier X account with a 280 character limit per post.
+Keep each tweet strictly under 280 characters. Threads of 5-7 tweets perform best.`;
+
   const systemPrompt = `${AI_PREAMBLE}
-Optimize this tweet thread for engagement. Keep each tweet under 280 chars.
-Schema: {"optimizedTweets":["string"],"suggestions":[{"tweetIndex":number,"original":"string","suggestion":"string","reason":"string"}],"estimatedImprovement":"string"}`;
+Optimize this tweet thread for engagement. ${tierContext}
+Schema: {"optimizedTweets":["string"],"suggestions":[{"tweetIndex":number,"original":"string","suggestion":"string","reason":"string"}],"estimatedImprovement":"string","tierAdvice":"string"}`;
 
   try {
     const context = {
       task: 'Optimize this tweet thread for engagement',
+      accountTier,
+      charLimit,
       tweets: tweets.map((text, i) => ({
         position: i + 1,
         text,

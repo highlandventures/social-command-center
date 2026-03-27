@@ -24,6 +24,9 @@ export const accountsRouter = router({
               connectedAt: true,
               isActive: true,
               isTest: true,
+              subscriptionTier: true,
+              followerCount: true,
+              isVerified: true,
             },
           },
         },
@@ -41,10 +44,35 @@ export const accountsRouter = router({
         connectedAt: true,
         isActive: true,
         isTest: true,
+        subscriptionTier: true,
+        followerCount: true,
+        isVerified: true,
       },
       orderBy: { connectedAt: 'desc' },
     });
   }),
+
+  /**
+   * accounts.updateTier
+   * Update an account's X subscription tier and verification status.
+   */
+  updateTier: protectedProcedure
+    .input(
+      z.object({
+        accountId: z.string(),
+        subscriptionTier: z.enum(['free', 'basic', 'premium', 'premium_plus']),
+        isVerified: z.boolean().optional(),
+      })
+    )
+    .mutation(async ({ ctx, input }) => {
+      return ctx.prisma.account.update({
+        where: { id: input.accountId },
+        data: {
+          subscriptionTier: input.subscriptionTier,
+          ...(input.isVerified !== undefined ? { isVerified: input.isVerified } : {}),
+        },
+      });
+    }),
 
   /**
    * accounts.getMetrics

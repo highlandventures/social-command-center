@@ -86,6 +86,12 @@ model Account {
   isActive       Boolean   @default(true)
   isTest         Boolean   @default(false)
 
+  // X (Twitter) subscription tier — affects character limits & features
+  // "free" = 280 chars | "basic" = 280 chars | "premium" = 25K chars | "premium_plus" = 25K + Articles
+  subscriptionTier String   @default("free") // free | basic | premium | premium_plus
+  followerCount    Int?     // cached for quick access (synced from AccountMetrics)
+  isVerified       Boolean  @default(false)
+
   // Relations
   posts          Post[]
   postMetrics    PostMetrics[]

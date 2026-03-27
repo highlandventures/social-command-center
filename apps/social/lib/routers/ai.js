@@ -12,10 +12,15 @@ export const aiRouter = router({
     .input(
       z.object({
         tweets: z.array(z.string()).min(1).max(25),
+        charLimit: z.number().optional().default(280),
+        accountTier: z.string().optional().default('free'),
       })
     )
     .mutation(async ({ input }) => {
-      return optimizeThread(input.tweets);
+      return optimizeThread(input.tweets, {
+        charLimit: input.charLimit,
+        accountTier: input.accountTier,
+      });
     }),
 
   /**
