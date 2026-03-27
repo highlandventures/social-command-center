@@ -132,10 +132,13 @@ export const DeltaBadge = ({ value, pct, invert = false }) => {
   );
 };
 
-export const MetricCard = ({ label, value, delta, deltaLabel, benchmark }) => (
+export const MetricCard = ({ label, value, delta, deltaLabel, benchmark, subValue }) => (
   <div className="bg-surface-card rounded-xl border border-border p-5 hover:shadow-md transition-shadow">
     <p className="text-sm text-content-muted mb-1">{label}</p>
     <p className="text-2xl font-bold text-content-primary">{value}</p>
+    {subValue && (
+      <p className="text-xs text-content-faint mt-0.5">{subValue}</p>
+    )}
     {delta !== undefined && (
       <p className="mt-1.5">
         <span

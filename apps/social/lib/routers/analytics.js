@@ -61,11 +61,11 @@ export const analyticsRouter = router({
         select: { id: true },
       });
 
-      // Current follower counts (latest per account with actual follower data)
+      // Follower counts at the END of the selected period (scoped to date range)
       const latestMetrics = await Promise.all(
         accounts.map((a) =>
           prisma.accountMetrics.findFirst({
-            where: { accountId: a.id, followers: { gt: 0 } },
+            where: { accountId: a.id, followers: { gt: 0 }, date: { lte: until } },
             orderBy: { date: 'desc' },
           })
         )
@@ -74,16 +74,16 @@ export const analyticsRouter = router({
       const totalFollowers = latestMetrics.reduce((sum, m) => sum + (m?.followers ?? 0), 0);
       const totalFollowing = latestMetrics.reduce((sum, m) => sum + (m?.following ?? 0), 0);
 
-      // Follower counts at the midpoint (only records with real data, not 0 placeholders)
-      const midpointFollowerMetrics = await Promise.all(
+      // Follower counts at the START of the selected period (for delta calculation)
+      const startFollowerMetrics = await Promise.all(
         accounts.map((a) =>
           prisma.accountMetrics.findFirst({
-            where: { accountId: a.id, followers: { gt: 0 }, date: { lte: midpoint } },
+            where: { accountId: a.id, followers: { gt: 0 }, date: { lte: since } },
             orderBy: { date: 'desc' },
           })
         )
       );
-      const midpointTotalFollowers = midpointFollowerMetrics.reduce((sum, m) => sum + (m?.followers ?? 0), 0);
+      const midpointTotalFollowers = startFollowerMetrics.reduce((sum, m) => sum + (m?.followers ?? 0), 0);
 
       // Helper: sum metrics from a list of posts
       function sumPostMetrics(posts) {
@@ -161,9 +161,14 @@ export const analyticsRouter = router({
         where: mentionWhere,
       });
 
+      // Net follower growth = end-of-period minus start-of-period
+      const followerNetGrowth = totalFollowers - midpointTotalFollowers;
+
       return {
         totalFollowers,
         totalFollowing,
+        followerNetGrowth,
+        startOfPeriodFollowers: midpointTotalFollowers,
         impressions: thisImpressions,
         impressionsDelta,
         engagements: thisEngagements,
@@ -205,7 +210,7 @@ export const analyticsRouter = router({
       const breakdown = await Promise.all(
         accounts.map(async (account) => {
           const latestMetric = await prisma.accountMetrics.findFirst({
-            where: { accountId: account.id, followers: { gt: 0 } },
+            where: { accountId: account.id, followers: { gt: 0 }, date: { lte: until } },
             orderBy: { date: 'desc' },
           });
 

@@ -587,10 +587,13 @@ export default function DashboardPage() {
             }}
           />
           <MetricCard
-            label="Total Followers"
-            value={totals.followers.toLocaleString()}
+            label="Follower Growth"
+            value={dashboard.followerNetGrowth != null
+              ? `${dashboard.followerNetGrowth >= 0 ? '+' : ''}${dashboard.followerNetGrowth.toLocaleString()}`
+              : totals.followers.toLocaleString()}
             delta={dashboard.followersDelta != null ? +dashboard.followersDelta.toFixed(1) : undefined}
             deltaLabel={deltaLabel}
+            subValue={`${totals.followers.toLocaleString()} total`}
           />
           <MetricCard
             label="Engagements"
