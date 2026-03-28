@@ -76,7 +76,7 @@ function parseFrom(fromHeader) {
  * @param {number} [opts.maxResults=10]
  * @returns {Array<{ id, title, start, end, location, meetLink, allDay, attendeesCount }>}
  */
-export async function getCalendarEvents(accessToken, { timeMin, timeMax, maxResults = 10 }) {
+export async function getCalendarEvents(accessToken, { timeMin, timeMax, timeZone, maxResults = 10 }) {
   const params = new URLSearchParams({
     timeMin,
     timeMax,
@@ -84,6 +84,7 @@ export async function getCalendarEvents(accessToken, { timeMin, timeMax, maxResu
     orderBy: 'startTime',
     maxResults: String(maxResults),
   });
+  if (timeZone) params.set('timeZone', timeZone);
 
   const res = await fetch(
     `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`,
