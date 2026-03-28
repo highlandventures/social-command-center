@@ -135,9 +135,9 @@ export default function HubLayout({ children }) {
                 <line x1="3" y1="18" x2="21" y2="18" />
               </svg>
             </button>
-            <h1 className="text-lg font-bold text-content-primary">
+            <Link href="/" className="text-lg font-bold text-content-primary hover:text-content-secondary transition-colors">
               Marketing Command Center
-            </h1>
+            </Link>
           </div>
 
           <div className="flex items-center gap-3">
