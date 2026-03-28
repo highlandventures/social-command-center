@@ -18,7 +18,7 @@ const DRIVE_API = 'https://www.googleapis.com/drive/v3';
  */
 export async function listDriveFiles(accessToken, {
   pageSize = 10,
-  orderBy = 'modifiedByMeTime desc',
+  orderBy = 'modifiedTime desc',
   query,
   pageToken,
 } = {}) {
@@ -28,7 +28,9 @@ export async function listDriveFiles(accessToken, {
     fields: 'nextPageToken,files(id,name,mimeType,modifiedTime,webViewLink,iconLink,thumbnailLink,owners,shared,starred)',
   });
 
-  if (query) params.set('q', query);
+  // Exclude trashed files by default
+  const baseQuery = query ? `${query} and trashed = false` : 'trashed = false';
+  params.set('q', baseQuery);
   if (pageToken) params.set('pageToken', pageToken);
 
   const res = await fetch(`${DRIVE_API}/files?${params}`, {

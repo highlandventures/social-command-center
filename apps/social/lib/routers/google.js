@@ -102,14 +102,17 @@ export const googleRouter = router({
 
       try {
         const accessToken = await getValidGoogleToken(tokenRecord);
+        console.log('[Drive] Token scopes:', tokenRecord.scopes);
+        console.log('[Drive] Fetching files for user:', ctx.user.id);
         const result = await listDriveFiles(accessToken, {
           pageSize: input.pageSize,
           pageToken: input.pageToken,
         });
+        console.log('[Drive] Got', result.files?.length, 'files');
         return { connected: true, ...result };
       } catch (err) {
-        console.error('Drive list error:', err.message);
-        return { connected: true, files: [], nextPageToken: null, error: 'Failed to fetch Drive files' };
+        console.error('[Drive] Error:', err.message);
+        return { connected: true, files: [], nextPageToken: null, error: err.message };
       }
     }),
 
