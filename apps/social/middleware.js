@@ -20,7 +20,7 @@ const clerkHandler = clerkMiddleware(async (auth, request) => {
   if (!isPublicRoute(request)) {
     const { userId } = await auth();
     if (!userId) {
-      const signInUrl = new URL('/auth/signin', request.url);
+      const signInUrl = new URL('https://accounts.figure.marketing/sign-in');
       signInUrl.searchParams.set('redirect_url', request.url);
       return NextResponse.redirect(signInUrl);
     }
