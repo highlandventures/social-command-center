@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ClerkProvider } from '@clerk/nextjs';
+import { SessionProvider } from 'next-auth/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { httpBatchLink } from '@trpc/client';
 import superjson from 'superjson';
@@ -15,15 +15,13 @@ function getBaseUrl() {
   return `http://localhost:${process.env.PORT ?? 3000}`;
 }
 
-const bypassAuth = process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true';
-
 export default function Providers({ children }) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 5 * 60 * 1000, // 5 minutes
+            staleTime: 5 * 60 * 1000,
             refetchOnWindowFocus: false,
           },
         },
@@ -41,19 +39,17 @@ export default function Providers({ children }) {
     })
   );
 
-  const inner = (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <trpc.Provider client={trpcClient} queryClient={queryClient}>
-        <QueryClientProvider client={queryClient}>
-          <ToastProvider>
-            {children}
-          </ToastProvider>
-        </QueryClientProvider>
-      </trpc.Provider>
-    </ThemeProvider>
+  return (
+    <SessionProvider>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <trpc.Provider client={trpcClient} queryClient={queryClient}>
+          <QueryClientProvider client={queryClient}>
+            <ToastProvider>
+              {children}
+            </ToastProvider>
+          </QueryClientProvider>
+        </trpc.Provider>
+      </ThemeProvider>
+    </SessionProvider>
   );
-
-  // Always wrap with ClerkProvider so useUser() never throws.
-  // Auth *enforcement* is bypassed in middleware, not here.
-  return <ClerkProvider>{inner}</ClerkProvider>;
 }

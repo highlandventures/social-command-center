@@ -1,15 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser, useClerk } from '@clerk/nextjs';
-
-function useUserSafe() {
-  return useUser();
-}
-
-function useClerkSafe() {
-  return useClerk();
-}
+import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -21,8 +13,7 @@ const sections = [
 
 export default function HubLayout({ children }) {
   const pathname = usePathname();
-  const { user: clerkUser } = useUserSafe();
-  const { signOut } = useClerkSafe();
+  const { data: session } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -31,8 +22,9 @@ export default function HubLayout({ children }) {
     setSidebarOpen(false);
   }, [pathname]);
 
-  const userEmail = clerkUser?.primaryEmailAddress?.emailAddress || '';
-  const userInitial = (clerkUser?.firstName?.[0] || userEmail[0] || 'U').toUpperCase();
+  const userEmail = session?.user?.email || '';
+  const userName = session?.user?.name || '';
+  const userInitial = (userName?.[0] || userEmail[0] || 'U').toUpperCase();
 
   return (
     <div className="min-h-screen bg-surface-page">
@@ -88,6 +80,23 @@ export default function HubLayout({ children }) {
           ))}
         </nav>
 
+        {/* Tools section — above footer */}
+        <div className="px-3 mt-4">
+          <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-content-faint">
+            Tools
+          </p>
+          <Link
+            href="/drive"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-content-muted hover:bg-surface-hover hover:text-content-secondary transition-colors"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/>
+              <polyline points="13 2 13 9 20 9"/>
+            </svg>
+            Google Drive
+          </Link>
+        </div>
+
         {/* Sidebar footer — user info & sign out */}
         <div className="absolute bottom-0 left-0 right-0 border-t border-border p-4">
           <div className="flex items-center gap-3 mb-3">
@@ -96,13 +105,13 @@ export default function HubLayout({ children }) {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-content-primary truncate">{userEmail}</p>
-              <p className="text-xs text-content-muted">{clerkUser?.publicMetadata?.role || 'User'}</p>
+              <p className="text-xs text-content-muted">{session?.user?.role || 'User'}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <button
-              onClick={() => signOut({ redirectUrl: '/auth/signin' })}
+              onClick={() => signOut({ callbackUrl: '/auth/signin' })}
               className="text-xs text-red-600 dark:text-red-400 hover:underline"
             >
               Sign out
@@ -155,11 +164,11 @@ export default function HubLayout({ children }) {
                         {userEmail}
                       </p>
                       <p className="text-xs text-content-muted">
-                        {clerkUser?.publicMetadata?.role || 'User'}
+                        {session?.user?.role || 'User'}
                       </p>
                     </div>
                     <button
-                      onClick={() => signOut()}
+                      onClick={() => signOut({ callbackUrl: '/auth/signin' })}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                     >
                       Sign out

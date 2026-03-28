@@ -4,15 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { trpc } from '@/lib/trpc-client';
-import { useUser, useClerk } from '@clerk/nextjs';
-
-function useUserSafe() {
-  return useUser();
-}
-
-function useClerkSafe() {
-  return useClerk();
-}
+import { useSession, signOut } from 'next-auth/react';
 import { Avatar } from '@/components/ui';
 import { AccountProvider } from '@/lib/account-context';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -32,8 +24,7 @@ const tabs = [
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
-  const { user: clerkUser } = useUserSafe();
-  const { signOut } = useClerkSafe();
+  const { data: session } = useSession();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState(null); // null = "All Accounts"
@@ -50,8 +41,9 @@ export default function DashboardLayout({ children }) {
   });
 
   const accountsList = (accounts ?? []).filter((a) => !a.isTest);
-  const userEmail = clerkUser?.primaryEmailAddress?.emailAddress || '';
-  const userInitial = (clerkUser?.firstName?.[0] || userEmail[0] || 'U').toUpperCase();
+  const userEmail = session?.user?.email || '';
+  const userName = session?.user?.name || '';
+  const userInitial = (userName?.[0] || userEmail[0] || 'U').toUpperCase();
 
   /** Check if this tab href matches the current route */
   const isActive = (href) => {
@@ -136,13 +128,13 @@ export default function DashboardLayout({ children }) {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-content-primary truncate">{userEmail}</p>
-              <p className="text-xs text-content-muted">{clerkUser?.publicMetadata?.role || 'User'}</p>
+              <p className="text-xs text-content-muted">{session?.user?.role || 'User'}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <button
-              onClick={() => signOut({ redirectUrl: '/auth/signin' })}
+              onClick={() => signOut({ callbackUrl: '/auth/signin' })}
               className="text-xs text-red-600 dark:text-red-400 hover:underline"
             >
               Sign out
@@ -283,10 +275,10 @@ export default function DashboardLayout({ children }) {
                   >
                     <div className="px-4 py-2 border-b border-border-secondary">
                       <p className="text-sm font-medium text-content-primary truncate">{userEmail}</p>
-                      <p className="text-xs text-content-muted">{clerkUser?.publicMetadata?.role || 'User'}</p>
+                      <p className="text-xs text-content-muted">{session?.user?.role || 'User'}</p>
                     </div>
                     <button
-                      onClick={() => signOut({ redirectUrl: '/auth/signin' })}
+                      onClick={() => signOut({ callbackUrl: '/auth/signin' })}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                     >
                       Sign out
