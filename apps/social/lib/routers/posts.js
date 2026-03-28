@@ -32,9 +32,18 @@ export const postsRouter = router({
       if (accountId) where.accountId = accountId;
       if (platform) where.platform = platform;
       if (since || until) {
-        where.publishedAt = {};
-        if (since) where.publishedAt.gte = new Date(since + 'T00:00:00Z');
-        if (until) where.publishedAt.lte = new Date(until + 'T23:59:59.999Z');
+        // Calendar needs both published AND scheduled posts in the date range.
+        // Use OR: publishedAt in range OR scheduledFor in range.
+        const dateGte = since ? new Date(since + 'T00:00:00Z') : undefined;
+        const dateLte = until ? new Date(until + 'T23:59:59.999Z') : undefined;
+        const publishedFilter = {};
+        const scheduledFilter = {};
+        if (dateGte) { publishedFilter.gte = dateGte; scheduledFilter.gte = dateGte; }
+        if (dateLte) { publishedFilter.lte = dateLte; scheduledFilter.lte = dateLte; }
+        where.OR = [
+          { publishedAt: publishedFilter },
+          { scheduledFor: scheduledFilter },
+        ];
       }
       if (excludeReplies) {
         where.content = { not: { startsWith: '@' } };
