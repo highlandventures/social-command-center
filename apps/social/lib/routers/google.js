@@ -12,8 +12,9 @@ export const googleRouter = router({
   connectionStatus: protectedProcedure.query(async ({ ctx }) => {
     const token = await ctx.prisma.googleOAuthToken.findUnique({
       where: { userId: ctx.user.id },
-      select: { googleEmail: true },
+      select: { googleEmail: true, scopes: true, tokenExpiresAt: true },
     });
+    console.log('[Google] connectionStatus for user:', ctx.user.id, '→', token ? `connected (${token.googleEmail}, scopes: ${token.scopes}, expires: ${token.tokenExpiresAt})` : 'not connected');
     return {
       connected: !!token,
       googleEmail: token?.googleEmail || null,
