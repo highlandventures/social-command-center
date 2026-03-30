@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { router, protectedProcedure } from '../trpc';
+import { router, protectedProcedure, internalProcedure } from '../trpc';
 import {
   queryTasks,
   createTask,
@@ -49,7 +49,7 @@ export const notionTasksRouter = router({
    * notionTasks.create
    * File a new task — stored in Prisma, synced to Notion on a schedule.
    */
-  create: protectedProcedure
+  create: internalProcedure
     .input(
       z.object({
         title: z.string().min(1, 'Task name is required'),
@@ -84,7 +84,7 @@ export const notionTasksRouter = router({
    * notionTasks.update
    * Update an existing task.
    */
-  update: protectedProcedure
+  update: internalProcedure
     .input(
       z.object({
         taskId: z.string().min(1),

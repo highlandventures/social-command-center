@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, protectedProcedure } from '../trpc';
+import { router, protectedProcedure, internalProcedure } from '../trpc';
 import { scoreKOL } from '../ai/kol-scoring';
 import { generateKOLScorecard } from '../ai/reports';
 
@@ -118,7 +118,7 @@ export const kolRouter = router({
    * kol.create
    * Create a new KOL record.
    */
-  create: protectedProcedure
+  create: internalProcedure
     .input(
       z.object({
         name: z.string().min(1),
@@ -224,7 +224,7 @@ export const kolRouter = router({
    * kol.update
    * Update a KOL's editable fields (relationship type, compensation, etc.).
    */
-  update: protectedProcedure
+  update: internalProcedure
     .input(
       z.object({
         kolId: z.string(),
@@ -264,7 +264,7 @@ export const kolRouter = router({
    * kol.deactivate
    * Soft-delete a KOL by setting active=false.
    */
-  deactivate: protectedProcedure
+  deactivate: internalProcedure
     .input(z.object({ kolId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const kol = await ctx.prisma.kOL.findUnique({ where: { id: input.kolId } });
@@ -282,7 +282,7 @@ export const kolRouter = router({
    * kol.reactivate
    * Re-enable a previously deactivated KOL.
    */
-  reactivate: protectedProcedure
+  reactivate: internalProcedure
     .input(z.object({ kolId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const kol = await ctx.prisma.kOL.findUnique({ where: { id: input.kolId } });
@@ -343,7 +343,7 @@ export const kolRouter = router({
    * kol.score
    * AI-score a single KOL using Claude. Updates aiScore, aiScoreRationale, aiScoreUpdatedAt.
    */
-  score: protectedProcedure
+  score: internalProcedure
     .input(z.object({ kolId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const kol = await ctx.prisma.kOL.findUnique({ where: { id: input.kolId } });
@@ -380,7 +380,7 @@ export const kolRouter = router({
    * kol.enrichProfile
    * Fetch latest profile data from Twitter API and generate AI profile summary.
    */
-  enrichProfile: protectedProcedure
+  enrichProfile: internalProcedure
     .input(z.object({ kolId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const kol = await ctx.prisma.kOL.findUnique({ where: { id: input.kolId } });
@@ -448,7 +448,7 @@ export const kolRouter = router({
    * kol.scoreAll
    * AI-score all active KOLs using Claude. Returns summary of results.
    */
-  scoreAll: protectedProcedure.mutation(async ({ ctx }) => {
+  scoreAll: internalProcedure.mutation(async ({ ctx }) => {
     const kols = await ctx.prisma.kOL.findMany({ where: { active: true } });
     const results = [];
 

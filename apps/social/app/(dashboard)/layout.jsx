@@ -8,6 +8,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { Avatar } from '@/components/ui';
 import { AccountProvider } from '@/lib/account-context';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { getVisibleTabs, canAccessHub } from '@/lib/permissions';
 
 const tabs = [
   { key: "/intelligence", label: "Intelligence", icon: "🧠" },
@@ -44,6 +45,9 @@ export default function DashboardLayout({ children }) {
   const userEmail = session?.user?.email || '';
   const userName = session?.user?.name || '';
   const userInitial = (userName?.[0] || userEmail[0] || 'U').toUpperCase();
+  const userRole = session?.user?.role || 'INTERNAL';
+  const visibleTabs = getVisibleTabs(userRole, tabs);
+  const showHubLink = canAccessHub(userRole);
 
   /** Check if this tab href matches the current route */
   const isActive = (href) => {
@@ -90,18 +94,20 @@ export default function DashboardLayout({ children }) {
 
         {/* Navigation links */}
         <nav className="py-2 px-3 flex flex-col gap-0.5">
-          {/* Back to hub */}
-          <Link
-            href="/"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-content-faint hover:text-content-secondary hover:bg-surface-hover transition-colors mb-1"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-            Marketing Hub
-          </Link>
+          {/* Back to hub — hidden for Agency users */}
+          {showHubLink && (
+            <Link
+              href="/"
+              className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-content-faint hover:text-content-secondary hover:bg-surface-hover transition-colors mb-1"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+              Marketing Hub
+            </Link>
+          )}
           <div className="border-t border-border-secondary mb-1" />
-          {tabs.map((tab) => {
+          {visibleTabs.map((tab) => {
             const active = isActive(tab.key);
             return (
               <Link

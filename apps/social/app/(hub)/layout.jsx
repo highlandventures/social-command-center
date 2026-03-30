@@ -5,6 +5,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { canAccessHub } from '@/lib/permissions';
 
 const sections = [
   { key: '/dashboard', label: 'Social Command Center', icon: '💬' },
@@ -25,6 +26,28 @@ export default function HubLayout({ children }) {
   const userEmail = session?.user?.email || '';
   const userName = session?.user?.name || '';
   const userInitial = (userName?.[0] || userEmail[0] || 'U').toUpperCase();
+  const userRole = session?.user?.role || 'INTERNAL';
+
+  // Agency users are scoped to the Social module only — redirect them there
+  if (session && !canAccessHub(userRole)) {
+    return (
+      <div className="min-h-screen bg-surface-page flex items-center justify-center">
+        <div className="text-center max-w-sm">
+          <div className="text-4xl mb-4">🔒</div>
+          <h2 className="text-xl font-bold text-content-primary mb-2">Hub access restricted</h2>
+          <p className="text-sm text-content-muted mb-6">
+            Your account is scoped to the Social Command Center. Contact an admin to request broader access.
+          </p>
+          <a
+            href="/dashboard"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Go to Social Command Center
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-surface-page">

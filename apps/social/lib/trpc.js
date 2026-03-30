@@ -90,3 +90,29 @@ const enforceAdmin = t.middleware(({ ctx, next }) => {
  * Admin procedure — requires ADMIN role.
  */
 export const adminProcedure = t.procedure.use(enforceAdmin);
+
+/**
+ * Middleware that blocks AGENCY role from write/modify operations.
+ * ADMIN and INTERNAL can proceed; AGENCY gets FORBIDDEN.
+ */
+const enforceInternal = t.middleware(({ ctx, next }) => {
+  if (!ctx.session?.user) {
+    throw new TRPCError({ code: 'UNAUTHORIZED', message: 'You must be signed in.' });
+  }
+  if (ctx.session.user.role === 'AGENCY') {
+    throw new TRPCError({ code: 'FORBIDDEN', message: 'This action requires Internal or Admin access.' });
+  }
+  return next({
+    ctx: {
+      ...ctx,
+      session: ctx.session,
+      user: ctx.session.user,
+    },
+  });
+});
+
+/**
+ * Internal procedure — requires ADMIN or INTERNAL role (blocks AGENCY).
+ * Use for any write/modify mutation that agency users should not perform.
+ */
+export const internalProcedure = t.procedure.use(enforceInternal);

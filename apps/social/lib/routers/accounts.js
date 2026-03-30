@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { router, protectedProcedure } from '../trpc';
+import { router, protectedProcedure, internalProcedure } from '../trpc';
 
 export const accountsRouter = router({
   /**
@@ -56,7 +56,7 @@ export const accountsRouter = router({
    * accounts.updateTier
    * Update an account's X subscription tier and verification status.
    */
-  updateTier: protectedProcedure
+  updateTier: internalProcedure
     .input(
       z.object({
         accountId: z.string(),
