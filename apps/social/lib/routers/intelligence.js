@@ -146,6 +146,19 @@ export const intelligenceRouter = router({
     }),
 
   /**
+   * Get latest X Competitor Audit
+   * Returns the deep-dive competitor intelligence report
+   */
+  getXCompetitorAudit: protectedProcedure
+    .query(async ({ ctx }) => {
+      const { prisma } = ctx;
+      return prisma.aIInsight.findFirst({
+        where: { insightType: 'X_COMPETITOR_AUDIT', dismissed: false },
+        orderBy: { generatedAt: 'desc' },
+      });
+    }),
+
+  /**
    * Create manual task
    */
   createTask: protectedProcedure

@@ -715,6 +715,7 @@ enum InsightType {
   AUDIENCE_QUESTION
   X_ANALYST_REPORT
   X_COCREATOR_CONTEXT
+  X_COMPETITOR_AUDIT
 }
 
 // ============================================================

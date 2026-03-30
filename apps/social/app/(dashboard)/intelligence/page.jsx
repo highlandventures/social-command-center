@@ -312,6 +312,191 @@ function XAnalystCard({ report, isLoading }) {
   );
 }
 
+// ── Competitor Audit Card ──
+function CompetitorAuditCard({ audit, isLoading }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="bg-surface-card border border-border rounded-lg p-6 animate-pulse">
+        <div className="h-5 bg-surface-hover rounded w-1/3 mb-4" />
+        <div className="space-y-2">
+          <div className="h-3 bg-surface-hover rounded w-full" />
+          <div className="h-3 bg-surface-hover rounded w-4/5" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!audit?.content) {
+    return (
+      <div className="bg-surface-card border border-border rounded-lg p-6">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-base">🔍</span>
+          <h2 className="text-lg font-bold text-content-primary">Competitor Audit</h2>
+        </div>
+        <p className="text-sm text-content-muted">
+          No competitor audit yet. Runs automatically Mon/Wed/Fri at 7 AM UTC alongside the X analyst report.
+        </p>
+      </div>
+    );
+  }
+
+  const data = audit.content;
+  const generatedDate = new Date(audit.generatedAt).toLocaleDateString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric',
+  });
+
+  const threatColor = (level) => {
+    if (level === 'high') return 'text-red-600 bg-red-50 dark:bg-red-900/10';
+    if (level === 'moderate') return 'text-orange-600 bg-orange-50 dark:bg-orange-900/10';
+    return 'text-green-600 bg-green-50 dark:bg-green-900/10';
+  };
+
+  return (
+    <div className="bg-surface-card border border-border rounded-lg p-6 space-y-5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-base">🔍</span>
+          <h2 className="text-lg font-bold text-content-primary">Competitor Audit</h2>
+          <span className="text-[10px] text-content-muted bg-surface-hover px-2 py-0.5 rounded-full">{generatedDate}</span>
+          {data.runMode && (
+            <span className="text-[10px] text-blue-600 bg-blue-50 dark:bg-blue-900/10 px-2 py-0.5 rounded-full">
+              {data.runMode === 'monday_full' ? 'Full' : data.runMode === 'wednesday_pulse' ? 'Mid-week' : 'Wrap'}
+            </span>
+          )}
+        </div>
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+        >
+          {expanded ? 'Collapse' : 'Expand'}
+        </button>
+      </div>
+
+      {/* Landscape summary — always visible */}
+      {data.overallLandscape && (
+        <p className="text-sm text-content-secondary leading-relaxed">{data.overallLandscape}</p>
+      )}
+
+      {/* Threat overview — always visible */}
+      {data.competitors && (
+        <div>
+          <h3 className="text-sm font-semibold text-content-primary mb-2">Threat Levels</h3>
+          <div className="flex flex-wrap gap-2">
+            {data.competitors.map((c, i) => (
+              <span key={i} className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium ${threatColor(c.threatLevel)}`}>
+                {c.handle}
+                <span className="text-[9px] uppercase opacity-70">{c.threatLevel}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Narrative Gaps — always visible (these are opportunities) */}
+      {data.narrativeGaps?.length > 0 && (
+        <div>
+          <h3 className="text-sm font-semibold text-content-primary mb-2">Narrative Gaps to Exploit</h3>
+          <div className="space-y-1.5">
+            {data.narrativeGaps.map((gap, i) => (
+              <div key={i} className="p-2.5 bg-green-50 dark:bg-green-900/10 rounded-lg">
+                <p className="text-xs font-medium text-green-700 dark:text-green-300">{gap.gap}</p>
+                <p className="text-[10px] text-content-secondary mt-0.5">→ {gap.opportunity}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Expanded: full competitor details */}
+      {expanded && data.competitors && (
+        <div className="space-y-5 pt-2 border-t border-border-secondary">
+          {data.competitors.map((comp, i) => (
+            <div key={i} className="space-y-3">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-content-primary">{comp.handle}</h3>
+                <span className="text-[10px] text-content-muted">{comp.category}</span>
+                {comp.trendSinceLastAudit && (
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                    comp.trendSinceLastAudit === 'new' ? 'bg-yellow-100 text-yellow-700' :
+                    comp.trendSinceLastAudit === 'declining' ? 'bg-green-100 text-green-700' :
+                    'bg-gray-100 text-gray-600'
+                  }`}>
+                    {comp.trendSinceLastAudit}
+                  </span>
+                )}
+              </div>
+
+              {comp.narrativeTerritory && (
+                <p className="text-xs text-content-secondary"><span className="font-medium">Owns:</span> {comp.narrativeTerritory}</p>
+              )}
+
+              {comp.contentStrategy && (
+                <div className="p-3 bg-surface-hover rounded-lg space-y-1">
+                  <p className="text-[10px] text-content-muted">Posting: ~{comp.contentStrategy.postingFrequency}/day</p>
+                  <p className="text-[10px] text-content-muted">Formats: {comp.contentStrategy.primaryFormats?.join(', ')}</p>
+                  <p className="text-[10px] text-content-muted">Voice: {comp.contentStrategy.toneAndVoice}</p>
+                  <p className="text-xs text-content-secondary mt-1"><span className="font-medium">Top tactic:</span> {comp.contentStrategy.topTacticThisPeriod}</p>
+                </div>
+              )}
+
+              {comp.vsOurAccounts && (
+                <p className="text-xs text-content-secondary"><span className="font-medium">vs. Us:</span> {comp.vsOurAccounts}</p>
+              )}
+
+              {comp.stealableIdeas?.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-semibold text-content-primary mb-1">Stealable Ideas:</p>
+                  {comp.stealableIdeas.map((idea, j) => (
+                    <div key={j} className="p-2 bg-blue-50 dark:bg-blue-900/10 rounded mb-1">
+                      <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">{idea.idea}</p>
+                      <p className="text-[10px] text-content-muted">For {idea.adaptFor}: {idea.howToAdapt}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Emerging Threats */}
+          {data.emergingThreats?.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-content-primary mb-2">Emerging Threats</h3>
+              {data.emergingThreats.map((t, i) => (
+                <div key={i} className="p-3 bg-red-50 dark:bg-red-900/10 rounded-lg mb-2">
+                  <p className="text-xs font-medium text-red-700 dark:text-red-300">{t.threat}</p>
+                  <p className="text-[10px] text-content-muted">Source: {t.source}</p>
+                  <p className="text-[10px] text-content-secondary mt-1">→ {t.recommendedResponse}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Trending Tactics */}
+          {data.tacticsTrending?.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-content-primary mb-2">Trending Tactics</h3>
+              {data.tacticsTrending.map((t, i) => (
+                <div key={i} className="p-3 bg-surface-hover rounded-lg mb-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-[10px] font-bold ${t.shouldWeAdopt ? 'text-green-600' : 'text-gray-500'}`}>
+                      {t.shouldWeAdopt ? '✓ ADOPT' : '— SKIP'}
+                    </span>
+                    <span className="text-[10px] text-content-muted">Used by: {t.usedBy?.join(', ')}</span>
+                  </div>
+                  <p className="text-xs text-content-secondary">{t.tactic}</p>
+                  {t.adaptationNotes && <p className="text-[10px] text-content-muted mt-1">→ {t.adaptationNotes}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Task Card ──
 function TaskCard({ task, onComplete, onDismiss, onSnooze }) {
   const [snoozeOpen, setSnoozeOpen] = useState(false);
@@ -426,6 +611,7 @@ export default function IntelligencePage() {
   // Fetch data
   const briefingQ = trpc.intelligence.getBriefing.useQuery();
   const xAnalystQ = trpc.intelligence.getXAnalystReport.useQuery();
+  const xAuditQ = trpc.intelligence.getXCompetitorAudit.useQuery();
   const tasksQ = trpc.intelligence.getTasks.useQuery({ status: 'PENDING' });
   const completedQ = trpc.intelligence.getTasks.useQuery({ status: 'COMPLETED', limit: 20 });
 
@@ -478,6 +664,12 @@ export default function IntelligencePage() {
       <XAnalystCard
         report={xAnalystQ.data}
         isLoading={xAnalystQ.isLoading}
+      />
+
+      {/* Competitor Deep Dive */}
+      <CompetitorAuditCard
+        audit={xAuditQ.data}
+        isLoading={xAuditQ.isLoading}
       />
 
       {/* Task Inbox */}
