@@ -2,13 +2,13 @@
 
 import NotionTasksSection from '@/components/hub/NotionTasksSection';
 
-export default function NotionTasksPage() {
+export default function LCReviewPage() {
   return (
     <div>
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-content-primary mb-1">Marketing Tasks</h2>
+        <h2 className="text-2xl font-bold text-content-primary mb-1">L&amp;C Review</h2>
         <p className="text-content-muted">
-          File new tasks and track updates from the Notion Marketing Tasks database.
+          File tasks for legal &amp; compliance review and track status updates.
         </p>
       </div>
       <div className="max-w-2xl">

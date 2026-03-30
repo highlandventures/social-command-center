@@ -96,11 +96,11 @@ export default function HubLayout({ children }) {
             Google Drive
           </Link>
           <Link
-            href="/notion-tasks"
+            href="/lc-review"
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-content-muted hover:bg-surface-hover hover:text-content-secondary transition-colors"
           >
-            <span className="text-base">📋</span>
-            Marketing Tasks
+            <span className="text-base">⚖️</span>
+            L&amp;C Review
           </Link>
         </div>
 
