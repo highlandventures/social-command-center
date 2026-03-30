@@ -610,6 +610,20 @@ function getTopicKeyTerms(topic) {
  */
 export async function analyzeAudienceQuestions() {
   try {
+    // Rate-limit to once per 24 hours — this analysis is expensive and
+    // the underlying data (30-day hits) doesn't change meaningfully every 10 min.
+    const lastInsight = await prisma.aIInsight.findFirst({
+      where: { insightType: 'AUDIENCE_QUESTION' },
+      orderBy: { generatedAt: 'desc' },
+      select: { generatedAt: true },
+    });
+    if (lastInsight) {
+      const hoursSinceLast = (Date.now() - new Date(lastInsight.generatedAt).getTime()) / (1000 * 60 * 60);
+      if (hoursSinceLast < 24) {
+        return { questions: 0, clusters: 0, skipped: true };
+      }
+    }
+
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
 
@@ -822,6 +836,12 @@ IMPORTANT:
 
     // Sort clusters by opportunity score descending
     enrichedClusters.sort((a, b) => b.opportunityScore - a.opportunityScore);
+
+    // Skip DB write if Claude returned nothing useful
+    if (enrichedQuestions.length === 0) {
+      console.log('Audience question analysis: Claude returned no questions — skipping DB write');
+      return { questions: 0, clusters: 0 };
+    }
 
     // Dismiss old AUDIENCE_QUESTION insights
     await prisma.aIInsight.updateMany({
