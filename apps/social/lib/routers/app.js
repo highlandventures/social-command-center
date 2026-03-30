@@ -26,6 +26,7 @@ import { emailSubscribersRouter } from './email-subscribers';
 import { emailTemplatesRouter } from './email-templates';
 import { emailCampaignsRouter } from './email-campaigns';
 import { intelligenceRouter } from './intelligence';
+import { notionTasksRouter } from './notion-tasks';
 
 export const appRouter = router({
   accounts: accountsRouter,
@@ -55,6 +56,7 @@ export const appRouter = router({
   emailTemplates: emailTemplatesRouter,
   emailCampaigns: emailCampaignsRouter,
   intelligence: intelligenceRouter,
+  notionTasks: notionTasksRouter,
 });
 
 /** @typedef {typeof appRouter} AppRouter */

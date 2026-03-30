@@ -95,6 +95,13 @@ export default function HubLayout({ children }) {
             </svg>
             Google Drive
           </Link>
+          <Link
+            href="/notion-tasks"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-content-muted hover:bg-surface-hover hover:text-content-secondary transition-colors"
+          >
+            <span className="text-base">📋</span>
+            Marketing Tasks
+          </Link>
         </div>
 
         {/* Connected Services */}

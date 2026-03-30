@@ -39,6 +39,7 @@ model User {
   copilotThreads     CopilotThread[]
   googleOAuth        GoogleOAuthToken?
   homeTasks          HomeTask[]
+  notionTaskInbox    NotionTaskInbox[]
 
   @@map("users")
 }
@@ -1330,4 +1331,49 @@ model EmailEvent {
   @@index([subscriberId, eventType])
   @@index([occurredAt])
   @@map("email_events")
+}
+
+// ============================================================
+// NOTION TASK INBOX
+// Tasks filed from Social Command → synced to Notion Task Inbox
+// → Notion automation copies to main Marketing Tasks database
+// ============================================================
+
+model NotionTaskInbox {
+  id               String   @id @default(cuid())
+  userId           String
+  title            String
+  status                  String    @default("Not Started")   // Not Started, In Progress, Done, Ready for Compliance, On Hold
+  flllcComplianceStatus   String    @default("Not Needed")    // FLLLC: Not Needed, Legal Review, Not Started, Comments Added, Comments Addressed, In Progress, Approved
+  fmComplianceStatus      String    @default("Not Needed")    // FM: same options as FLLLC
+  legalStatus             String?                              // Not Needed, Not Started, In Progress, Comments Added, Comments Addressed, Approved
+  reviewPriority          String?                              // High, Medium, Low, Nice to have someday
+  due                     DateTime?
+  lcDueDate               DateTime?                            // L&C Due Date
+  publishDate             DateTime?                            // Publish Date
+  product                 String[]                             // Multi-select: 21 options
+  channel                 String[]                             // Multi-select: 26 options
+  audience                String[]                             // Multi-select: 10 options
+  socialChannel           String[]                             // Multi-select: YT, LI, Twitter, FB, IG, Reddit
+  company                 String[]                             // Multi-select: Figure, Figure Lending LLC (NY), etc.
+  geo                     String[]                             // Multi-select: International, US (National), etc.
+  editorialReviewStage    String?                              // Bill (create), Figure Editorial Review, Bill (Edit), Ready to Publish
+  needComplianceApproval  Boolean   @default(false)
+  archivedForCompliance   Boolean   @default(false)
+  notes                   String?
+  summary                 String?
+  lexionUrl               String?                              // Lexion URL
+  shortcutTicketUrl       String?                              // Shortcut Ticket URL
+  filedBy                 String                               // Email of person who filed
+  notionPageId     String?  // Set after synced to Notion
+  syncedAt         DateTime? // Timestamp when synced to Notion
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([syncedAt])
+  @@index([createdAt])
+  @@map("notion_task_inbox")
 }
