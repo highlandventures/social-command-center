@@ -740,181 +740,83 @@ export const analyticsRouter = router({
 
     const score = total > 0 ? Math.round(((positive - negative) / total) * 100 + 50) : 50;
 
-    // Build sentiment drivers from content-level phrase extraction.
-    // Instead of grouping by topic name, extract recurring 2-3 word phrases
-    // that appear across hits and measure their sentiment correlation.
-    const phraseMap = {}; // phrase -> { positive, negative, neutral, total }
-    // Strict brand terms — used with word-boundary regex to avoid matching
-    // common English words like "figure" in "the $180 million figure"
-    const strictBrandPatterns = [
-      /\bfigr\b/i, /\bfigure\s*(tech|markets|technology)\b/i,
-      /\b\$?ylds\b/i, /\bfigure_tech\b/i, /\bfiguretech\b/i,
-      /\bprovenance\b/i, /\bprovenancefdn\b/i,
-      /\bhastra\b/i, /\bhastrafi\b/i,
-      /\bhighland\s*(ventures|vc)\b/i,
-      /\bheloc\b/i, /\bhome\s*equity\b/i,
-      /\btokeniz/i, /\brwa\b/i, /\breal\s*world\s*asset/i,
+    // Build sentiment drivers grouped by Figure ecosystem brand terms.
+    // Each card represents a brand/product and shows its sentiment breakdown.
+    const BRAND_GROUPS = [
+      { label: 'Figure', patterns: [/\bfigure\s*(tech|markets|technology|lending|connect|securities|ats|prime)?\b/i, /\bfigr\b/i, /\b\$figr\b/i, /\bfigure_tech\b/i, /\bfiguretech\b/i] },
+      { label: 'YLDS', patterns: [/\b\$?ylds\b/i] },
+      { label: 'Provenance', patterns: [/\bprovenance\b/i, /\bprovenancefdn\b/i, /\b\$?hash\b/i] },
+      { label: 'Hastra', patterns: [/\bhastra\b/i, /\bhastrafi\b/i] },
+      { label: 'Tokenization / RWA', patterns: [/\btokeniz/i, /\brwa\b/i, /\breal\s*world\s*asset/i] },
+      { label: 'HELOC / Lending', patterns: [/\bheloc\b/i, /\bhome\s*equity\b/i, /\bfigure\s*lending\b/i] },
     ];
-    // Keep the set for bigram-level filtering (exact word matches)
-    const brandTerms = new Set([
-      'figure','figr','figure_tech','figuretechnology','figure markets',
-      'figuretech','figure technology','provenance','provenancefdn',
-      'hastra','hastrafi','highland','ylds','heloc','home equity',
-      'lending','mortgage',
-    ]);
-    const stopPhrases = new Set([
-      'read more','click here','check out','learn more','find out',
-      'sign up','last week','next week','right now','let know',
-      'mar 2026','feb 2026','jan 2026','apr 2026','may 2026',
-      'jun 2026','jul 2026','aug 2026','sep 2026','oct 2026',
-    ]);
-    // Filter out generic crypto/market noise that isn't brand-relevant
-    const noiseTerms = new Set([
-      'btc','eth','sol','xrp','bnb','ada','doge','shib','trx','avax',
-      'matic','dot','link','atom','near','apt','sui','sei','arb','usdt',
-      'usdc','busd','gmt','nft','nfts','airdrop','binance','coinbase',
-      'bybit','okx','kucoin','pump','dump','moon','hodl','fomo',
-      'leo','ton','icp','fil','hbar','vet','algo','egld','theta',
-      'ftm','mana','sand','axs','gala','imx','ape','ldo','mkr',
-      'snx','crv','aave','uni','cake','sushi','comp',
-    ]);
-    // Known Figure ecosystem tickers — these are NOT noise
-    const figureTickers = new Set(['$figr','$ylds','$hash','$prime','figr','ylds','hash','prime']);
-    // Detect market roundup posts (lists of many token prices)
-    const MARKET_ROUNDUP_RE = /\b(BTC|ETH|SOL|BNB|XRP|ADA|DOGE|TRX|AVAX|DOT):\s*\$[\d,.]+/gi;
+
+    const brandBuckets = {};
+    for (const bg of BRAND_GROUPS) {
+      brandBuckets[bg.label] = { positive: 0, negative: 0, neutral: 0, total: 0, samples: [] };
+    }
 
     for (const hit of recentHits) {
       if (!hit.content) continue;
       const s = (hit.sentiment || 'NEUTRAL').toLowerCase();
+      const raw = hit.content;
 
-      // Clean content and extract bigrams/trigrams
-      const cleaned = hit.content.toLowerCase()
-        .replace(/https?:\/\/\S+/g, '')
-        .replace(/@\w+/g, '')
-        .replace(/[^a-z0-9\s$%]/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-
-      const stopwords = new Set([
-        'the','a','an','is','are','was','were','be','been','being','have','has','had',
-        'do','does','did','will','would','shall','should','may','might','can','could',
-        'and','but','or','nor','not','so','yet','for','with','from','into','about',
-        'that','this','these','those','it','its','of','in','on','at','to','by','as',
-        'if','than','then','just','very','also','more','most','all','any','each','our',
-        'your','their','what','which','who','how','when','where','https','http','co',
-        'rt','via','amp','like','get','got','going','been','one','way','still','even',
-        'much','really','think','dont','thats','theyre','youre','wont','cant',
-      ]);
-
-      const words = cleaned.split(' ').filter((w) => w.length > 2 && !stopwords.has(w));
-
-      // Extract bigrams (2-word phrases)
-      // Only include phrases from hits that mention a brand term (strict matching)
-      const rawContent = hit.content || '';
-      const isBrandRelevant = strictBrandPatterns.some((re) => re.test(rawContent));
-      if (!isBrandRelevant) continue; // Skip non-brand content entirely
-
-      // Skip market roundup posts (lists prices for many tokens)
-      const roundupMatches = rawContent.match(MARKET_ROUNDUP_RE);
-      if (roundupMatches && roundupMatches.length >= 3) continue;
-
-      for (let i = 0; i < words.length - 1; i++) {
-        const bigram = `${words[i]} ${words[i + 1]}`;
-        // Skip brand-only phrases, stop phrases, and crypto noise
-        if (brandTerms.has(words[i]) && brandTerms.has(words[i + 1])) continue;
-        if (stopPhrases.has(bigram)) continue;
-        if (noiseTerms.has(words[i]) || noiseTerms.has(words[i + 1])) continue;
-        // Skip any $TICKER that isn't a known Figure ticker
-        if (/^\$\w+$/.test(words[i]) && !figureTickers.has(words[i])) continue;
-        if (/^\$\w+$/.test(words[i + 1]) && !figureTickers.has(words[i + 1])) continue;
-        // Skip phrases that are just prices/numbers (e.g., "$100", "031")
-        if (/^\$?\d+$/.test(words[i]) && /^\$?\d+$/.test(words[i + 1])) continue;
-        // Skip if either word is a number with $ prefix (price like "$100")
-        if (/^\$\d/.test(words[i]) || /^\$\d/.test(words[i + 1])) continue;
-
-        if (!phraseMap[bigram]) phraseMap[bigram] = { positive: 0, negative: 0, neutral: 0, total: 0, samples: [] };
-        phraseMap[bigram].total++;
-        if (s === 'positive') phraseMap[bigram].positive++;
-        else if (s === 'negative') phraseMap[bigram].negative++;
-        else phraseMap[bigram].neutral++;
-        // Collect up to 3 sample snippets per phrase (trimmed for display)
-        if (phraseMap[bigram].samples.length < 3) {
-          const raw = (hit.content || '').replace(/https?:\/\/\S+/g, '').trim();
-          const snippet = raw.length > 180 ? raw.slice(0, 177) + '…' : raw;
-          phraseMap[bigram].samples.push({
+      for (const bg of BRAND_GROUPS) {
+        const matched = bg.patterns.some((re) => re.test(raw));
+        if (!matched) continue;
+        const bucket = brandBuckets[bg.label];
+        bucket.total++;
+        if (s === 'positive') bucket.positive++;
+        else if (s === 'negative') bucket.negative++;
+        else bucket.neutral++;
+        if (bucket.samples.length < 3) {
+          const cleaned = raw.replace(/https?:\/\/\S+/g, '').trim();
+          const snippet = cleaned.length > 180 ? cleaned.slice(0, 177) + '…' : cleaned;
+          bucket.samples.push({
             text: snippet,
             sentiment: s,
             platform: hit.platform || 'unknown',
-            date: hit.publishedAt || hit.createdAt,
+            date: hit.detectedAt,
             url: hit.sourceUrl || null,
           });
         }
       }
     }
 
-    // Filter to phrases that appear 3+ times and have clear sentiment lean
-    const meaningfulPhrases = Object.entries(phraseMap)
-      .filter(([, d]) => d.total >= 3)
-      .map(([phrase, d]) => {
+    const drivers = Object.entries(brandBuckets)
+      .filter(([, d]) => d.total >= 2)
+      .map(([label, d]) => {
         const sentiment = d.total > 0
-          ? Math.round(((d.positive - d.negative) / d.total) * 100 + 50)
-          : 50;
+          ? Math.round(((d.positive - d.negative) / d.total) * 100 + 50) : 50;
         const volumeShare = d.total / (total || 1);
         const impact = volumeShare > 0.15 ? 'high' : volumeShare > 0.06 ? 'medium' : 'low';
         const trend = sentiment >= 60 ? 'up' : sentiment <= 40 ? 'down' : 'flat';
-        // Sentiment strength = how far from neutral (50)
-        const sentimentStrength = Math.abs(sentiment - 50);
+        const pctPositive = Math.round((d.positive / d.total) * 100);
+        const pctNegative = Math.round((d.negative / d.total) * 100);
+        let insight;
+        if (pctPositive >= 70) {
+          insight = `Strongly positive — ${pctPositive}% of ${d.total} mentions are favorable.`;
+        } else if (pctNegative >= 50) {
+          insight = `Concerning — ${pctNegative}% of ${d.total} mentions are negative.`;
+        } else if (pctPositive >= 50) {
+          insight = `Mostly positive — ${pctPositive}% favorable across ${d.total} mentions.`;
+        } else {
+          insight = `Mixed sentiment — ${pctPositive}% positive, ${pctNegative}% negative across ${d.total} mentions.`;
+        }
         return {
-          phrase, sentiment, sentimentStrength, volume: d.total, impact, trend,
-          positive: d.positive, negative: d.negative, neutral: d.neutral,
-          samples: d.samples || [],
+          theme: label,
+          sentiment,
+          topKeyword: label.toLowerCase(),
+          volume: d.total,
+          impact,
+          trend,
+          insight,
+          breakdown: { positive: d.positive, neutral: d.neutral, negative: d.negative },
+          samples: d.samples,
         };
       })
-      // Rank by combo of volume and sentiment strength (favor interesting + frequent)
-      .sort((a, b) => (b.volume * b.sentimentStrength) - (a.volume * a.sentimentStrength));
-
-    // Deduplicate overlapping phrases (if "real estate" and "estate lending" both appear, keep higher-ranked)
-    const usedWords = new Set();
-    const dedupedPhrases = [];
-    for (const p of meaningfulPhrases) {
-      const pWords = p.phrase.split(' ');
-      const overlap = pWords.some((w) => usedWords.has(w) && w.length > 3);
-      if (!overlap || dedupedPhrases.length < 2) {
-        dedupedPhrases.push(p);
-        pWords.forEach((w) => usedWords.add(w));
-      }
-      if (dedupedPhrases.length >= 5) break;
-    }
-
-    // Format as driver cards with human-readable theme names + context
-    const drivers = dedupedPhrases.map((p) => {
-      // Title-case the phrase
-      const theme = p.phrase.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      // Generate a plain-English summary of what this driver means
-      const pctPositive = Math.round((p.positive / p.volume) * 100);
-      const pctNegative = Math.round((p.negative / p.volume) * 100);
-      let insight;
-      if (pctPositive >= 70) {
-        insight = `Strongly positive — ${pctPositive}% of ${p.volume} mentions are favorable.`;
-      } else if (pctNegative >= 50) {
-        insight = `Concerning — ${pctNegative}% of ${p.volume} mentions are negative.`;
-      } else if (pctPositive >= 50) {
-        insight = `Mostly positive — ${pctPositive}% favorable across ${p.volume} mentions.`;
-      } else {
-        insight = `Mixed sentiment — ${pctPositive}% positive, ${pctNegative}% negative across ${p.volume} mentions.`;
-      }
-      return {
-        theme,
-        sentiment: p.sentiment,
-        topKeyword: p.phrase,
-        volume: p.volume,
-        impact: p.impact,
-        trend: p.trend,
-        insight,
-        breakdown: { positive: p.positive, neutral: p.neutral, negative: p.negative },
-        samples: p.samples,
-      };
-    });
+      .sort((a, b) => b.volume - a.volume)
+      .slice(0, 6);
 
     return {
       breakdown: {
