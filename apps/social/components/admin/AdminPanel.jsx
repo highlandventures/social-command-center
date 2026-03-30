@@ -735,9 +735,9 @@ function AdminContent() {
                   name: 'SociaVault',
                   icon: '🔍',
                   color: 'border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/40',
-                  plan: 'Starter — $29 / 6,000 credits',
-                  usage: '~42 credits/day (throttled 3x/day + global search)',
-                  projected: '~$6/mo (pack lasts ~5 months)',
+                  plan: '$79 / 20,000 credits',
+                  usage: '~90 credits/day (1x/day throttle, 26 active queries)',
+                  projected: '~$11/mo (pack lasts ~7 months)',
                   details: 'Reddit scraping: search, subreddit monitoring, metrics polling',
                 },
                 {

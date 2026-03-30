@@ -17,9 +17,9 @@ import { processNewSignalsToTasks } from '@/lib/intelligence-engine';
 
 // ── Reddit polling throttle ──────────────────────────────────
 // Reddit conversations move slowly; no need to poll every 10 min.
-// Default: 12 hours between Reddit scans (~2x/day = ~130 credits/day).
-const REDDIT_POLL_INTERVAL_MS = 12 * 60 * 60 * 1000;
-const REDDIT_LAST_SCAN_KEY = 'listening:reddit:lastScanAt';
+// 24 hours between scans (~1x/day). Uses DB log as source of truth —
+// no KV dependency so the throttle can't silently break on KV write failures.
+const REDDIT_POLL_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 // ── Figure ecosystem terms for KOL relevance gate ──
 // HIGH_CONFIDENCE terms are unambiguous Figure references (used for KOL gate).
@@ -876,40 +876,27 @@ export async function scanListeningTopics({ topicIds } = {}) {
     // Create shared X adapter (uses TWITTERAPI_IO_API_KEY for reads internally)
     const xAdapter = new XPlatformAdapter('');
 
-    // ── Reddit throttle: only poll Reddit every 8 hours ──
-    let shouldPollReddit = true;
+    // ── Reddit throttle: poll at most once every 24 hours ──
+    // Uses DB log as sole source of truth — no KV dependency, so the throttle
+    // cannot silently break if the KV write fails.
+    let shouldPollReddit = false;
     try {
-      const lastRedditScan = await kv.get(REDDIT_LAST_SCAN_KEY);
-      if (lastRedditScan) {
-        const elapsed = Date.now() - Number(lastRedditScan);
-        if (elapsed < REDDIT_POLL_INTERVAL_MS) {
-          shouldPollReddit = false;
-          results.redditSkipped = true;
-        }
+      const lastSociaVaultCall = await prisma.aPICallLog.findFirst({
+        where: { provider: 'sociavault', statusCode: { gte: 200, lt: 300 } },
+        orderBy: { timestamp: 'desc' },
+        select: { timestamp: true },
+      });
+      if (!lastSociaVaultCall) {
+        shouldPollReddit = true; // First ever Reddit scan
+      } else {
+        const elapsed = Date.now() - new Date(lastSociaVaultCall.timestamp).getTime();
+        shouldPollReddit = elapsed >= REDDIT_POLL_INTERVAL_MS;
       }
     } catch (err) {
-      console.warn('KV read for Reddit poll throttle failed, checking Prisma fallback:', err.message);
-      // Fallback: check last successful SociaVault call in APICallLog
-      try {
-        const lastSociaVaultCall = await prisma.aPICallLog.findFirst({
-          where: { provider: 'sociavault', statusCode: { gte: 200, lt: 300 } },
-          orderBy: { timestamp: 'desc' },
-          select: { timestamp: true },
-        });
-        if (lastSociaVaultCall) {
-          const elapsed = Date.now() - new Date(lastSociaVaultCall.timestamp).getTime();
-          if (elapsed < REDDIT_POLL_INTERVAL_MS) {
-            shouldPollReddit = false;
-            results.redditSkipped = true;
-          }
-        }
-      } catch (prismaErr) {
-        console.warn('Prisma fallback for Reddit throttle also failed:', prismaErr.message);
-        // Both KV and Prisma unavailable — skip Reddit to be safe (don't burn credits)
-        shouldPollReddit = false;
-        results.redditSkipped = true;
-      }
+      console.warn('DB throttle check for Reddit failed — skipping Reddit to be safe:', err.message);
+      shouldPollReddit = false; // Fail-safe: skip if uncertain rather than burning credits
     }
+    if (!shouldPollReddit) results.redditSkipped = true;
 
     const where = { active: true };
     if (topicIds && topicIds.length > 0) {
@@ -1402,14 +1389,8 @@ export async function scanListeningTopics({ topicIds } = {}) {
       }
     }
 
-    // Record Reddit scan timestamp so next cycle skips it
-    if (redditPolled) {
-      try {
-        await kv.set(REDDIT_LAST_SCAN_KEY, String(Date.now()), { ex: REDDIT_POLL_INTERVAL_MS / 1000 });
-      } catch (err) {
-        console.warn('KV write for Reddit poll timestamp failed:', err.message);
-      }
-    }
+    // No explicit throttle write needed — the SociaVault call log entries
+    // written during the scan serve as the timestamp for the next throttle check.
 
     // ── Audience Question Analysis ─────────────────────────────
     // Run after all scanning is complete (non-blocking)
