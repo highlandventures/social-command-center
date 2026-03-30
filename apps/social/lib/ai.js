@@ -29,8 +29,10 @@ export async function generateInsight(type, context, options = {}) {
   });
 
   const tokensUsed = (response.usage?.input_tokens || 0) + (response.usage?.output_tokens || 0);
-  // Cost estimate for Haiku: $0.25/1M input, $1.25/1M output
-  const estimatedCost = ((response.usage?.input_tokens || 0) * API_COSTS.CLAUDE_INPUT_PER_TOKEN) + ((response.usage?.output_tokens || 0) * API_COSTS.CLAUDE_OUTPUT_PER_TOKEN);
+  const isSonnet = model.includes('sonnet') || model.includes('opus');
+  const inputRate = isSonnet ? API_COSTS.CLAUDE_SONNET_INPUT_PER_TOKEN : API_COSTS.CLAUDE_INPUT_PER_TOKEN;
+  const outputRate = isSonnet ? API_COSTS.CLAUDE_SONNET_OUTPUT_PER_TOKEN : API_COSTS.CLAUDE_OUTPUT_PER_TOKEN;
+  const estimatedCost = ((response.usage?.input_tokens || 0) * inputRate) + ((response.usage?.output_tokens || 0) * outputRate);
 
   // Log to APICallLog
   await prisma.aPICallLog.create({
