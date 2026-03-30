@@ -120,6 +120,32 @@ export const intelligenceRouter = router({
     }),
 
   /**
+   * Get latest X Analyst report
+   * Returns the most recent X_ANALYST_REPORT insight
+   */
+  getXAnalystReport: protectedProcedure
+    .query(async ({ ctx }) => {
+      const { prisma } = ctx;
+      return prisma.aIInsight.findFirst({
+        where: { insightType: 'X_ANALYST_REPORT', dismissed: false },
+        orderBy: { generatedAt: 'desc' },
+      });
+    }),
+
+  /**
+   * Get latest X co-creator context
+   * Returns the compact context block for the content co-pilot
+   */
+  getXCoCreatorContext: protectedProcedure
+    .query(async ({ ctx }) => {
+      const { prisma } = ctx;
+      return prisma.aIInsight.findFirst({
+        where: { insightType: 'X_COCREATOR_CONTEXT', dismissed: false },
+        orderBy: { generatedAt: 'desc' },
+      });
+    }),
+
+  /**
    * Create manual task
    */
   createTask: protectedProcedure

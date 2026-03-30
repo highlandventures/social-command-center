@@ -713,6 +713,8 @@ enum InsightType {
   PERFORMANCE_PATTERN
   COMPETITOR_STRATEGY
   AUDIENCE_QUESTION
+  X_ANALYST_REPORT
+  X_COCREATOR_CONTEXT
 }
 
 // ============================================================

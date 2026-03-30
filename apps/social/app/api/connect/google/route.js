@@ -31,6 +31,7 @@ export async function GET() {
   authorizeUrl.searchParams.set('scope', [
     'https://www.googleapis.com/auth/gmail.readonly',
     'https://www.googleapis.com/auth/calendar.readonly',
+    'https://www.googleapis.com/auth/drive.readonly',
     'openid',
     'email',
   ].join(' '));

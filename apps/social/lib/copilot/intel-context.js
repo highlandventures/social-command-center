@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db';
  * for inclusion in the co-pilot system prompt (~500 tokens).
  */
 export async function getCondensedIntelSummary() {
-  const [perfS, compS, audS] = await Promise.allSettled([
+  const [perfS, compS, audS, xContextS] = await Promise.allSettled([
     prisma.aIInsight.findFirst({
       where: { insightType: 'PERFORMANCE_PATTERN', dismissed: false },
       orderBy: { generatedAt: 'desc' },
@@ -18,11 +18,16 @@ export async function getCondensedIntelSummary() {
       where: { insightType: 'AUDIENCE_QUESTION', dismissed: false },
       orderBy: { generatedAt: 'desc' },
     }),
+    prisma.aIInsight.findFirst({
+      where: { insightType: 'X_COCREATOR_CONTEXT', dismissed: false },
+      orderBy: { generatedAt: 'desc' },
+    }),
   ]);
 
   const perfInsight = perfS.status === 'fulfilled' ? perfS.value : null;
   const compInsight = compS.status === 'fulfilled' ? compS.value : null;
   const audInsight = audS.status === 'fulfilled' ? audS.value : null;
+  const xContext = xContextS.status === 'fulfilled' ? xContextS.value : null;
 
   const sections = [];
   if (perfInsight?.content) {
@@ -33,6 +38,14 @@ export async function getCondensedIntelSummary() {
   }
   if (audInsight?.content) {
     sections.push(`Audience Questions: ${summarize(audInsight.content, 150)}`);
+  }
+
+  // Inject weekly X analyst context if available (from x-analyst cron)
+  if (xContext?.content) {
+    const contextText = typeof xContext.content === 'object'
+      ? (xContext.content.context || JSON.stringify(xContext.content))
+      : xContext.content;
+    sections.push(`X Weekly Intelligence:\n${summarize(contextText, 500)}`);
   }
 
   return sections.length > 0

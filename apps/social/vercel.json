@@ -12,6 +12,7 @@
     { "path": "/api/cron/aggregate-kol-metrics", "schedule": "0 5 * * *" },
     { "path": "/api/cron/triage-tickets", "schedule": "0 7 * * *" },
     { "path": "/api/cron/run-schedules", "schedule": "*/15 * * * *" },
-    { "path": "/api/cron/generate-briefing", "schedule": "0 6 * * 1" }
+    { "path": "/api/cron/generate-briefing", "schedule": "0 6 * * 1" },
+    { "path": "/api/cron/x-analyst", "schedule": "0 7 * * 1" }
   ]
 }

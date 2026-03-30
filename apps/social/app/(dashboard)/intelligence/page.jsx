@@ -111,6 +111,207 @@ function BriefingCard({ briefing, isLoading, onRefresh }) {
   );
 }
 
+// ── X Analyst Report Card ──
+function XAnalystCard({ report, isLoading }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="bg-surface-card border border-border rounded-lg p-6 animate-pulse">
+        <div className="h-5 bg-surface-hover rounded w-1/3 mb-4" />
+        <div className="space-y-2">
+          <div className="h-3 bg-surface-hover rounded w-full" />
+          <div className="h-3 bg-surface-hover rounded w-4/5" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!report?.content) {
+    return (
+      <div className="bg-surface-card border border-border rounded-lg p-6">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-base">📊</span>
+          <h2 className="text-lg font-bold text-content-primary">X Account Analyst</h2>
+        </div>
+        <p className="text-sm text-content-muted">
+          No X analyst report yet. The weekly analysis runs every Monday at 7 AM UTC, or you can trigger it manually.
+        </p>
+      </div>
+    );
+  }
+
+  const data = report.content;
+  const generatedDate = new Date(report.generatedAt).toLocaleDateString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric',
+  });
+
+  // Health grade color
+  const gradeColor = (grade) => {
+    if (!grade) return 'text-gray-500';
+    const letter = grade.charAt(0);
+    if (letter === 'A') return 'text-green-600';
+    if (letter === 'B') return 'text-blue-600';
+    if (letter === 'C') return 'text-orange-500';
+    return 'text-red-500';
+  };
+
+  return (
+    <div className="bg-surface-card border border-border rounded-lg p-6 space-y-5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-base">📊</span>
+          <h2 className="text-lg font-bold text-content-primary">X Account Analyst</h2>
+          <span className="text-[10px] text-content-muted bg-surface-hover px-2 py-0.5 rounded-full">{generatedDate}</span>
+        </div>
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+        >
+          {expanded ? 'Collapse' : 'Expand'}
+        </button>
+      </div>
+
+      {/* Executive Summary — always visible */}
+      {data.executiveSummary && (
+        <div>
+          <h3 className="text-sm font-semibold text-content-primary mb-2">Executive Summary</h3>
+          <ul className="space-y-1.5">
+            {data.executiveSummary.map((item, i) => (
+              <li key={i} className="text-xs text-content-secondary leading-relaxed flex gap-2">
+                <span className="text-content-muted mt-0.5 shrink-0">•</span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Account Health — always visible */}
+      {data.accountHealth?.accounts && (
+        <div>
+          <h3 className="text-sm font-semibold text-content-primary mb-2">Account Health</h3>
+          <div className="grid grid-cols-3 gap-2">
+            {data.accountHealth.accounts.map((acct, i) => (
+              <div key={i} className="p-3 bg-surface-hover rounded-lg text-center">
+                <div className={`text-2xl font-bold ${gradeColor(acct.healthGrade)}`}>{acct.healthGrade || '—'}</div>
+                <div className="text-[11px] font-medium text-content-primary mt-1">{acct.handle}</div>
+                <div className="text-[10px] text-content-muted mt-0.5">{acct.engagementQuality}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Expanded content */}
+      {expanded && (
+        <div className="space-y-5 pt-2 border-t border-border-secondary">
+          {/* Top Performers */}
+          {data.topPerformers?.posts?.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-content-primary mb-2">Top Performing Content</h3>
+              <div className="space-y-2">
+                {data.topPerformers.posts.map((post, i) => (
+                  <div key={i} className="p-3 bg-surface-hover rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-bold text-blue-600">{post.account}</span>
+                      <span className="text-[10px] text-content-muted">{post.format}</span>
+                    </div>
+                    <p className="text-xs text-content-secondary">{post.contentSummary}</p>
+                    <p className="text-[10px] text-content-muted mt-1 italic">Why: {post.whyItWorked}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Underperformers */}
+          {data.underperformers?.patterns?.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-content-primary mb-2">Underperforming Patterns</h3>
+              <div className="space-y-2">
+                {data.underperformers.patterns.map((p, i) => (
+                  <div key={i} className="p-3 bg-red-50 dark:bg-red-900/10 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-[10px] font-bold ${p.severity === 'critical' ? 'text-red-600' : p.severity === 'high' ? 'text-orange-600' : 'text-yellow-600'}`}>
+                        {p.severity?.toUpperCase()}
+                      </span>
+                      <span className="text-xs font-medium text-content-primary">{p.pattern}</span>
+                    </div>
+                    <p className="text-[10px] text-content-secondary">Fix: {p.fix}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Competitor Intel */}
+          {data.competitorIntel?.competitors?.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-content-primary mb-2">Competitor Intel</h3>
+              <div className="space-y-2">
+                {data.competitorIntel.competitors.map((c, i) => (
+                  <div key={i} className="p-3 bg-indigo-50 dark:bg-indigo-900/10 rounded-lg">
+                    <div className="text-[11px] font-bold text-indigo-600 mb-1">{c.handle}</div>
+                    <p className="text-xs text-content-secondary">{c.winningTactic}</p>
+                    <p className="text-[10px] text-content-muted mt-1">→ {c.adaptableInsight}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Algorithm Signals */}
+          {data.algorithmSignals && (
+            <div>
+              <h3 className="text-sm font-semibold text-content-primary mb-2">Algorithm Signals</h3>
+              <div className="p-3 bg-surface-hover rounded-lg space-y-2">
+                {data.algorithmSignals.changesDetected?.map((change, i) => (
+                  <p key={i} className="text-xs text-content-secondary flex gap-2">
+                    <span className="text-orange-500 shrink-0">⚡</span> {change}
+                  </p>
+                ))}
+                {data.algorithmSignals.formatRanking && (
+                  <p className="text-[10px] text-content-muted">
+                    Format ranking: {data.algorithmSignals.formatRanking.join(' → ')}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Content Calendar */}
+          {data.contentCalendar?.recommendations?.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-content-primary mb-2">
+                Content Recommendations ({data.contentCalendar.recommendations.length})
+              </h3>
+              <div className="space-y-2">
+                {data.contentCalendar.recommendations.map((rec, i) => (
+                  <div key={i} className="p-3 bg-green-50 dark:bg-green-900/10 rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-bold text-green-600">{rec.account}</span>
+                      <span className="text-[10px] text-content-muted">{rec.format}</span>
+                      <span className="text-[10px] text-content-muted">{rec.postingWindow}</span>
+                    </div>
+                    <p className="text-xs font-medium text-content-primary">{rec.contentPillar}</p>
+                    {rec.hookOptions?.[0] && (
+                      <p className="text-[10px] text-content-secondary mt-1 italic">"{rec.hookOptions[0]}"</p>
+                    )}
+                    {rec.complianceNotes && (
+                      <p className="text-[10px] text-orange-600 mt-1">⚠ {rec.complianceNotes}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Task Card ──
 function TaskCard({ task, onComplete, onDismiss, onSnooze }) {
   const [snoozeOpen, setSnoozeOpen] = useState(false);
@@ -224,6 +425,7 @@ export default function IntelligencePage() {
 
   // Fetch data
   const briefingQ = trpc.intelligence.getBriefing.useQuery();
+  const xAnalystQ = trpc.intelligence.getXAnalystReport.useQuery();
   const tasksQ = trpc.intelligence.getTasks.useQuery({ status: 'PENDING' });
   const completedQ = trpc.intelligence.getTasks.useQuery({ status: 'COMPLETED', limit: 20 });
 
@@ -270,6 +472,12 @@ export default function IntelligencePage() {
         briefing={briefingQ.data}
         isLoading={briefingQ.isLoading}
         onRefresh={() => regenerate.mutate()}
+      />
+
+      {/* X Account Analyst Report */}
+      <XAnalystCard
+        report={xAnalystQ.data}
+        isLoading={xAnalystQ.isLoading}
       />
 
       {/* Task Inbox */}
