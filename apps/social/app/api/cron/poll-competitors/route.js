@@ -14,7 +14,6 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { twitterApiIoRequest } from '@/lib/twitter-api';
-import { API_COSTS } from '@/lib/api-costs';
 import { generateInsight } from '@/lib/ai';
 import { logger } from '@/lib/logger';
 
@@ -188,18 +187,6 @@ export async function GET(request) {
             avgEngagementRate: parseFloat(avgEngagementRate.toFixed(4)),
             mentionCount,
             sentimentPositivePct: parseFloat(sentimentPositivePct.toFixed(2)),
-          },
-        });
-
-        // Log API call
-        await prisma.aPICallLog.create({
-          data: {
-            provider: 'twitterapi_io',
-            endpoint: 'poll-competitors',
-            method: 'GET',
-            statusCode: 200,
-            responseTime: 0,
-            estimatedCost: comp.accounts.length * API_COSTS.TWITTERAPI_IO * 2,
           },
         });
 

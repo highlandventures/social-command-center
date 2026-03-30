@@ -266,7 +266,7 @@ export async function GET(request) {
           }
         }
 
-        // Log API cost
+        // Log API cost — 1 request per page of ~20 tweets at $0.00015/request
         const pagesUsed = Math.ceil(tweets.length / 20);
         await prisma.aPICallLog.create({
           data: {
@@ -275,7 +275,7 @@ export async function GET(request) {
             method: 'GET',
             statusCode: 200,
             responseTime: 0,
-            estimatedCost: (tweets.length / 1000) * 0.15, // $0.15 per 1K tweets
+            estimatedCost: pagesUsed * 0.00015,
             accountId: account.id,
           },
         });

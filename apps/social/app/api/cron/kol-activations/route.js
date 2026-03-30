@@ -11,7 +11,6 @@ import { prisma } from '@/lib/db';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { XPlatformAdapter } from '@/lib/x-adapter';
 import { RedditAdapter } from '@/lib/reddit-adapter';
-import { API_COSTS } from '@/lib/api-costs';
 
 export const dynamic = 'force-dynamic';
 
@@ -296,18 +295,6 @@ export async function GET(request) {
             console.warn(`Profile enrichment failed for @${kol.username}:`, enrichErr.message);
           }
         }
-
-        // Log API call
-        await prisma.aPICallLog.create({
-          data: {
-            provider: kol.platform === 'X' ? 'twitterapi_io' : 'reddit',
-            endpoint: 'kol-activation-search',
-            method: 'GET',
-            statusCode: 200,
-            responseTime: Date.now() - searchStart,
-            estimatedCost: kol.platform === 'X' ? API_COSTS.TWITTERAPI_IO : API_COSTS.REDDIT_OAUTH,
-          },
-        });
 
         results.kolsProcessed++;
       } catch (kolError) {

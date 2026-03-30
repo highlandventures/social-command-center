@@ -19,7 +19,6 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { twitterApiIoRequest } from '@/lib/twitter-api';
-import { API_COSTS } from '@/lib/api-costs';
 
 export const dynamic = 'force-dynamic';
 
@@ -218,18 +217,6 @@ export async function GET(request) {
             },
           });
 
-          // Log cost — summary entry for this account's daily analytics
-          await prisma.aPICallLog.create({
-            data: {
-              provider: 'twitterapi_io',
-              endpoint: 'daily-analytics',
-              method: 'GET',
-              statusCode: 200,
-              responseTime: 0,
-              estimatedCost: API_COSTS.TWITTERAPI_IO,
-              accountId: account.id,
-            },
-          });
         } else if (account.platform === 'REDDIT') {
           // Skip Reddit if no adapter configured
           continue;
