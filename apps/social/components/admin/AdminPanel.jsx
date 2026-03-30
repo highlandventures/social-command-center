@@ -83,9 +83,9 @@ const roadmapItems = [
   { id: 42, milestone: 'v1.0-intel', phase: 'Competitor Intel', title: 'CompetitorPost schema, cron fetch, competitorIntel tRPC router', status: 'deployed', deployed: 'Mar 14' },
   { id: 43, milestone: 'v1.0-intel', phase: 'Competitor Intel', title: 'CompetitorIntelPanel — themes, format analysis, strategy cards', status: 'deployed', deployed: 'Mar 14' },
 
-  // Phase 3: Audience Questions — COMPLETE
-  { id: 44, milestone: 'v1.0-intel', phase: 'Audience Questions', title: 'audienceQuestions tRPC router — intent classification + clustering', status: 'deployed', deployed: 'Mar 15' },
-  { id: 45, milestone: 'v1.0-intel', phase: 'Audience Questions', title: 'AudienceQuestionsPanel — topic clusters, opportunity scores', status: 'deployed', deployed: 'Mar 15' },
+  // Phase 3: Audience Questions — REMOVED (0% hit rate, $43/mo for nothing)
+  { id: 44, milestone: 'v1.0-intel', phase: 'Audience Questions', title: 'audienceQuestions tRPC router — intent classification + clustering', status: 'removed' },
+  { id: 45, milestone: 'v1.0-intel', phase: 'Audience Questions', title: 'AudienceQuestionsPanel — topic clusters, opportunity scores', status: 'removed' },
 
   // Competitor Tab — COMPLETE
   { id: 46, milestone: 'v1.0-intel', phase: 'Competitor Tab', title: 'Dedicated Competitor tab with 7 sub-tabs', status: 'deployed', deployed: 'Mar 15' },

@@ -6,7 +6,6 @@ import { PlatformBadge, Skeleton } from '@/components/ui';
 import { useToast } from '@/components/ui';
 import PerformanceIntelPanel from '@/components/PerformanceIntelPanel';
 import CompetitorIntelPanel from '@/components/CompetitorIntelPanel';
-import AudienceQuestionsPanel from '@/components/AudienceQuestionsPanel';
 import CopilotPanel from '@/components/CopilotPanel';
 
 export default function ComposerPage() {
@@ -942,8 +941,6 @@ export default function ComposerPage() {
                 <PerformanceIntelPanel />
                 <div className="border-t border-white/[0.05] pt-3" />
                 <CompetitorIntelPanel />
-                <div className="border-t border-white/[0.05] pt-3" />
-                <AudienceQuestionsPanel />
               </div>
             ) : (
               /* Drafts tab */

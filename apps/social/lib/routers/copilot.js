@@ -58,17 +58,13 @@ export const copilotRouter = router({
    * Returns 3-4 contextual suggestion prompts based on latest intel data.
    */
   getSuggestionChips: protectedProcedure.query(async ({ ctx }) => {
-    const [perfInsight, compInsight, audInsight] = await Promise.all([
+    const [perfInsight, compInsight] = await Promise.all([
       ctx.prisma.aIInsight.findFirst({
         where: { insightType: 'PERFORMANCE_PATTERN', dismissed: false },
         orderBy: { generatedAt: 'desc' },
       }),
       ctx.prisma.aIInsight.findFirst({
         where: { insightType: 'COMPETITOR_STRATEGY', dismissed: false },
-        orderBy: { generatedAt: 'desc' },
-      }),
-      ctx.prisma.aIInsight.findFirst({
-        where: { insightType: 'AUDIENCE_QUESTION', dismissed: false },
         orderBy: { generatedAt: 'desc' },
       }),
     ]);
@@ -96,18 +92,6 @@ export const copilotRouter = router({
         id: 'comp',
         label: 'Counter competitor theme',
         prompt: `Counter this competitor theme with our perspective: ${theme}`,
-      });
-    }
-
-    if (audInsight?.content) {
-      const text = typeof audInsight.content === 'string'
-        ? audInsight.content
-        : JSON.stringify(audInsight.content);
-      const question = text.slice(0, 60).replace(/["\n]/g, '').trim();
-      chips.push({
-        id: 'aud',
-        label: 'Answer audience question',
-        prompt: `Answer this audience question in a post: ${question}`,
       });
     }
 

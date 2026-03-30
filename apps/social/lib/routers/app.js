@@ -11,7 +11,6 @@ import { adminRouter } from './admin';
 import { aiRouter } from './ai';
 import { performanceIntelRouter } from './performance-intel';
 import { competitorIntelRouter } from './competitor-intel';
-import { audienceQuestionsRouter } from './audience-questions';
 import { benchmarksRouter } from './benchmarks';
 import { ticketsRouter } from './tickets';
 import { copilotRouter } from './copilot';
@@ -41,7 +40,6 @@ export const appRouter = router({
   ai: aiRouter,
   performanceIntel: performanceIntelRouter,
   competitorIntel: competitorIntelRouter,
-  audienceQuestions: audienceQuestionsRouter,
   benchmarks: benchmarksRouter,
   tickets: ticketsRouter,
   copilot: copilotRouter,
