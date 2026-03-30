@@ -1,10 +1,9 @@
 import { generateWeeklyBriefing } from '@/lib/intelligence-engine';
 import { prisma } from '@/lib/db';
+import { verifyCronAuth } from '@/lib/cron-auth';
 
 export async function GET(request) {
-  // Verify cron secret
-  const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!verifyCronAuth(request)) {
     return new Response('Unauthorized', { status: 401 });
   }
 

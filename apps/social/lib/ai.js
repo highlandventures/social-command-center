@@ -7,7 +7,7 @@ let anthropicClient = null;
 // Shared preamble for all AI prompts — avoids repeating in every system prompt
 export const AI_PREAMBLE = 'You are a social media analyst. Always respond with valid JSON matching the schema below.';
 
-export function getAnthropic() {
+function getAnthropic() {
   if (!anthropicClient) {
     anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   }
@@ -60,7 +60,7 @@ export async function generateInsight(type, context, options = {}) {
  *  - JSON embedded after explanatory text
  *  - Nested braces
  */
-export function parseAIJSON(text) {
+function parseAIJSON(text) {
   if (!text || !text.trim()) return { raw: '' };
 
   // 1. Try direct parse first
