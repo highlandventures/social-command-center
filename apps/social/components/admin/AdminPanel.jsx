@@ -12,11 +12,13 @@ import { MetricCard, SectionTitle, TabButton, PlatformBadge, Skeleton, useChartC
 import TicketsTab from '@/components/admin/TicketsTab';
 
 // ── Static roadmap data (internal planning, not from API) ───
-// Last updated: Mar 15, 2026 — v1.1 Report Center milestone
+// Last updated: Mar 30, 2026 — v1.2 Email Campaigns + Polish
 const milestones = [
   { key: 'v1.0-platform', label: 'v1.0 — Platform Build', status: 'shipped' },
   { key: 'v1.0-intel', label: 'v1.0 — Content Intelligence', status: 'shipped' },
-  { key: 'v1.1', label: 'v1.1 — Report Center', status: 'in_progress' },
+  { key: 'v1.1', label: 'v1.1 — Report Center', status: 'shipped' },
+  { key: 'v1.2', label: 'v1.2 — Email Campaigns + Polish', status: 'in_progress' },
+  { key: 'v2.0', label: 'v2.0 — Intelligence Layer', status: 'planned' },
 ];
 
 const roadmapItems = [
@@ -88,32 +90,76 @@ const roadmapItems = [
   // Competitor Tab — COMPLETE
   { id: 46, milestone: 'v1.0-intel', phase: 'Competitor Tab', title: 'Dedicated Competitor tab with 7 sub-tabs', status: 'deployed', deployed: 'Mar 15' },
 
-  // Phase 4: Content Co-Pilot — DEFERRED
-  { id: 47, milestone: 'v1.0-intel', phase: 'Content Co-Pilot', title: 'AI content suggestions, draft generation, tone matching', status: 'deferred', deployed: null },
+  // Phase 4: Content Co-Pilot — COMPLETE
+  { id: 47, milestone: 'v1.0-intel', phase: 'Content Co-Pilot', title: 'Conversational AI co-pilot — streaming chat, intel context, brand voice, draft insertion', status: 'deployed', deployed: 'Mar 16' },
 
   // ── v1.1 Report Center ───────────────────────────────────────
 
-  // Phase 5: Report Engine + Charts — IN PROGRESS
+  // Phase 5: Report Engine + Charts — COMPLETE
   { id: 48, milestone: 'v1.1', phase: 'Report Engine', title: 'Prisma schema extension + report content JSON schema', status: 'deployed', deployed: 'Mar 15' },
   { id: 49, milestone: 'v1.1', phase: 'Report Engine', title: 'QuickChart.io chart renderer + Vercel Blob storage', status: 'deployed', deployed: 'Mar 15' },
-  { id: 50, milestone: 'v1.1', phase: 'Report Engine', title: 'Report engine orchestrator — KPIs, deltas, AI summary, sentiment', status: 'in_progress', deployed: null },
-  { id: 51, milestone: 'v1.1', phase: 'Report Engine', title: 'ReportViewer frontend — KPI cards, inline charts, detail page', status: 'not_started', deployed: null },
+  { id: 50, milestone: 'v1.1', phase: 'Report Engine', title: 'Report engine orchestrator — KPIs, deltas, AI summary, sentiment', status: 'deployed', deployed: 'Mar 16' },
+  { id: 51, milestone: 'v1.1', phase: 'Report Engine', title: 'ReportViewer frontend — KPI cards, inline charts, detail page', status: 'deployed', deployed: 'Mar 16' },
 
-  // Phase 6: Export + Distribution — NOT STARTED
-  { id: 52, milestone: 'v1.1', phase: 'Export & Distribute', title: 'PDF export with @react-pdf/renderer (KPIs, charts, summary)', status: 'not_started', deployed: null },
-  { id: 53, milestone: 'v1.1', phase: 'Export & Distribute', title: 'Email delivery with inline visual report + recipient config', status: 'not_started', deployed: null },
-  { id: 54, milestone: 'v1.1', phase: 'Export & Distribute', title: 'Delivery log — status, recipient, timestamp in report detail UI', status: 'not_started', deployed: null },
+  // Phase 6: Export + Distribution — COMPLETE
+  { id: 52, milestone: 'v1.1', phase: 'Export & Distribute', title: 'PDF export with @react-pdf/renderer (KPIs, charts, summary)', status: 'deployed', deployed: 'Mar 16' },
+  { id: 53, milestone: 'v1.1', phase: 'Export & Distribute', title: 'Email delivery with inline visual report + recipient config', status: 'deployed', deployed: 'Mar 16' },
+  { id: 54, milestone: 'v1.1', phase: 'Export & Distribute', title: 'Delivery log — status, recipient, timestamp in report detail UI', status: 'deployed', deployed: 'Mar 16' },
 
-  // Phase 7: Scheduling + Ad Hoc Reports — NOT STARTED
-  { id: 55, milestone: 'v1.1', phase: 'Scheduling & Ad Hoc', title: 'Report schedule CRUD — weekly/monthly/quarterly/yearly cadences', status: 'not_started', deployed: null },
-  { id: 56, milestone: 'v1.1', phase: 'Scheduling & Ad Hoc', title: 'Cron-based auto-generation via nextRunAt field', status: 'not_started', deployed: null },
-  { id: 57, milestone: 'v1.1', phase: 'Scheduling & Ad Hoc', title: 'Conversational AI report scoping — guided chat to define ad hoc reports', status: 'not_started', deployed: null },
-  { id: 58, milestone: 'v1.1', phase: 'Scheduling & Ad Hoc', title: 'Snapshot re-runs + manual re-trigger button', status: 'not_started', deployed: null },
+  // Phase 7: Scheduling + Ad Hoc Reports — COMPLETE
+  { id: 55, milestone: 'v1.1', phase: 'Scheduling & Ad Hoc', title: 'Report schedule CRUD — weekly/monthly/quarterly/yearly cadences', status: 'deployed', deployed: 'Mar 17' },
+  { id: 56, milestone: 'v1.1', phase: 'Scheduling & Ad Hoc', title: 'Cron-based auto-generation via nextRunAt field', status: 'deployed', deployed: 'Mar 17' },
+  { id: 57, milestone: 'v1.1', phase: 'Scheduling & Ad Hoc', title: 'Conversational AI report scoping — guided chat to define ad hoc reports', status: 'deployed', deployed: 'Mar 17' },
+  { id: 58, milestone: 'v1.1', phase: 'Scheduling & Ad Hoc', title: 'Snapshot re-runs + manual re-trigger button', status: 'deployed', deployed: 'Mar 17' },
 
-  // Phase 8: Benchmarking — NOT STARTED
-  { id: 59, milestone: 'v1.1', phase: 'Benchmarking', title: 'Period-over-period comparison (WoW, MoM, QoQ, YoY)', status: 'not_started', deployed: null },
-  { id: 60, milestone: 'v1.1', phase: 'Benchmarking', title: 'Named milestones — product launches, campaigns, events', status: 'not_started', deployed: null },
-  { id: 61, milestone: 'v1.1', phase: 'Benchmarking', title: 'Milestone benchmark comparisons with delta indicators', status: 'not_started', deployed: null },
+  // Phase 8: Benchmarking — COMPLETE
+  { id: 59, milestone: 'v1.1', phase: 'Benchmarking', title: 'Period-over-period comparison (WoW, MoM, QoQ, YoY)', status: 'deployed', deployed: 'Mar 17' },
+  { id: 60, milestone: 'v1.1', phase: 'Benchmarking', title: 'Named milestones — product launches, campaigns, events', status: 'deployed', deployed: 'Mar 17' },
+  { id: 61, milestone: 'v1.1', phase: 'Benchmarking', title: 'Milestone benchmark comparisons with delta indicators', status: 'deployed', deployed: 'Mar 17' },
+
+  // ── v1.2 Email Campaigns + Polish ───────────────────────────
+
+  // Phase 9: Email Data Layer — COMPLETE
+  { id: 62, milestone: 'v1.2', phase: 'Email Data Layer', title: 'Prisma email models (EmailList, Subscriber, Campaign, Event)', status: 'deployed', deployed: 'Mar 20' },
+  { id: 63, milestone: 'v1.2', phase: 'Email Data Layer', title: 'tRPC routers for list + subscriber CRUD', status: 'deployed', deployed: 'Mar 20' },
+  { id: 64, milestone: 'v1.2', phase: 'Email Data Layer', title: 'Email section layout with sidebar navigation', status: 'deployed', deployed: 'Mar 20' },
+  { id: 65, milestone: 'v1.2', phase: 'Email Data Layer', title: 'List management page + subscriber detail + CSV import', status: 'deployed', deployed: 'Mar 20' },
+
+  // Phase 13: Listening Algorithm — COMPLETE (ran in parallel with Phase 9)
+  { id: 66, milestone: 'v1.2', phase: 'Listening Algorithm', title: 'Topic-adaptive weights, financial sentiment, engagement velocity scoring', status: 'deployed', deployed: 'Mar 22' },
+  { id: 67, milestone: 'v1.2', phase: 'Listening Algorithm', title: 'AI batch validation (Haiku semantic relevance) + cross-query dedup', status: 'deployed', deployed: 'Mar 22' },
+
+  // Phase 10: Template Builder + Campaign CRUD — IN PROGRESS
+  { id: 68, milestone: 'v1.2', phase: 'Template Builder', title: 'tRPC routers for template + campaign CRUD, 4 starter templates, AI suggestions, scheduling', status: 'deployed', deployed: 'Mar 25' },
+  { id: 69, milestone: 'v1.2', phase: 'Template Builder', title: 'Template gallery, split-pane HTML editor, campaign list, multi-step campaign builder', status: 'in_progress', deployed: null },
+
+  // Phase 11: Send Pipeline + Event Tracking — NOT STARTED
+  { id: 70, milestone: 'v1.2', phase: 'Send Pipeline', title: 'Batched cron sending — 50 emails/min without blocking serverless', status: 'not_started', deployed: null },
+  { id: 71, milestone: 'v1.2', phase: 'Send Pipeline', title: 'Open tracking (pixel), click tracking (redirect), bounce + unsubscribe handling', status: 'not_started', deployed: null },
+
+  // Phase 12: Campaign Analytics — NOT STARTED
+  { id: 72, milestone: 'v1.2', phase: 'Campaign Analytics', title: 'Campaign detail — open rate, click rate, bounce rate, link click breakdown', status: 'not_started', deployed: null },
+  { id: 73, milestone: 'v1.2', phase: 'Campaign Analytics', title: 'Email dashboard aggregate stats + hub module activation', status: 'not_started', deployed: null },
+
+  // Phase 14: Mobile/Responsive + UX Polish — NOT STARTED
+  { id: 74, milestone: 'v1.2', phase: 'Mobile & Polish', title: 'Responsive design pass — 375px, 768px, 1024px+ breakpoints', status: 'not_started', deployed: null },
+  { id: 75, milestone: 'v1.2', phase: 'Mobile & Polish', title: 'Skeleton loaders, error boundaries, helpful empty states across all pages', status: 'not_started', deployed: null },
+
+  // ── v2.0 Intelligence Layer ──────────────────────────────────
+
+  // Phase 15: Signal Intelligence
+  { id: 76, milestone: 'v2.0', phase: 'Signal Intelligence', title: 'Semantic relevance scoring — AI classifies signal quality beyond keyword match', status: 'not_started', deployed: null },
+  { id: 77, milestone: 'v2.0', phase: 'Signal Intelligence', title: 'Author trust scoring — role, reach, past engagement history', status: 'not_started', deployed: null },
+  { id: 78, milestone: 'v2.0', phase: 'Signal Intelligence', title: 'Actionability classification — tag signals as respond/amplify/monitor/ignore', status: 'not_started', deployed: null },
+  { id: 79, milestone: 'v2.0', phase: 'Signal Intelligence', title: 'Role-based routing — surface signals to the right team member', status: 'not_started', deployed: null },
+  { id: 80, milestone: 'v2.0', phase: 'Signal Intelligence', title: 'Platform expansion — LinkedIn + news/press signal ingestion', status: 'not_started', deployed: null },
+
+  // Phase 16: Weekly Intelligence → Task Engine
+  { id: 81, milestone: 'v2.0', phase: 'Intelligence Tasks', title: 'Monday briefing — AI weekly summary delivered via email/Slack', status: 'not_started', deployed: null },
+  { id: 82, milestone: 'v2.0', phase: 'Intelligence Tasks', title: 'Auto-task generation — high-signal items become actionable tasks', status: 'not_started', deployed: null },
+  { id: 83, milestone: 'v2.0', phase: 'Intelligence Tasks', title: 'Email intelligence — open/click patterns fed back into audience scoring', status: 'not_started', deployed: null },
+  { id: 84, milestone: 'v2.0', phase: 'Intelligence Tasks', title: 'Meeting prep — auto-brief from signals before calendar events', status: 'not_started', deployed: null },
+  { id: 85, milestone: 'v2.0', phase: 'Intelligence Tasks', title: 'Priority scoring + feedback loop — user actions train relevance weights', status: 'not_started', deployed: null },
 ];
 
 export default function AdminPanel() {
@@ -216,7 +262,21 @@ function AdminContent() {
   const milestoneColors = {
     shipped: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800',
     in_progress: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',
+    planned: 'bg-surface-secondary text-content-secondary border-border',
   };
+
+  // Accordion state — open phases default to in_progress ones
+  const defaultOpen = new Set(
+    roadmapItems
+      .filter((r) => r.status === 'in_progress')
+      .map((r) => `${r.milestone}__${r.phase}`)
+  );
+  const [openPhases, setOpenPhases] = useState(defaultOpen);
+  const togglePhase = (key) => setOpenPhases((prev) => {
+    const next = new Set(prev);
+    next.has(key) ? next.delete(key) : next.add(key);
+    return next;
+  });
 
   const handleInvite = async (e) => {
     e.preventDefault();
@@ -786,8 +846,8 @@ function AdminContent() {
               label="In Progress"
               value={roadmapItems.filter((r) => r.status === 'in_progress').length}
             />
-            <MetricCard label="Current Milestone" value="v1.1" />
-            <MetricCard label="Current Phase" value="Report Engine" />
+            <MetricCard label="Current Milestone" value="v1.2" />
+            <MetricCard label="Current Phase" value="Template Builder" />
           </div>
 
           <div className="bg-surface-card rounded-xl border border-border p-5 mb-6">
@@ -817,7 +877,7 @@ function AdminContent() {
                 <div className="flex items-center gap-3 mb-4">
                   <h3 className="text-lg font-bold text-content-primary">{ms.label}</h3>
                   <span className={`px-2.5 py-0.5 text-xs font-medium rounded-full border ${milestoneColors[ms.status]}`}>
-                    {ms.status === 'shipped' ? 'Shipped' : 'In Progress'}
+                    {ms.status === 'shipped' ? 'Shipped' : ms.status === 'planned' ? 'Planned' : 'In Progress'}
                   </span>
                   <span className="text-sm text-content-muted ml-auto">
                     {msDeployed}/{msItems.length} deployed
@@ -828,81 +888,80 @@ function AdminContent() {
                   const items = msItems.filter((r) => r.phase === phase);
                   const deployed = items.filter((r) => r.status === 'deployed').length;
                   const isCurrentPhase = items.some((r) => r.status === 'in_progress');
-                  const isDeferred = items.every((r) => r.status === 'deferred');
+                  const phaseKey = `${ms.key}__${phase}`;
+                  const isOpen = openPhases.has(phaseKey);
                   return (
                     <div
                       key={phase}
-                      className={`bg-surface-card rounded-xl border p-5 mb-3 ${
+                      className={`bg-surface-card rounded-xl border mb-3 ${
                         isCurrentPhase
                           ? 'border-blue-300 dark:border-blue-700 ring-1 ring-blue-100 dark:ring-blue-900/50'
-                          : isDeferred
-                          ? 'border-yellow-200 dark:border-yellow-800 opacity-60'
                           : 'border-border'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-3">
+                      {/* Accordion header — always visible */}
+                      <button
+                        onClick={() => togglePhase(phaseKey)}
+                        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-surface-hover rounded-xl transition-colors"
+                      >
                         <div className="flex items-center gap-2">
+                          <span className={`w-2 h-2 rounded-full shrink-0 ${
+                            isCurrentPhase ? 'bg-blue-400 animate-pulse' :
+                            deployed === items.length ? 'bg-green-400' : 'bg-gray-300'
+                          }`} />
                           <h4 className="font-semibold text-content-primary">{phase}</h4>
                           {isCurrentPhase && (
                             <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full font-medium">
                               Current
                             </span>
                           )}
-                          {isDeferred && (
-                            <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 text-xs rounded-full font-medium">
-                              Deferred
-                            </span>
-                          )}
                         </div>
-                        <span className="text-sm text-content-muted">
-                          {deployed}/{items.length} deployed
-                        </span>
-                      </div>
-                      <div className="space-y-2">
-                        {items.map((item) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-surface-hover"
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm text-content-muted">{deployed}/{items.length}</span>
+                          <svg
+                            className={`w-4 h-4 text-content-faint transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                           >
-                            <div className="flex items-center gap-3">
-                              <span
-                                className={`w-2 h-2 rounded-full ${
-                                  item.status === 'deployed'
-                                    ? 'bg-green-400'
-                                    : item.status === 'in_progress'
-                                    ? 'bg-blue-400 animate-pulse'
-                                    : item.status === 'deferred'
-                                    ? 'bg-yellow-400'
+                            <polyline points="6 9 12 15 18 9" />
+                          </svg>
+                        </div>
+                      </button>
+
+                      {/* Accordion body */}
+                      {isOpen && (
+                        <div className="px-5 pb-4 space-y-1 border-t border-border-secondary pt-3">
+                          {items.map((item) => (
+                            <div
+                              key={item.id}
+                              className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-surface-hover"
+                            >
+                              <div className="flex items-center gap-3">
+                                <span
+                                  className={`w-2 h-2 rounded-full shrink-0 ${
+                                    item.status === 'deployed' ? 'bg-green-400'
+                                    : item.status === 'in_progress' ? 'bg-blue-400 animate-pulse'
                                     : 'bg-gray-300'
-                                }`}
-                              />
-                              <span
-                                className={`text-sm ${
-                                  item.status === 'deployed'
-                                    ? 'text-content-muted'
-                                    : item.status === 'deferred'
-                                    ? 'text-content-muted italic'
-                                    : 'text-content-primary font-medium'
-                                }`}
-                              >
-                                {item.title}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              {item.deployed && (
-                                <span className="text-xs text-content-faint">
-                                  Shipped {item.deployed}
+                                  }`}
+                                />
+                                <span className={`text-sm ${
+                                  item.status === 'deployed' ? 'text-content-muted'
+                                  : 'text-content-primary font-medium'
+                                }`}>
+                                  {item.title}
                                 </span>
-                              )}
-                              <span
-                                className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[item.status]}`}
-                              >
-                                {statusLabels[item.status]}
-                              </span>
+                              </div>
+                              <div className="flex items-center gap-3 shrink-0 ml-4">
+                                {item.deployed && (
+                                  <span className="text-xs text-content-faint">Shipped {item.deployed}</span>
+                                )}
+                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[item.status]}`}>
+                                  {statusLabels[item.status]}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
