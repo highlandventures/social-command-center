@@ -83,10 +83,10 @@ export async function GET(request) {
     // (updatedAt > syncedAt means something changed after last sync)
     const updated = await prisma.$queryRaw`
       SELECT * FROM "notion_task_inbox"
-      WHERE "synced_at" IS NOT NULL
-        AND "updated_at" > "synced_at"
-        AND "notion_page_id" IS NOT NULL
-      ORDER BY "updated_at" ASC
+      WHERE "syncedAt" IS NOT NULL
+        AND "updatedAt" > "syncedAt"
+        AND "notionPageId" IS NOT NULL
+      ORDER BY "updatedAt" ASC
       LIMIT 50
     `;
 
@@ -95,9 +95,9 @@ export async function GET(request) {
       pendingCount: pending.length,
       updates: (updated || []).map((t) => ({
         taskId: t.id,
-        notionPageId: t.notion_page_id,
+        notionPageId: t.notionPageId,
         status: t.status,
-        reviewPriority: t.review_priority,
+        reviewPriority: t.reviewPriority,
         title: t.title,
         notes: t.notes,
       })),
