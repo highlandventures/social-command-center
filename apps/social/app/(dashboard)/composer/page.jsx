@@ -35,13 +35,48 @@ export default function ComposerPage() {
   const [sidebarTab, setSidebarTab] = useState('drafts'); // 'drafts' | 'intel'
   const [activeTweetIndex, setActiveTweetIndex] = useState(0);
 
+  // ── Media upload state ──────────────────────────────────
+  // Each item: { id, url, mimeType, sizeBytes, uploading?: boolean, error?: string }
+  const [uploadedMedia, setUploadedMedia] = useState([]);
+  const [mediaUploading, setMediaUploading] = useState(false);
+  const maxMedia = selectedPlatform === 'X' ? 4 : 20;
+
+  // Declare toast before any useCallback that references it (avoids TDZ during SSR)
+  const toast = useToast();
+
+  const handleMediaUpload = useCallback(async (files) => {
+    const fileList = Array.from(files);
+    if (uploadedMedia.length + fileList.length > maxMedia) {
+      toast.error(`Max ${maxMedia} images allowed for ${selectedPlatform}`);
+      return;
+    }
+    setMediaUploading(true);
+    for (const file of fileList) {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('platform', selectedPlatform);
+      try {
+        const res = await fetch('/api/upload/media', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Upload failed');
+        setUploadedMedia((prev) => [...prev, { id: data.id, url: data.url, mimeType: data.mimeType, sizeBytes: data.sizeBytes }]);
+      } catch (err) {
+        toast.error(err.message || 'Failed to upload image');
+      }
+    }
+    setMediaUploading(false);
+  }, [uploadedMedia.length, maxMedia, selectedPlatform, toast]);
+
+  const handleRemoveMedia = useCallback((mediaId) => {
+    setUploadedMedia((prev) => prev.filter((m) => m.id !== mediaId));
+  }, []);
+
   // ── tRPC queries ──────────────────────────────────────────
   const accountsQ = trpc.accounts.list.useQuery(undefined, { staleTime: 60_000 });
   const draftsQ = trpc.posts.list.useQuery({ status: 'DRAFT' }, { staleTime: 15_000 });
   const pendingReviewQ = trpc.posts.list.useQuery({ status: 'PENDING_APPROVAL' }, { staleTime: 15_000 });
 
   const utils = trpc.useUtils();
-  const toast = useToast();
 
   // ── Derived (hoisted above callbacks to avoid TDZ) ──────
   const accounts = accountsQ.data ?? [];
@@ -94,6 +129,7 @@ export default function ComposerPage() {
       toast.success('Published successfully!');
       // Reset editor state
       setTweets(['']);
+      setUploadedMedia([]);
       setEditingPostId(null);
       setEditingPostStatus(null);
       setActiveTweetIndex(0);
@@ -200,6 +236,8 @@ export default function ComposerPage() {
     }
     if (post.subreddit) setRedditSubreddit(post.subreddit);
     if (post.articleTitle && postPlatform === 'REDDIT') setRedditTitle(post.articleTitle);
+    // Load attached media
+    setUploadedMedia((post.media || []).map((m) => ({ id: m.id, url: m.url, mimeType: m.mimeType, sizeBytes: m.sizeBytes })));
     setEditingPostId(post.id);
     setEditingPostStatus(post.status);
     setSidebarTab('drafts');
@@ -212,6 +250,8 @@ export default function ComposerPage() {
   }, []);
 
   // ── Handlers ──────────────────────────────────────────────
+  const mediaIds = uploadedMedia.map((m) => m.id);
+
   const handleSaveDraft = () => {
     if (!selectedAccountId) return;
     const content = isThread ? tweets.join('\n---\n') : tweets[0];
@@ -219,6 +259,7 @@ export default function ComposerPage() {
       updateMutation.mutate({
         id: editingPostId,
         data: { content, contentType, ...getRedditFields() },
+        mediaIds,
       });
     } else {
       createMutation.mutate({
@@ -226,6 +267,7 @@ export default function ComposerPage() {
         platform: selectedPlatform,
         accountId: selectedAccountId,
         contentType,
+        mediaIds,
         ...getRedditFields(),
       });
     }
@@ -242,6 +284,7 @@ export default function ComposerPage() {
         await updateMutation.mutateAsync({
           id: editingPostId,
           data: { content, contentType, scheduledFor, ...getRedditFields() },
+          mediaIds,
         });
       } else {
         const post = await createMutation.mutateAsync({
@@ -250,6 +293,7 @@ export default function ComposerPage() {
           accountId: selectedAccountId,
           contentType,
           scheduledFor,
+          mediaIds,
           ...getRedditFields(),
         });
         postId = post?.id;
@@ -262,6 +306,7 @@ export default function ComposerPage() {
         updateMutation.mutate({
           id: editingPostId,
           data: { content, contentType, status: 'SCHEDULED', scheduledFor, ...getRedditFields() },
+          mediaIds,
         });
       } else {
         createMutation.mutate({
@@ -270,6 +315,7 @@ export default function ComposerPage() {
           accountId: selectedAccountId,
           contentType,
           scheduledFor,
+          mediaIds,
           ...getRedditFields(),
         });
       }
@@ -285,6 +331,7 @@ export default function ComposerPage() {
         platform: selectedPlatform,
         accountId: selectedAccountId,
         contentType,
+        mediaIds,
         ...getRedditFields(),
       });
       if (post?.id) {
@@ -497,6 +544,48 @@ export default function ComposerPage() {
                   className="w-full flex-1 text-[13px] text-composer-ink bg-transparent border-none outline-none resize-none leading-relaxed min-h-[200px] placeholder-composer-ink-muted"
                   placeholder="Write your post (Markdown)..."
                 />
+                {/* Media upload for Reddit */}
+                <div className="border-t border-white/[0.05] pt-2 mt-2">
+                  {uploadedMedia.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {uploadedMedia.map((m) => (
+                        <div key={m.id} className="relative group/thumb">
+                          <img src={m.url} alt="" className="w-16 h-16 rounded-md object-cover border border-white/[0.09]" />
+                          <button
+                            onClick={() => handleRemoveMedia(m.id)}
+                            className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full text-[9px] flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-opacity"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                      {mediaUploading && (
+                        <div className="w-16 h-16 rounded-md border border-white/[0.09] bg-composer-s1 flex items-center justify-center">
+                          <span className="text-[10px] text-composer-ink-muted animate-pulse">...</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <label className={`inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded cursor-pointer transition-colors ${
+                    uploadedMedia.length >= maxMedia ? 'text-composer-ink-muted/50 cursor-not-allowed' : 'text-composer-ink-muted hover:text-composer-ink2 hover:bg-composer-s2'
+                  }`}>
+                    + Add Images
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/webp"
+                      multiple
+                      className="hidden"
+                      disabled={uploadedMedia.length >= maxMedia}
+                      onChange={(e) => {
+                        if (e.target.files?.length) handleMediaUpload(e.target.files);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                  {uploadedMedia.length > 0 && (
+                    <span className="text-[10px] text-composer-ink-muted ml-2">{uploadedMedia.length}/{maxMedia}</span>
+                  )}
+                </div>
               </div>
             ) : (
               /* X tweet/thread compose */
@@ -563,11 +652,53 @@ export default function ComposerPage() {
                         </div>
                       )}
                     </div>
+                    {/* Media thumbnails (shown on first tweet only) */}
+                    {i === 0 && uploadedMedia.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 px-3 pt-2">
+                        {uploadedMedia.map((m) => (
+                          <div key={m.id} className="relative group/thumb">
+                            <img
+                              src={m.url}
+                              alt=""
+                              className="w-16 h-16 rounded-md object-cover border border-white/[0.09]"
+                            />
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleRemoveMedia(m.id); }}
+                              className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white rounded-full text-[9px] flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-opacity"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                        {mediaUploading && (
+                          <div className="w-16 h-16 rounded-md border border-white/[0.09] bg-composer-s1 flex items-center justify-center">
+                            <span className="text-[10px] text-composer-ink-muted animate-pulse">...</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {/* Bottom bar */}
                     <div className="flex items-center gap-1.5 px-3 py-1.5 border-t border-white/[0.05]">
-                      <button className="text-[10px] text-composer-ink-muted hover:text-composer-ink2 px-1.5 py-0.5 rounded hover:bg-composer-s2 transition-colors">
+                      <label
+                        className={`text-[10px] px-1.5 py-0.5 rounded transition-colors cursor-pointer ${
+                          uploadedMedia.length >= maxMedia
+                            ? 'text-composer-ink-muted/50 cursor-not-allowed'
+                            : 'text-composer-ink-muted hover:text-composer-ink2 hover:bg-composer-s2'
+                        }`}
+                      >
                         IMG
-                      </button>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/gif,image/webp"
+                          multiple
+                          className="hidden"
+                          disabled={uploadedMedia.length >= maxMedia || i !== 0}
+                          onChange={(e) => {
+                            if (e.target.files?.length) handleMediaUpload(e.target.files);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
                       <button className="text-[10px] text-composer-ink-muted hover:text-composer-ink2 px-1.5 py-0.5 rounded hover:bg-composer-s2 transition-colors">
                         LINK
                       </button>
@@ -704,6 +835,29 @@ export default function ComposerPage() {
                                       </span>
                                     </div>
                                   )}
+                                  {/* Media preview (first tweet only) */}
+                                  {i === 0 && uploadedMedia.length > 0 && (
+                                    <div className={`mt-3 rounded-2xl overflow-hidden border border-[#2f3336] ${
+                                      uploadedMedia.length === 1 ? '' : 'grid gap-0.5'
+                                    }`} style={uploadedMedia.length > 1 ? {
+                                      gridTemplateColumns: uploadedMedia.length === 2 ? '1fr 1fr' : uploadedMedia.length === 3 ? '1fr 1fr' : '1fr 1fr',
+                                      gridTemplateRows: uploadedMedia.length <= 2 ? 'auto' : 'auto auto',
+                                    } : {}}>
+                                      {uploadedMedia.map((m, mi) => (
+                                        <img
+                                          key={m.id}
+                                          src={m.url}
+                                          alt=""
+                                          className={`w-full object-cover ${
+                                            uploadedMedia.length === 1 ? 'max-h-[300px] rounded-2xl' :
+                                            uploadedMedia.length === 2 ? 'h-[180px]' :
+                                            uploadedMedia.length === 3 && mi === 0 ? 'h-[200px] row-span-2' :
+                                            'h-[100px]'
+                                          }`}
+                                        />
+                                      ))}
+                                    </div>
+                                  )}
                                   {/* Engagement bar */}
                                   <div className="flex items-center justify-between mt-3 max-w-[425px]">
                                     <div className="flex items-center gap-1 group/btn cursor-pointer">
@@ -792,6 +946,20 @@ export default function ComposerPage() {
                           <div className="text-[14px] text-[#D7DADC]/90 leading-relaxed whitespace-pre-wrap break-words mb-3">
                             {tweets[0] || <span className="text-[#818384] italic">Start typing...</span>}
                           </div>
+                          {/* Reddit media preview */}
+                          {uploadedMedia.length > 0 && (
+                            <div className="mb-3 rounded-lg overflow-hidden border border-[#343536]">
+                              {uploadedMedia.length === 1 ? (
+                                <img src={uploadedMedia[0].url} alt="" className="w-full max-h-[300px] object-cover" />
+                              ) : (
+                                <div className="grid grid-cols-2 gap-0.5">
+                                  {uploadedMedia.slice(0, 4).map((m) => (
+                                    <img key={m.id} src={m.url} alt="" className="w-full h-[140px] object-cover" />
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
                           <div className="flex items-center gap-1 text-[12px] text-[#818384] font-bold">
                             <button className="flex items-center gap-1.5 hover:bg-[#343536] px-2 py-1.5 rounded transition-colors">
                               <svg viewBox="0 0 20 20" className="w-4 h-4 fill-current">
@@ -957,6 +1125,11 @@ export default function ComposerPage() {
                       <PlatformBadge platform={d.platform} />
                       {d.contentType === 'THREAD' && (
                         <span className="text-[10px] text-accent font-medium">Thread</span>
+                      )}
+                      {d.media?.length > 0 && (
+                        <span className="text-[10px] text-composer-ink-muted">
+                          {d.media.length} img{d.media.length > 1 ? 's' : ''}
+                        </span>
                       )}
                       <span className="text-[10px] text-composer-ink-muted ml-auto font-mono">
                         {d.createdAt ? new Date(d.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
