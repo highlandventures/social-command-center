@@ -65,21 +65,91 @@ class XOfficialClient {
   }
 
   // --- WRITES ---
-  async publishTweet(content, replyToId = null) {
+  async publishTweet(content, replyToId = null, mediaIds = []) {
     const body = { text: content };
     if (replyToId) body.reply = { in_reply_to_tweet_id: replyToId };
+    if (mediaIds.length) body.media = { media_ids: mediaIds };
     return this.request('POST', '/tweets', body);
   }
 
-  async publishThread(tweets) {
+  async publishThread(tweets, mediaIds = []) {
     const published = [];
     let replyToId = null;
-    for (const tweet of tweets) {
-      const result = await this.publishTweet(tweet, replyToId);
+    for (let i = 0; i < tweets.length; i++) {
+      // Attach media to first tweet only
+      const tweetMediaIds = i === 0 ? mediaIds : [];
+      const result = await this.publishTweet(tweets[i], replyToId, tweetMediaIds);
       published.push(result);
       replyToId = result.data.id;
     }
     return published;
+  }
+
+  /**
+   * Upload a single image to X using the v2 media upload endpoint.
+   * Requires OAuth 2.0 user context token with media.write scope.
+   * Returns the media_id for use in tweet creation.
+   *
+   * @param {Buffer} imageBuffer - Raw image bytes
+   * @param {string} mimeType - e.g. 'image/jpeg'
+   * @returns {string} media_id
+   */
+  async uploadMedia(imageBuffer, mimeType) {
+    const start = Date.now();
+
+    const formData = new FormData();
+    const blob = new Blob([imageBuffer], { type: mimeType });
+    formData.append('media', blob, `upload.${mimeType.split('/')[1]}`);
+    formData.append('media_type', mimeType);
+    formData.append('media_category', mimeType === 'image/gif' ? 'tweet_gif' : 'tweet_image');
+
+    const res = await fetch(`${this.baseUrl}/media/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.accessToken}`,
+      },
+      body: formData,
+    });
+
+    // Log API call (non-fatal)
+    try {
+      await prisma.aPICallLog.create({
+        data: {
+          provider: 'x_official',
+          endpoint: '/2/media/upload',
+          method: 'POST',
+          statusCode: res.status,
+          responseTime: Date.now() - start,
+          estimatedCost: API_COSTS.X_OFFICIAL_POST || 0,
+        },
+      });
+    } catch { /* logging failed */ }
+
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({}));
+      throw new Error(`X Media Upload ${res.status}: ${JSON.stringify(error)}`);
+    }
+
+    const data = await res.json();
+    // v2 returns { data: { id, media_key } }
+    return data.data?.id ?? data.media_id_string;
+  }
+
+  /**
+   * Download images from Blob URLs and upload them to X.
+   * @param {Array<{url: string, mimeType: string}>} mediaItems
+   * @returns {string[]} Array of X media_id_strings
+   */
+  async uploadMediaFromUrls(mediaItems) {
+    const mediaIds = [];
+    for (const item of mediaItems) {
+      const response = await fetch(item.url);
+      if (!response.ok) throw new Error(`Failed to download media from ${item.url}`);
+      const buffer = Buffer.from(await response.arrayBuffer());
+      const mediaId = await this.uploadMedia(buffer, item.mimeType);
+      mediaIds.push(mediaId);
+    }
+    return mediaIds;
   }
 
   async publishArticle(title, content) {
@@ -233,9 +303,11 @@ export class XPlatformAdapter {
   }
 
   // WRITES — always official
-  publishTweet(content, replyToId) { return this.official.publishTweet(content, replyToId); }
-  publishThread(tweets) { return this.official.publishThread(tweets); }
+  publishTweet(content, replyToId, mediaIds) { return this.official.publishTweet(content, replyToId, mediaIds); }
+  publishThread(tweets, mediaIds) { return this.official.publishThread(tweets, mediaIds); }
   publishArticle(title, content) { return this.official.publishArticle(title, content); }
+  uploadMedia(imageBuffer, mimeType) { return this.official.uploadMedia(imageBuffer, mimeType); }
+  uploadMediaFromUrls(mediaItems) { return this.official.uploadMediaFromUrls(mediaItems); }
   deleteTweet(tweetId) { return this.official.deleteTweet(tweetId); }
   likeTweet(userId, tweetId) { return this.official.likeTweet(userId, tweetId); }
 
