@@ -20,12 +20,19 @@ function timeAgo(dateStr) {
 }
 
 function EmailRow({ message }) {
+  const gmailUrl = `https://mail.google.com/mail/u/0/#inbox/${message.id}`;
+
   return (
-    <div className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors ${
-      message.isUnread
-        ? 'border-blue-200 dark:border-blue-800/40 bg-blue-50/50 dark:bg-blue-900/10'
-        : 'border-border bg-surface-card'
-    }`}>
+    <a
+      href={gmailUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors cursor-pointer hover:bg-surface-hover ${
+        message.isUnread
+          ? 'border-blue-200 dark:border-blue-800/40 bg-blue-50/50 dark:bg-blue-900/10'
+          : 'border-border bg-surface-card'
+      }`}
+    >
       {/* Unread indicator */}
       <div className="flex-shrink-0 pt-1.5">
         {message.isUnread ? (
@@ -41,6 +48,9 @@ function EmailRow({ message }) {
           <span className={`text-xs truncate ${message.isUnread ? 'font-semibold text-content-primary' : 'text-content-secondary'}`}>
             {message.from?.name || message.from?.email || 'Unknown'}
           </span>
+          {message.isImportant && (
+            <span className="text-[9px] font-medium px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex-shrink-0">!</span>
+          )}
           <span className="text-xs text-content-faint flex-shrink-0 ml-auto">
             {timeAgo(message.date)}
           </span>
@@ -52,7 +62,7 @@ function EmailRow({ message }) {
           {message.snippet}
         </p>
       </div>
-    </div>
+    </a>
   );
 }
 
