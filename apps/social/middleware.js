@@ -9,6 +9,7 @@ const publicPaths = [
   '/api/cron',
   '/api/connect',
   '/api/webhooks',
+  '/ylds',          // Public YLDS wireframe
 ];
 
 const bypassAuth = (process.env.BYPASS_AUTH === 'true' || process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true') && process.env.NODE_ENV === 'development';
