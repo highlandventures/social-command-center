@@ -74,7 +74,7 @@ export const googleRouter = router({
 
     try {
       const accessToken = await getValidGoogleToken(tokenRecord);
-      const messages = await getGmailMessages(accessToken, { maxResults: 5 });
+      const messages = await getGmailMessages(accessToken, { maxResults: 10 });
       return { connected: true, messages };
     } catch (err) {
       console.error('Gmail fetch error:', err.message);

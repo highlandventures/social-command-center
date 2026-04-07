@@ -1,8 +1,30 @@
 'use client';
 
+import { useState, useCallback } from 'react';
 import { trpc } from '@/lib/trpc-client';
 import { Skeleton } from '@/components/ui';
 import GoogleConnectCard from './GoogleConnectCard';
+
+const DISMISSED_KEY = 'hub:dismissed-emails';
+
+function getDismissedIds() {
+  try {
+    const raw = localStorage.getItem(DISMISSED_KEY);
+    if (!raw) return new Set();
+    const { ids, date } = JSON.parse(raw);
+    // Reset dismissed list each new day
+    const today = new Date().toDateString();
+    if (date !== today) return new Set();
+    return new Set(ids);
+  } catch { return new Set(); }
+}
+
+function saveDismissedIds(idSet) {
+  localStorage.setItem(DISMISSED_KEY, JSON.stringify({
+    ids: [...idSet],
+    date: new Date().toDateString(),
+  }));
+}
 
 function timeAgo(dateStr) {
   if (!dateStr) return '';
@@ -19,20 +41,15 @@ function timeAgo(dateStr) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function EmailRow({ message }) {
+function EmailRow({ message, onDismiss }) {
   const gmailUrl = `https://mail.google.com/mail/u/0/#inbox/${message.id}`;
 
   return (
-    <a
-      href={gmailUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors cursor-pointer hover:bg-surface-hover ${
-        message.isUnread
-          ? 'border-blue-200 dark:border-blue-800/40 bg-blue-50/50 dark:bg-blue-900/10'
-          : 'border-border bg-surface-card'
-      }`}
-    >
+    <div className={`group flex items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors ${
+      message.isUnread
+        ? 'border-blue-200 dark:border-blue-800/40 bg-blue-50/50 dark:bg-blue-900/10'
+        : 'border-border bg-surface-card'
+    }`}>
       {/* Unread indicator */}
       <div className="flex-shrink-0 pt-1.5">
         {message.isUnread ? (
@@ -42,8 +59,13 @@ function EmailRow({ message }) {
         )}
       </div>
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
+      {/* Content — clickable link to Gmail */}
+      <a
+        href={gmailUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex-1 min-w-0 hover:opacity-80 transition-opacity"
+      >
         <div className="flex items-center gap-2 mb-0.5">
           <span className={`text-xs truncate ${message.isUnread ? 'font-semibold text-content-primary' : 'text-content-secondary'}`}>
             {message.from?.name || message.from?.email || 'Unknown'}
@@ -58,8 +80,20 @@ function EmailRow({ message }) {
         <p className="text-xs text-content-muted truncate mt-0.5">
           {message.snippet}
         </p>
-      </div>
-    </a>
+      </a>
+
+      {/* Dismiss button */}
+      <button
+        onClick={() => onDismiss(message.id)}
+        className="flex-shrink-0 mt-1 text-content-faint opacity-0 group-hover:opacity-100 hover:text-content-secondary transition-all"
+        title="Dismiss"
+      >
+        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    </div>
   );
 }
 
@@ -67,6 +101,20 @@ export default function EmailSection() {
   const { data, isLoading } = trpc.google.gmailHighlights.useQuery(undefined, {
     staleTime: 120_000, // 2 min
   });
+
+  const [dismissed, setDismissed] = useState(() => getDismissedIds());
+
+  const handleDismiss = useCallback((id) => {
+    setDismissed(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      saveDismissedIds(next);
+      return next;
+    });
+  }, []);
+
+  const visibleMessages = (data?.messages || []).filter(m => !dismissed.has(m.id));
+  const unreadCount = visibleMessages.filter(m => m.isUnread).length;
 
   return (
     <div className="bg-surface-card rounded-xl border border-border p-5">
@@ -77,9 +125,9 @@ export default function EmailSection() {
           <polyline points="22,6 12,13 2,6" />
         </svg>
         <h3 className="text-sm font-semibold text-content-primary">Priority Inbox</h3>
-        {data?.connected && data.messages.some(m => m.isUnread) && (
+        {data?.connected && unreadCount > 0 && (
           <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-            {data.messages.filter(m => m.isUnread).length} new
+            {unreadCount} new
           </span>
         )}
         {data?.connected && (
@@ -118,19 +166,19 @@ export default function EmailSection() {
         />
       )}
 
-      {/* Connected but no messages */}
-      {!isLoading && data?.connected && data.messages.length === 0 && (
+      {/* Connected but all dismissed or empty */}
+      {!isLoading && data?.connected && visibleMessages.length === 0 && (
         <div className="text-center py-8">
-          <p className="text-sm text-content-muted">Inbox zero!</p>
-          <p className="text-xs text-content-faint mt-1">No recent messages</p>
+          <p className="text-sm text-content-muted">All caught up!</p>
+          <p className="text-xs text-content-faint mt-1">No priority emails right now</p>
         </div>
       )}
 
       {/* Email list */}
-      {!isLoading && data?.connected && data.messages.length > 0 && (
+      {!isLoading && data?.connected && visibleMessages.length > 0 && (
         <div className="space-y-2">
-          {data.messages.map(msg => (
-            <EmailRow key={msg.id} message={msg} />
+          {visibleMessages.map(msg => (
+            <EmailRow key={msg.id} message={msg} onDismiss={handleDismiss} />
           ))}
         </div>
       )}
