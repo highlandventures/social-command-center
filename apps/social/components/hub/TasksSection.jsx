@@ -14,6 +14,53 @@ const PRIORITY_STYLES = {
 
 const PRIORITY_LABELS = { URGENT: 'Urgent', HIGH: 'High', MEDIUM: 'Med', LOW: 'Low' };
 
+const PRIORITY_WEIGHT = { URGENT: 100, HIGH: 60, MEDIUM: 30, LOW: 10 };
+
+function timeBonus(dueDate) {
+  if (!dueDate) return 0;
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const d = new Date(dueDate);
+  d.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((d - now) / 86400000);
+  if (diffDays < 0) return Math.min(50 + Math.abs(diffDays) * 2, 70); // overdue
+  if (diffDays === 0) return 40; // today
+  if (diffDays === 1) return 20; // tomorrow
+  if (diffDays <= 7) return 10; // this week
+  return 0;
+}
+
+function scoreAndBucket(activeTasks) {
+  const scored = activeTasks.map(t => ({
+    ...t,
+    _score: (PRIORITY_WEIGHT[t.priority] || 10) + timeBonus(t.dueDate),
+  }));
+
+  scored.sort((a, b) => {
+    if (b._score !== a._score) return b._score - a._score;
+    // Ties: earlier due date first
+    if (a.dueDate && b.dueDate) return new Date(a.dueDate) - new Date(b.dueDate);
+    if (a.dueDate && !b.dueDate) return -1;
+    if (!a.dueDate && b.dueDate) return 1;
+    // Then newer first
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  });
+
+  // Spotlight: top task only if score >= 60 (at least HIGH or overdue MEDIUM)
+  let spotlight = null;
+  let rest = scored;
+  if (scored.length > 0 && scored[0]._score >= 60) {
+    spotlight = scored[0];
+    rest = scored.slice(1);
+  }
+
+  const upNext = rest.slice(0, 3);
+  const quickWins = rest.slice(3, 6);
+  const overflow = rest.slice(6);
+
+  return { spotlight, upNext, quickWins, overflow };
+}
+
 function isOverdue(dueDate) {
   if (!dueDate) return false;
   const today = new Date();
@@ -43,7 +90,16 @@ function formatDueDate(dueDate) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function TaskRow({ task, onToggle, onDelete }) {
+function SoftDivider({ label }) {
+  return (
+    <div className="flex items-center gap-2 pt-3 pb-1">
+      <span className="text-[10px] font-medium uppercase tracking-wider text-content-faint">{label}</span>
+      <div className="flex-1 border-t border-border" />
+    </div>
+  );
+}
+
+function TaskRow({ task, onToggle, onDelete, spotlight }) {
   const isDone = task.status === 'DONE';
   const overdue = !isDone && isOverdue(task.dueDate);
   const dueToday = !isDone && isToday(task.dueDate);
@@ -51,7 +107,11 @@ function TaskRow({ task, onToggle, onDelete }) {
 
   return (
     <div className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors ${
-      isDone ? 'bg-surface-secondary border-border-secondary opacity-60' : 'bg-surface-card border-border'
+      isDone
+        ? 'bg-surface-secondary border-border-secondary opacity-60'
+        : spotlight
+          ? 'bg-blue-50/40 dark:bg-blue-900/10 border-border border-l-4 border-l-blue-500'
+          : 'bg-surface-card border-border'
     }`}>
       {/* Checkbox */}
       <button
@@ -73,11 +133,11 @@ function TaskRow({ task, onToggle, onDelete }) {
       {/* Title */}
       <div className="flex-1 min-w-0">
         {task.source === 'gtm' && task.projectId ? (
-          <Link href={`/gtm/projects/${task.projectId}`} className={`block text-sm truncate ${isDone ? 'line-through text-content-muted' : 'text-content-primary hover:text-blue-600 dark:hover:text-blue-400'}`}>
+          <Link href={`/gtm/projects/${task.projectId}`} className={`block truncate ${isDone ? 'text-sm line-through text-content-muted' : spotlight ? 'text-base font-medium text-content-primary hover:text-blue-600 dark:hover:text-blue-400' : 'text-sm text-content-primary hover:text-blue-600 dark:hover:text-blue-400'}`}>
             {task.title}
           </Link>
         ) : (
-          <span className={`block text-sm truncate ${isDone ? 'line-through text-content-muted' : 'text-content-primary'}`}>
+          <span className={`block truncate ${isDone ? 'text-sm line-through text-content-muted' : spotlight ? 'text-base font-medium text-content-primary' : 'text-sm text-content-primary'}`}>
             {task.title}
           </span>
         )}
@@ -264,21 +324,9 @@ export default function TasksSection() {
   const activeTasks = (tasks || []).filter(t => t.status !== 'DONE');
   const completedTasks = (tasks || []).filter(t => t.status === 'DONE');
 
-  // Sort active: overdue first, then today, then upcoming, then no date
-  activeTasks.sort((a, b) => {
-    const aOverdue = isOverdue(a.dueDate);
-    const bOverdue = isOverdue(b.dueDate);
-    if (aOverdue && !bOverdue) return -1;
-    if (!aOverdue && bOverdue) return 1;
-    const aToday = isToday(a.dueDate);
-    const bToday = isToday(b.dueDate);
-    if (aToday && !bToday) return -1;
-    if (!aToday && bToday) return 1;
-    if (a.dueDate && !b.dueDate) return -1;
-    if (!a.dueDate && b.dueDate) return 1;
-    if (a.dueDate && b.dueDate) return new Date(a.dueDate) - new Date(b.dueDate);
-    return 0;
-  });
+  const { spotlight, upNext, quickWins, overflow } = scoreAndBucket(activeTasks);
+  const [showOverflow, setShowOverflow] = useState(false);
+  const visibleCount = (spotlight ? 1 : 0) + upNext.length + quickWins.length;
 
   return (
     <div className="bg-surface-card rounded-xl border border-border p-5">
@@ -289,9 +337,9 @@ export default function TasksSection() {
             <path d="M9 11l3 3L22 4" />
             <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
           </svg>
-          <h3 className="text-sm font-semibold text-content-primary">Tasks</h3>
-          {activeTasks.length > 0 && (
-            <span className="text-xs text-content-muted">({activeTasks.length})</span>
+          <h3 className="text-sm font-semibold text-content-primary">Today&apos;s Focus</h3>
+          {visibleCount > 0 && (
+            <span className="text-xs text-content-muted">({visibleCount}{overflow.length > 0 ? `+${overflow.length}` : ''})</span>
           )}
         </div>
       </div>
@@ -319,9 +367,44 @@ export default function TasksSection() {
             </div>
           )}
 
-          {activeTasks.map(task => (
+          {/* Spotlight: #1 priority task */}
+          {spotlight && (
+            <TaskRow key={spotlight.id} task={spotlight} spotlight onToggle={handleToggle} onDelete={handleDelete} />
+          )}
+
+          {/* Up next: secondary goals */}
+          {upNext.length > 0 && (spotlight || quickWins.length > 0) && <SoftDivider label="Up next" />}
+          {upNext.map(task => (
             <TaskRow key={task.id} task={task} onToggle={handleToggle} onDelete={handleDelete} />
           ))}
+
+          {/* Quick wins: small tasks */}
+          {quickWins.length > 0 && <SoftDivider label="Quick wins" />}
+          {quickWins.map(task => (
+            <TaskRow key={task.id} task={task} onToggle={handleToggle} onDelete={handleDelete} />
+          ))}
+
+          {/* Overflow: hidden behind toggle */}
+          {overflow.length > 0 && (
+            <>
+              <button
+                onClick={() => setShowOverflow(!showOverflow)}
+                className="w-full text-xs text-content-muted hover:text-content-secondary flex items-center gap-1 pt-2"
+              >
+                <svg className={`w-3 h-3 transition-transform ${showOverflow ? 'rotate-90' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+                {overflow.length} more {overflow.length === 1 ? 'task' : 'tasks'}
+              </button>
+              {showOverflow && (
+                <div className="space-y-2 mt-1">
+                  {overflow.map(task => (
+                    <TaskRow key={task.id} task={task} onToggle={handleToggle} onDelete={handleDelete} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
 
           <AddTaskForm onAdd={handleAdd} />
 
