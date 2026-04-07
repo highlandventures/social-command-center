@@ -32,6 +32,7 @@ import { gtmMomentsRouter } from './gtm-moments';
 import { gtmOkrsRouter } from './gtm-okrs';
 import { gtmProductsRouter } from './gtm-products';
 import { teamRouter } from './team';
+import { contactsRouter } from './contacts';
 
 export const appRouter = router({
   accounts: accountsRouter,
@@ -67,6 +68,7 @@ export const appRouter = router({
   gtmOkrs: gtmOkrsRouter,
   gtmProducts: gtmProductsRouter,
   team: teamRouter,
+  contacts: contactsRouter,
 });
 
 /** @typedef {typeof appRouter} AppRouter */

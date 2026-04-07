@@ -85,13 +85,15 @@ const NEXT_STATUS = {
   DONE: 'TODO',
 };
 
-function AddGtmTaskForm({ projectId, members, onCreated }) {
+function AddGtmTaskForm({ projectId, members, contacts, onCreated, onCreateContact }) {
   const [expanded, setExpanded] = useState(false);
   const [title, setTitle] = useState('');
   const [priority, setPriority] = useState('MEDIUM');
   const [dueDate, setDueDate] = useState('');
   const [ownerId, setOwnerId] = useState(null);
   const [ownerObj, setOwnerObj] = useState(null);
+  const [contactId, setContactId] = useState(null);
+  const [contactObj, setContactObj] = useState(null);
 
   const createTask = trpc.gtmTasks.create.useMutation({
     onSuccess: () => {
@@ -101,6 +103,8 @@ function AddGtmTaskForm({ projectId, members, onCreated }) {
       setPriority('MEDIUM');
       setOwnerId(null);
       setOwnerObj(null);
+      setContactId(null);
+      setContactObj(null);
       setExpanded(false);
     },
   });
@@ -113,6 +117,7 @@ function AddGtmTaskForm({ projectId, members, onCreated }) {
       title: title.trim(),
       priority,
       ...(ownerId ? { ownerId } : {}),
+      ...(contactId ? { contactId } : {}),
       ...(dueDate ? { dueDate } : {}),
     });
   }
@@ -160,10 +165,27 @@ function AddGtmTaskForm({ projectId, members, onCreated }) {
         />
         <AssigneePicker
           currentOwner={ownerObj}
+          currentContact={contactObj}
           members={members}
+          contacts={contacts || []}
           onSelect={(id) => {
             setOwnerId(id);
             setOwnerObj(members.find((m) => m.id === id) || null);
+            setContactId(null);
+            setContactObj(null);
+          }}
+          onSelectContact={(id) => {
+            setContactId(id);
+            setContactObj((contacts || []).find((c) => c.id === id) || null);
+            setOwnerId(null);
+            setOwnerObj(null);
+          }}
+          onCreateContact={async (data) => {
+            const c = await onCreateContact(data);
+            setContactId(c.id);
+            setContactObj(c);
+            setOwnerId(null);
+            setOwnerObj(null);
           }}
         />
         <div className="flex-1" />
@@ -187,6 +209,11 @@ export default function ProjectBriefPage() {
   const utils = trpc.useUtils();
   const { data: project, isLoading } = trpc.gtmProjects.byId.useQuery({ id });
   const { data: members } = trpc.team.members.useQuery();
+  const { data: contacts } = trpc.contacts.list.useQuery();
+
+  const createContact = trpc.contacts.create.useMutation({
+    onSuccess: () => utils.contacts.list.invalidate(),
+  });
 
   const updateProject = trpc.gtmProjects.update.useMutation({
     onSuccess: () => {
@@ -347,8 +374,15 @@ export default function ProjectBriefPage() {
                 </span>
                 <AssigneePicker
                   currentOwner={task.owner}
+                  currentContact={task.contact}
                   members={members || []}
-                  onSelect={(ownerId) => updateTask.mutate({ id: task.id, ownerId })}
+                  contacts={contacts || []}
+                  onSelect={(ownerId) => updateTask.mutate({ id: task.id, ownerId, contactId: null })}
+                  onSelectContact={(contactId) => updateTask.mutate({ id: task.id, contactId, ownerId: null })}
+                  onCreateContact={async (data) => {
+                    const c = await createContact.mutateAsync(data);
+                    updateTask.mutate({ id: task.id, contactId: c.id, ownerId: null });
+                  }}
                 />
                 {task.dueDate && (
                   <span className="text-[10px] text-content-faint whitespace-nowrap">
@@ -362,7 +396,9 @@ export default function ProjectBriefPage() {
         <AddGtmTaskForm
           projectId={id}
           members={members || []}
+          contacts={contacts || []}
           onCreated={() => utils.gtmProjects.byId.invalidate({ id })}
+          onCreateContact={(data) => createContact.mutateAsync(data)}
         />
       </div>
 

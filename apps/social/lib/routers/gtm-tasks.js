@@ -26,6 +26,7 @@ export const gtmTasksRouter = router({
         include: {
           project: { select: { id: true, name: true, category: true } },
           owner: { select: { id: true, name: true, email: true, avatarUrl: true } },
+          contact: { select: { id: true, name: true, email: true } },
         },
         take: input.limit,
         orderBy: [{ priority: 'asc' }, { dueDate: 'asc' }],
@@ -65,6 +66,7 @@ export const gtmTasksRouter = router({
         title: z.string().min(1).max(500),
         priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).default('MEDIUM'),
         ownerId: z.string().optional(),
+        contactId: z.string().nullish(),
         dueDate: z.string().optional(),
       })
     )
@@ -75,6 +77,7 @@ export const gtmTasksRouter = router({
           title: input.title,
           priority: input.priority,
           ownerId: input.ownerId ?? ctx.user.id,
+          contactId: input.contactId || null,
           dueDate: input.dueDate ? new Date(input.dueDate) : null,
         },
       });
@@ -91,6 +94,7 @@ export const gtmTasksRouter = router({
         status: z.enum(['TODO', 'IN_PROGRESS', 'BLOCKED', 'DONE']).optional(),
         priority: z.enum(['HIGH', 'MEDIUM', 'LOW']).optional(),
         ownerId: z.string().nullish(),
+        contactId: z.string().nullish(),
         dueDate: z.string().nullish(),
       })
     )
@@ -102,6 +106,7 @@ export const gtmTasksRouter = router({
       if (fields.status !== undefined) data.status = fields.status;
       if (fields.priority !== undefined) data.priority = fields.priority;
       if (fields.ownerId !== undefined) data.ownerId = fields.ownerId;
+      if (fields.contactId !== undefined) data.contactId = fields.contactId;
       if (fields.dueDate !== undefined) data.dueDate = fields.dueDate ? new Date(fields.dueDate) : null;
 
       return ctx.prisma.gtmTask.update({ where: { id }, data });

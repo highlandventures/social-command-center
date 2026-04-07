@@ -141,8 +141,10 @@ function TaskRow({ task, onToggle, onDelete, spotlight }) {
             {task.title}
           </span>
         )}
-        {task.projectName && !isDone && (
-          <span className="text-[10px] text-content-faint truncate block">{task.projectName}</span>
+        {(task.projectName || task.contact) && !isDone && (
+          <span className="text-[10px] text-content-faint truncate block">
+            {task.projectName}{task.projectName && task.contact ? ' · ' : ''}{task.contact ? `↗ ${task.contact.name}` : ''}
+          </span>
         )}
       </div>
 

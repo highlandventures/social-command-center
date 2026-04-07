@@ -42,6 +42,7 @@ export const gtmProjectsRouter = router({
           tasks: {
             include: {
               owner: { select: { id: true, name: true, email: true, avatarUrl: true } },
+              contact: { select: { id: true, name: true, email: true } },
             },
             orderBy: [{ status: 'asc' }, { dueDate: 'asc' }],
           },

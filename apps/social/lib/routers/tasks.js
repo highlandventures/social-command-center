@@ -21,6 +21,7 @@ export const tasksRouter = router({
       const [homeTasks, gtmTasks] = await Promise.all([
         prisma.homeTask.findMany({
           where: homeWhere,
+          include: { contact: { select: { id: true, name: true, email: true } } },
           take: input.limit,
           orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
         }),
@@ -29,7 +30,10 @@ export const tasksRouter = router({
             ownerId: user.id,
             ...(input.status ? { status: input.status } : {}),
           },
-          include: { project: { select: { id: true, name: true } } },
+          include: {
+            project: { select: { id: true, name: true } },
+            contact: { select: { id: true, name: true, email: true } },
+          },
           take: input.limit,
           orderBy: { createdAt: 'desc' },
         }),
@@ -49,6 +53,7 @@ export const tasksRouter = router({
         source: 'gtm',
         projectId: t.project?.id || null,
         projectName: t.project?.name || null,
+        contact: t.contact || null,
       }));
 
       const normalizedHome = homeTasks.map((t) => ({
@@ -71,6 +76,7 @@ export const tasksRouter = router({
         description: z.string().max(2000).nullish(),
         priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).default('MEDIUM'),
         dueDate: z.date().nullish(),
+        contactId: z.string().nullish(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -82,6 +88,7 @@ export const tasksRouter = router({
           description: input.description || null,
           priority: input.priority,
           dueDate: input.dueDate || null,
+          contactId: input.contactId || null,
         },
       });
     }),
@@ -98,6 +105,7 @@ export const tasksRouter = router({
         status: z.enum(['TODO', 'IN_PROGRESS', 'DONE']).optional(),
         priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
         dueDate: z.date().nullish(),
+        contactId: z.string().nullish(),
         sortOrder: z.number().optional(),
       })
     )
