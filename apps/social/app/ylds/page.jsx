@@ -115,9 +115,19 @@ const Hero = ({ h1, h1Accent, sub, cta1, cta2, stats, coin }) => (
   </section>
 );
 
-const Footer = ({ hasHastra }) => (
+const Footer = ({ hasHastra, onNavigate }) => (
   <div style={{ background: '#1A1752', padding: '48px 48px 32px', color: 'rgba(255,255,255,0.35)', fontSize: 12, lineHeight: 1.7 }}>
     <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+      {onNavigate && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingBottom: 32, marginBottom: 32, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ display: 'flex', gap: 32, flexWrap: 'wrap' }}>
+            {['Homepage', 'For Crypto', 'For Institutions', 'Developers & Ecosystems', 'Contact'].map((label, i) => (
+              <a key={i} onClick={() => onNavigate(i)} style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 500, cursor: 'pointer', textDecoration: 'none', transition: '0.2s' }}>{label}</a>
+            ))}
+          </div>
+          <a href="https://app.ylds.io" target="_blank" rel="noopener noreferrer" style={{ padding: '10px 28px', borderRadius: 9999, fontSize: 13, fontWeight: 700, background: S.purple, color: 'white', textDecoration: 'none', whiteSpace: 'nowrap' }}>Get YLDS</a>
+        </div>
+      )}
       <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 24, marginBottom: 16 }}>
         <p style={{ marginBottom: 12 }}><strong style={{ color: 'rgba(255,255,255,0.5)' }}>Important Disclosures</strong></p>
         <p style={{ marginBottom: 12 }}>YLDS is a registered fixed-income security issued by Figure Certificate Corporation. It is not a stablecoin, deposit account, or money market fund. Investment products: Not FDIC Insured · No Bank Guarantee · May Lose Value. Not suitable for all investors.</p>
@@ -145,7 +155,7 @@ const BottomCTA = ({ title, sub, cta1, cta2 }) => (
 );
 
 // ─── PAGE: HOMEPAGE ───
-const HomePage = () => (
+const HomePage = ({ onNavigate }) => (
   <>
     <Hero h1="Your stablecoins should be" h1Accent="earning." sub="Earn on it. Send it. Settle with it. Compliant through every regulatory cycle.*" cta1="Get YLDS" cta2="For large volumes, talk to our team →" coin />
 
@@ -197,12 +207,12 @@ const HomePage = () => (
     </Section>
 
     <BottomCTA title="Ready to put idle capital to work?" sub="Get YLDS directly or talk to our team for large-volume allocations." cta1="Get YLDS" cta2="Contact our team →" />
-    <Footer hasHastra />
+    <Footer hasHastra onNavigate={onNavigate} />
   </>
 );
 
 // ─── PAGE: FOR CRYPTO ───
-const CryptoPage = () => (
+const CryptoPage = ({ onNavigate }) => (
   <>
     <Hero h1="Idle capital is" h1Accent="a choice." sub="Your treasury is sitting in stablecoins that can't pay you — and after GENIUS, never will. YLDS accrues ~4% daily,* moves on-chain, and is the only registered security that transfers peer-to-peer." cta1="Get YLDS" cta2="For large volumes, talk to our team →" stats={[{val:'~4.0%',label:'Variable Yield (SOFR - 35bps)'},{val:'$5.8M+',label:'Interest Earned by Holders'}]} />
 
@@ -245,12 +255,12 @@ const CryptoPage = () => (
     </div>
 
     <BottomCTA title="Your stablecoins can't pay you anymore. YLDS can." sub="Get YLDS directly or talk to our team for large-volume allocations." cta1="Get YLDS" cta2="Contact our team →" />
-    <Footer hasHastra />
+    <Footer hasHastra onNavigate={onNavigate} />
   </>
 );
 
 // ─── PAGE: FOR INSTITUTIONS ───
-const InstitutionsPage = () => (
+const InstitutionsPage = ({ onNavigate }) => (
   <>
     <Hero h1="A registered security that earns like a money market" h1Accent="and moves like a stablecoin." sub="YLDS is a registered fixed-income security — subject to the same regulatory framework as money market funds. ~4% daily accrual,* $1.00 NAV, KPMG-audited, and transferable peer-to-peer on-chain." cta1="Get YLDS" cta2="Talk to our team →" stats={[{val:'~4.0%',label:'Variable Yield (SOFR - 35bps)'},{val:'$609M+',label:'Ecosystem AUM'},{val:'KPMG',label:'Annual Audit'}]} />
 
@@ -302,12 +312,12 @@ const InstitutionsPage = () => (
     </div>
 
     <BottomCTA title="Ready to put idle capital to work?" sub="Get YLDS directly or talk to our team for treasury allocations and settlement flows." cta1="Get YLDS" cta2="Talk to our team →" />
-    <Footer hasHastra={false} />
+    <Footer hasHastra={false} onNavigate={onNavigate} />
   </>
 );
 
 // ─── PAGE: DEVELOPERS ───
-const DevelopersPage = () => (
+const DevelopersPage = ({ onNavigate }) => (
   <>
     <Hero h1="Bring YLDS to" h1Accent="your ecosystem." sub="YLDS exists in multiple forms across multiple chains. Whether you're a foundation, protocol, or platform — there's a path to bring compliant, yield-accruing digital assets to your users." cta1="Contact the Team" cta2="View docs →" stats={[{val:'3',label:'Chains Live'},{val:'$609M+',label:'Ecosystem AUM'},{val:'~4.0%',label:'Variable Yield'}]} />
 
@@ -365,12 +375,12 @@ const DevelopersPage = () => (
     </Section>
 
     <BottomCTA title="The next chain to get YLDS could be yours." sub="Contact Figure for YLDS or Hastra for wYLDS." cta1="Contact the Team" cta2="View docs →" />
-    <Footer hasHastra />
+    <Footer hasHastra onNavigate={onNavigate} />
   </>
 );
 
 // ─── PAGE: CONTACT ───
-const ContactPage = () => (
+const ContactPage = ({ onNavigate }) => (
   <>
     <section style={{ background: `linear-gradient(180deg, ${S.dark} 45%, ${S.mid} 85%, ${S.accent} 100%)`, padding: '160px 48px 80px', minHeight: '40vh', display: 'flex', alignItems: 'center' }}>
       <div style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center' }}>
@@ -410,7 +420,7 @@ const ContactPage = () => (
       </div>
     </Section>
 
-    <Footer hasHastra={false} />
+    <Footer hasHastra={false} onNavigate={onNavigate} />
   </>
 );
 
@@ -423,13 +433,14 @@ export default function YLDSPage() {
     <div style={{ fontFamily: "'Plus Jakarta Sans', -apple-system, sans-serif", color: S.dark }}>
       {/* Page switcher */}
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200, background: 'rgba(26,23,82,0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 48px' }}>
+        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', gap: 4, padding: '10px 24px' }}>
           {pages.map((p, i) => (
-            <button key={i} onClick={() => setPage(i)} style={{ padding: '8px 20px', borderRadius: 9999, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', background: page === i ? S.purple : 'transparent', color: page === i ? 'white' : 'rgba(255,255,255,0.5)', transition: '0.2s' }}>{p}</button>
+            <button key={i} onClick={() => setPage(i)} style={{ padding: '7px 16px', borderRadius: 9999, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', background: page === i ? S.purple : 'transparent', color: page === i ? 'white' : 'rgba(255,255,255,0.5)', transition: '0.2s', whiteSpace: 'nowrap' }}>{p}</button>
           ))}
+          <a href="https://app.ylds.io" target="_blank" rel="noopener noreferrer" style={{ marginLeft: 'auto', padding: '8px 20px', borderRadius: 9999, fontSize: 13, fontWeight: 700, background: S.purple, color: 'white', textDecoration: 'none', whiteSpace: 'nowrap', transition: '0.2s' }}>Get YLDS</a>
         </div>
       </div>
-      <div style={{ paddingTop: 52 }}><Page /></div>
+      <div style={{ paddingTop: 52 }}><Page onNavigate={(i) => { setPage(i); window.scrollTo(0, 0); }} /></div>
     </div>
   );
 }
