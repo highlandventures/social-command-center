@@ -45,7 +45,7 @@ function EmailRow({ message, onDismiss }) {
   const gmailUrl = `https://mail.google.com/mail/u/0/#inbox/${message.id}`;
 
   return (
-    <div className={`group flex items-start gap-3 rounded-lg border px-3 py-2.5 transition-colors ${
+    <div className={`group flex items-start gap-2.5 rounded-lg border px-2.5 py-1.5 transition-colors ${
       message.isUnread
         ? 'border-blue-200 dark:border-blue-800/40 bg-blue-50/50 dark:bg-blue-900/10'
         : 'border-border bg-surface-card'
@@ -118,9 +118,9 @@ export default function EmailSection({ className = '' }) {
   const unreadCount = visibleMessages.filter(m => m.isUnread).length;
 
   return (
-    <div className={`bg-surface-card rounded-xl border border-border p-5 ${className}`}>
+    <div className={`bg-surface-card rounded-xl border border-border p-4 ${className}`}>
       {/* Header */}
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-3">
         <svg className="w-4 h-4 text-content-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
           <polyline points="22,6 12,13 2,6" />
@@ -145,7 +145,7 @@ export default function EmailSection({ className = '' }) {
 
       {/* Loading */}
       {isLoading && (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="flex items-start gap-3 rounded-lg border border-border px-3 py-2.5">
               <Skeleton className="w-2 h-2 rounded-full mt-1.5" />
@@ -177,7 +177,7 @@ export default function EmailSection({ className = '' }) {
 
       {/* Email list */}
       {!isLoading && data?.connected && visibleMessages.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {visibleMessages.map(msg => (
             <EmailRow key={msg.id} message={msg} onDismiss={handleDismiss} />
           ))}

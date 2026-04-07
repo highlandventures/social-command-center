@@ -106,7 +106,7 @@ function TaskRow({ task, onToggle, onDelete, spotlight }) {
   const dueDateText = formatDueDate(task.dueDate);
 
   return (
-    <div className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors ${
+    <div className={`flex items-center gap-2.5 rounded-lg border px-2.5 py-1.5 transition-colors ${
       isDone
         ? 'bg-surface-secondary border-border-secondary opacity-60'
         : spotlight
@@ -331,9 +331,9 @@ export default function TasksSection() {
   const visibleCount = (spotlight ? 1 : 0) + upNext.length + quickWins.length;
 
   return (
-    <div className="bg-surface-card rounded-xl border border-border p-5">
+    <div className="bg-surface-card rounded-xl border border-border p-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <svg className="w-4 h-4 text-content-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 11l3 3L22 4" />
@@ -348,9 +348,9 @@ export default function TasksSection() {
 
       {/* Loading state */}
       {isLoading && (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5">
+            <div key={i} className="flex items-center gap-2.5 rounded-lg border border-border px-2.5 py-1.5">
               <Skeleton className="w-4 h-4 rounded" />
               <Skeleton className="h-4 w-48" />
               <Skeleton className="h-4 w-12 ml-auto" />
@@ -361,7 +361,7 @@ export default function TasksSection() {
 
       {/* Task list */}
       {!isLoading && (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {activeTasks.length === 0 && completedTasks.length === 0 && (
             <div className="text-center py-4">
               <p className="text-sm text-content-muted">No tasks yet</p>
@@ -399,7 +399,7 @@ export default function TasksSection() {
                 {overflow.length} more {overflow.length === 1 ? 'task' : 'tasks'}
               </button>
               {showOverflow && (
-                <div className="space-y-2 mt-1">
+                <div className="space-y-1.5 mt-1">
                   {overflow.map(task => (
                     <TaskRow key={task.id} task={task} onToggle={handleToggle} onDelete={handleDelete} />
                   ))}

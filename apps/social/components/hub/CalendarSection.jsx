@@ -36,7 +36,7 @@ function EventRow({ event, isNow, isUpNext }) {
   const barColor = isNow ? 'bg-green-500' : 'bg-blue-500';
 
   return (
-    <div className={`flex items-start gap-3 rounded-lg border px-3 py-2.5 ${borderColor}`}>
+    <div className={`flex items-start gap-2.5 rounded-lg border px-2.5 py-1.5 ${borderColor}`}>
       {/* Time */}
       <div className="flex-shrink-0 w-16 text-right">
         <span className="text-xs font-medium text-content-primary">{startTime}</span>
@@ -94,9 +94,9 @@ export default function CalendarSection({ className = '' }) {
   });
 
   return (
-    <div className={`bg-surface-card rounded-xl border border-border p-5 ${className}`}>
+    <div className={`bg-surface-card rounded-xl border border-border p-4 ${className}`}>
       {/* Header */}
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-3">
         <svg className="w-4 h-4 text-content-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
           <line x1="16" y1="2" x2="16" y2="6" />
@@ -111,7 +111,7 @@ export default function CalendarSection({ className = '' }) {
 
       {/* Loading */}
       {isLoading && (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="flex items-center gap-3 rounded-lg border border-border px-3 py-2.5">
               <Skeleton className="w-16 h-8" />
@@ -161,7 +161,7 @@ export default function CalendarSection({ className = '' }) {
         const overflow = visible.length - shown.length;
 
         return (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {shown.map(event => {
               const happening = isHappeningNow(event);
               const upNext = !happening && isNext(event, visible);
