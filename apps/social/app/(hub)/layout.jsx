@@ -9,6 +9,7 @@ import { canAccessHub } from '@/lib/permissions';
 
 const sections = [
   { key: '/dashboard', label: 'Social Command Center', icon: '💬' },
+  { key: '/gtm', label: 'GTM Projects', icon: '✅' },
   { key: '/email/campaigns', label: 'Email Campaigns', icon: '✉️' },
 ];
 

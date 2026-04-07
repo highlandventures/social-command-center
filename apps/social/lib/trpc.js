@@ -89,7 +89,7 @@ const enforceAdmin = t.middleware(({ ctx, next }) => {
 /**
  * Admin procedure — requires ADMIN role.
  */
-export const adminProcedure = t.procedure.use(enforceAdmin);
+export const adminProcedure = protectedProcedure.use(enforceAdmin);
 
 /**
  * Middleware that blocks AGENCY role from write/modify operations.
@@ -115,4 +115,4 @@ const enforceInternal = t.middleware(({ ctx, next }) => {
  * Internal procedure — requires ADMIN or INTERNAL role (blocks AGENCY).
  * Use for any write/modify mutation that agency users should not perform.
  */
-export const internalProcedure = t.procedure.use(enforceInternal);
+export const internalProcedure = protectedProcedure.use(enforceInternal);

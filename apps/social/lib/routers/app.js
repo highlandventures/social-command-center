@@ -26,6 +26,11 @@ import { emailTemplatesRouter } from './email-templates';
 import { emailCampaignsRouter } from './email-campaigns';
 import { intelligenceRouter } from './intelligence';
 import { notionTasksRouter } from './notion-tasks';
+import { gtmProjectsRouter } from './gtm-projects';
+import { gtmTasksRouter } from './gtm-tasks';
+import { gtmMomentsRouter } from './gtm-moments';
+import { gtmOkrsRouter } from './gtm-okrs';
+import { gtmProductsRouter } from './gtm-products';
 
 export const appRouter = router({
   accounts: accountsRouter,
@@ -55,6 +60,11 @@ export const appRouter = router({
   emailCampaigns: emailCampaignsRouter,
   intelligence: intelligenceRouter,
   notionTasks: notionTasksRouter,
+  gtmProjects: gtmProjectsRouter,
+  gtmTasks: gtmTasksRouter,
+  gtmMoments: gtmMomentsRouter,
+  gtmOkrs: gtmOkrsRouter,
+  gtmProducts: gtmProductsRouter,
 });
 
 /** @typedef {typeof appRouter} AppRouter */

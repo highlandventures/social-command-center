@@ -40,6 +40,8 @@ model User {
   googleOAuth        GoogleOAuthToken?
   homeTasks          HomeTask[]
   notionTaskInbox    NotionTaskInbox[]
+  gtmProjects        GtmProject[] @relation("gtmProjectOwner")
+  gtmTasks           GtmTask[]    @relation("gtmTaskOwner")
 
   @@map("users")
 }
@@ -157,11 +159,30 @@ model Post {
   threadPosts  Post[]            @relation("threadPosts")
   metrics      PostMetrics[]
   approvals    ApprovalRequest[]
+  media        PostMedia[]
 
   @@index([accountId, status])
   @@index([scheduledFor])
   @@index([platformPostId])
   @@map("posts")
+}
+
+model PostMedia {
+  id        String   @id @default(cuid())
+  postId    String?
+  platform  Platform
+  url       String   // Vercel Blob URL
+  mimeType  String   // e.g. image/jpeg, image/png
+  sizeBytes Int
+  width     Int?
+  height    Int?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  post Post? @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("post_media")
 }
 
 enum ContentType {
@@ -1376,4 +1397,155 @@ model NotionTaskInbox {
   @@index([syncedAt])
   @@index([createdAt])
   @@map("notion_task_inbox")
+}
+
+// ============================================================
+// GTM PROJECTS MODULE
+// ============================================================
+
+model GtmProject {
+  id           String           @id @default(cuid())
+  name         String
+  description  String?
+  category     GtmCategory      @default(GTM)
+  status       GtmProjectStatus @default(ACTIVE)
+  healthStatus GtmHealth        @default(ON_TRACK)
+  ownerId      String
+  startDate    DateTime
+  endDate      DateTime
+  googleDocUrl String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  owner   User        @relation("gtmProjectOwner", fields: [ownerId], references: [id])
+  tasks   GtmTask[]
+  moments GtmMoment[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@map("gtm_projects")
+}
+
+model GtmTask {
+  id        String          @id @default(cuid())
+  projectId String
+  title     String
+  status    GtmTaskStatus   @default(TODO)
+  priority  GtmPriority     @default(MEDIUM)
+  ownerId   String?
+  dueDate   DateTime?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  project GtmProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner   User?      @relation("gtmTaskOwner", fields: [ownerId], references: [id])
+
+  @@index([projectId])
+  @@index([ownerId])
+  @@index([dueDate])
+  @@map("gtm_tasks")
+}
+
+model GtmMoment {
+  id              String         @id @default(cuid())
+  projectId       String?
+  parentMomentId  String?
+  label           String
+  type            GtmMomentType  @default(MILESTONE)
+  category        String?
+  date            DateTime?
+  startDate       DateTime?
+  endDate         DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  project       GtmProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  parentMoment  GtmMoment?  @relation("momentChildren", fields: [parentMomentId], references: [id])
+  childMoments  GtmMoment[] @relation("momentChildren")
+
+  @@index([projectId])
+  @@index([parentMomentId])
+  @@index([date])
+  @@map("gtm_moments")
+}
+
+model GtmOkr {
+  id          String       @id @default(cuid())
+  title       String
+  description String?
+  quarter     String
+  progress    Float        @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  keyResults GtmKeyResult[]
+
+  @@map("gtm_okrs")
+}
+
+model GtmKeyResult {
+  id      String @id @default(cuid())
+  okrId   String
+  title   String
+  target  Float
+  current Float  @default(0)
+  unit    String @default("percent")
+
+  okr GtmOkr @relation(fields: [okrId], references: [id], onDelete: Cascade)
+
+  @@index([okrId])
+  @@map("gtm_key_results")
+}
+
+model GtmProduct {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  positioning String?
+  messaging   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("gtm_products")
+}
+
+enum GtmCategory {
+  GTM
+  EVERGREEN
+  OPERATIONS
+}
+
+enum GtmProjectStatus {
+  PLANNING
+  ACTIVE
+  COMPLETED
+  ON_HOLD
+}
+
+enum GtmHealth {
+  ON_TRACK
+  AT_RISK
+  BEHIND
+}
+
+enum GtmTaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+}
+
+enum GtmPriority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum GtmMomentType {
+  LAUNCH
+  TENTPOLE
+  EVENT
+  CAMPAIGN
+  MILESTONE
+  ACTIVATION
 }
