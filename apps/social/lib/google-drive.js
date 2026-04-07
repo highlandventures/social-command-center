@@ -148,6 +148,26 @@ export function getFileTypeLabel(mimeType) {
   return map[mimeType] || mimeType?.split('/').pop() || 'File';
 }
 
+/**
+ * Export a Google Doc as plain text.
+ *
+ * @param {string} accessToken
+ * @param {string} fileId - The Google Doc file ID
+ * @returns {string} Plain text content of the document
+ */
+export async function exportDocAsText(accessToken, fileId) {
+  const res = await fetch(`${DRIVE_API}/files/${fileId}/export?mimeType=text/plain`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Drive doc export failed: ${res.status} ${err}`);
+  }
+
+  return res.text();
+}
+
 // ---- Internal ----
 
 function normalizeDriveFile(file) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { trpc } from '@/lib/trpc-client';
@@ -12,6 +12,55 @@ const healthColors = {
   BEHIND: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
 };
 const healthLabels = { ON_TRACK: 'On Track', AT_RISK: 'At Risk', BEHIND: 'Behind' };
+
+const categoryBadge = {
+  GTM: 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 border-blue-200 dark:border-blue-800',
+  EVERGREEN: 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400 border-purple-200 dark:border-purple-800',
+  OPERATIONS: 'bg-gray-50 text-gray-600 dark:bg-gray-800/40 dark:text-gray-400 border-gray-200 dark:border-gray-700',
+};
+
+function CategoryPicker({ current, onSelect }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className={`px-2 py-0.5 text-[10px] font-semibold rounded border cursor-pointer transition-colors hover:opacity-80 ${categoryBadge[current]}`}
+      >
+        {current}
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1 z-50 w-36 bg-surface-card border border-border rounded-lg shadow-lg overflow-hidden">
+          {['GTM', 'EVERGREEN', 'OPERATIONS'].map((cat) => (
+            <button
+              key={cat}
+              onClick={() => { onSelect(cat); setOpen(false); }}
+              className={`w-full flex items-center gap-2 px-3 py-2 text-left text-xs hover:bg-surface-hover transition-colors ${current === cat ? 'bg-surface-secondary' : ''}`}
+            >
+              <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded border ${categoryBadge[cat]}`}>{cat}</span>
+              {current === cat && (
+                <svg className="w-3 h-3 text-blue-500 ml-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const taskStatusColors = {
   TODO: 'border-gray-300 dark:border-gray-600',
@@ -139,6 +188,13 @@ export default function ProjectBriefPage() {
   const { data: project, isLoading } = trpc.gtmProjects.byId.useQuery({ id });
   const { data: members } = trpc.team.members.useQuery();
 
+  const updateProject = trpc.gtmProjects.update.useMutation({
+    onSuccess: () => {
+      utils.gtmProjects.byId.invalidate({ id });
+      utils.gtmProjects.list.invalidate();
+    },
+  });
+
   const updateTask = trpc.gtmTasks.update.useMutation({
     onSuccess: () => {
       utils.gtmProjects.byId.invalidate({ id });
@@ -203,6 +259,10 @@ export default function ProjectBriefPage() {
         <div>
           <div className="flex items-center gap-3 mb-1">
             <h1 className="text-xl font-bold text-content-primary">{project.name}</h1>
+            <CategoryPicker
+              current={project.category}
+              onSelect={(category) => updateProject.mutate({ id, category })}
+            />
             <span className={`px-2 py-0.5 text-[10px] font-semibold rounded-full ${healthColors[project.healthStatus]}`}>
               {healthLabels[project.healthStatus]}
             </span>

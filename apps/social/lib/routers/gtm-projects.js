@@ -70,6 +70,7 @@ export const gtmProjectsRouter = router({
         name: z.string().min(1).max(200),
         description: z.string().max(2000).optional(),
         category: z.enum(['GTM', 'EVERGREEN', 'OPERATIONS']).default('GTM'),
+        aiCategory: z.enum(['GTM', 'EVERGREEN', 'OPERATIONS']).optional(),
         status: z.enum(['PLANNING', 'ACTIVE', 'COMPLETED', 'ON_HOLD']).default('ACTIVE'),
         startDate: z.string(),
         endDate: z.string(),
@@ -82,6 +83,7 @@ export const gtmProjectsRouter = router({
           name: input.name,
           description: input.description ?? null,
           category: input.category,
+          aiCategory: input.aiCategory ?? null,
           status: input.status,
           ownerId: ctx.user.id,
           startDate: new Date(input.startDate),
@@ -122,6 +124,24 @@ export const gtmProjectsRouter = router({
       if (fields.startDate !== undefined) data.startDate = new Date(fields.startDate);
       if (fields.endDate !== undefined) data.endDate = new Date(fields.endDate);
       if (fields.googleDocUrl !== undefined) data.googleDocUrl = fields.googleDocUrl;
+
+      // Log category correction if AI suggested a different category
+      if (fields.category) {
+        const existing = await ctx.prisma.gtmProject.findUnique({
+          where: { id },
+          select: { aiCategory: true, name: true, category: true },
+        });
+        if (existing?.aiCategory && existing.aiCategory !== fields.category) {
+          await ctx.prisma.gtmCategoryCorrection.create({
+            data: {
+              projectId: id,
+              projectName: existing.name,
+              aiCategory: existing.aiCategory,
+              userCategory: fields.category,
+            },
+          });
+        }
+      }
 
       return ctx.prisma.gtmProject.update({ where: { id }, data });
     }),
