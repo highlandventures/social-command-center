@@ -4,16 +4,33 @@ import { useState, useMemo } from 'react';
 import { trpc } from '@/lib/trpc-client';
 import Link from 'next/link';
 
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const FULL_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-const typeStyles = {
-  LAUNCH: { bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-300 dark:border-blue-700', dot: 'bg-blue-500', text: 'text-blue-700 dark:text-blue-300' },
-  TENTPOLE: { bg: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-300 dark:border-purple-700', dot: 'bg-purple-500', text: 'text-purple-700 dark:text-purple-300' },
-  EVENT: { bg: 'bg-emerald-50 dark:bg-emerald-900/20', border: 'border-emerald-300 dark:border-emerald-700', dot: 'bg-emerald-500', text: 'text-emerald-700 dark:text-emerald-300' },
-  CAMPAIGN: { bg: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-300 dark:border-amber-700', dot: 'bg-amber-500', text: 'text-amber-700 dark:text-amber-300' },
-  MILESTONE: { bg: 'bg-gray-50 dark:bg-gray-800/40', border: 'border-gray-300 dark:border-gray-600', dot: 'bg-gray-400', text: 'text-gray-600 dark:text-gray-400' },
-  ACTIVATION: { bg: 'bg-pink-50 dark:bg-pink-900/20', border: 'border-pink-300 dark:border-pink-700', dot: 'bg-pink-400', text: 'text-pink-700 dark:text-pink-300' },
+const accentBorder = {
+  LAUNCH: 'border-l-blue-500',
+  TENTPOLE: 'border-l-purple-500',
+  EVENT: 'border-l-emerald-500',
+  CAMPAIGN: 'border-l-amber-500',
+  MILESTONE: 'border-l-slate-400',
+  ACTIVATION: 'border-l-pink-400',
+};
+
+const pillStyle = {
+  LAUNCH: 'border-blue-400/50 text-blue-600 dark:text-blue-400',
+  TENTPOLE: 'border-purple-400/50 text-purple-600 dark:text-purple-400',
+  EVENT: 'border-emerald-400/50 text-emerald-600 dark:text-emerald-400',
+  CAMPAIGN: 'border-amber-400/50 text-amber-600 dark:text-amber-400',
+  MILESTONE: 'border-slate-300/50 text-slate-500 dark:text-slate-400',
+  ACTIVATION: 'border-pink-400/50 text-pink-500 dark:text-pink-400',
+};
+
+const dotColor = {
+  LAUNCH: 'bg-blue-500',
+  TENTPOLE: 'bg-purple-500',
+  EVENT: 'bg-emerald-500',
+  CAMPAIGN: 'bg-amber-500',
+  MILESTONE: 'bg-slate-400',
+  ACTIVATION: 'bg-pink-400',
 };
 
 const typeLabels = { LAUNCH: 'Launch', TENTPOLE: 'Tentpole', EVENT: 'Event', CAMPAIGN: 'Campaign', MILESTONE: 'Milestone', ACTIVATION: 'Activation' };
@@ -95,31 +112,28 @@ export default function GtmCalendarPage() {
       <div className="flex flex-wrap gap-2">
         <button
           onClick={() => setTypeFilter('ALL')}
-          className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
+          className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors ${
             typeFilter === 'ALL'
-              ? 'bg-surface-card border-border text-content-primary shadow-sm'
-              : 'border-transparent text-content-muted hover:bg-surface-hover'
+              ? 'bg-surface-card border border-border text-content-primary shadow-sm'
+              : 'text-content-muted hover:bg-surface-hover'
           }`}
         >
           All
         </button>
-        {Object.entries(typeLabels).filter(([k]) => k !== 'ACTIVATION').map(([key, label]) => {
-          const style = typeStyles[key];
-          return (
-            <button
-              key={key}
-              onClick={() => setTypeFilter(typeFilter === key ? 'ALL' : key)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors flex items-center gap-1.5 ${
-                typeFilter === key
-                  ? `${style.bg} ${style.border} ${style.text}`
-                  : 'border-transparent text-content-muted hover:bg-surface-hover'
-              }`}
-            >
-              <span className={`w-2 h-2 rounded-full ${style.dot}`} />
-              {label}
-            </button>
-          );
-        })}
+        {Object.entries(typeLabels).filter(([k]) => k !== 'ACTIVATION').map(([key, label]) => (
+          <button
+            key={key}
+            onClick={() => setTypeFilter(typeFilter === key ? 'ALL' : key)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-full transition-colors flex items-center gap-1.5 ${
+              typeFilter === key
+                ? `border ${pillStyle[key]} bg-surface-card shadow-sm`
+                : 'text-content-muted hover:bg-surface-hover'
+            }`}
+          >
+            <span className={`w-2 h-2 rounded-full ${dotColor[key]}`} />
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Calendar grid */}
@@ -133,26 +147,19 @@ export default function GtmCalendarPage() {
           ))}
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-5">
           {Array.from({ length: 12 }).map((_, monthIdx) => {
             const monthMoments = monthGroups[monthIdx] || [];
+            if (monthMoments.length === 0) return null;
+
             const isCurrentMonth = year === now.getFullYear() && monthIdx === currentMonth;
-            const isEmpty = monthMoments.length === 0;
 
             return (
-              <div
-                key={monthIdx}
-                className={`rounded-xl border transition-colors ${
-                  isCurrentMonth
-                    ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50/30 dark:bg-emerald-900/10'
-                    : isEmpty
-                    ? 'border-border bg-surface-card/50'
-                    : 'border-border bg-surface-card'
-                }`}
-              >
-                <div className={`flex items-center gap-3 px-5 py-3 ${!isEmpty ? 'border-b border-border' : ''}`}>
+              <div key={monthIdx}>
+                {/* Month header */}
+                <div className="flex items-center gap-3 mb-2">
                   <span className={`text-sm font-semibold ${
-                    isCurrentMonth ? 'text-emerald-700 dark:text-emerald-300' : 'text-content-primary'
+                    isCurrentMonth ? 'text-emerald-600 dark:text-emerald-400' : 'text-content-primary'
                   }`}>
                     {FULL_MONTHS[monthIdx]}
                   </span>
@@ -162,80 +169,92 @@ export default function GtmCalendarPage() {
                     </span>
                   )}
                   <span className="text-xs text-content-faint">
-                    {monthMoments.length > 0 ? `${monthMoments.length} moment${monthMoments.length > 1 ? 's' : ''}` : ''}
+                    {monthMoments.length} moment{monthMoments.length !== 1 ? 's' : ''}
                   </span>
+                  <div className="flex-1 border-t border-border" />
                 </div>
 
-                {monthMoments.length > 0 && (
-                  <div className="px-5 py-3 space-y-2">
-                    {monthMoments.map((m) => {
-                      const style = typeStyles[m.type] || typeStyles.MILESTONE;
-                      const isMultiDay = !m.date && m.startDate && m.endDate;
-                      const isExpanded = expandedId === m.id;
+                {/* Moment rows */}
+                <div className="space-y-1">
+                  {monthMoments.map((m) => {
+                    const borderClass = accentBorder[m.type] || accentBorder.MILESTONE;
+                    const pill = pillStyle[m.type] || pillStyle.MILESTONE;
+                    const isMultiDay = !m.date && m.startDate && m.endDate;
+                    const isExpanded = expandedId === m.id;
+                    const hasChildren = isMultiDay && m.childMoments?.length > 0;
 
-                      const dateStr = m.date
-                        ? new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                        : `${new Date(m.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} \u2013 ${new Date(m.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+                    const dateStr = m.date
+                      ? new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                      : `${new Date(m.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} \u2013 ${new Date(m.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
 
-                      return (
-                        <div key={m.id}>
-                          <div
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border ${style.bg} ${style.border} cursor-pointer transition-colors hover:opacity-90`}
-                            onClick={() => {
-                              if (isMultiDay && m.childMoments?.length > 0) {
-                                setExpandedId(isExpanded ? null : m.id);
-                              }
-                            }}
-                          >
-                            <span className={`w-2.5 h-2.5 rounded-sm shrink-0 ${style.dot}`} />
-                            <div className="flex-1 min-w-0">
-                              <span className={`text-sm font-medium ${style.text}`}>{m.label}</span>
-                            </div>
-                            <span className={`text-xs ${style.text} opacity-70`}>{dateStr}</span>
-                            <span className={`text-[10px] uppercase font-medium ${style.text} opacity-60`}>{m.type}</span>
-                            {m.project && (
-                              <Link
-                                href={`/gtm/projects/${m.project.id}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="text-[10px] text-content-faint hover:text-blue-600 dark:hover:text-blue-400 underline-offset-2 hover:underline"
-                              >
-                                {m.project.name}
-                              </Link>
-                            )}
-                            {isMultiDay && m.childMoments?.length > 0 && (
-                              <svg
-                                className={`w-3.5 h-3.5 text-content-faint transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                                viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                              >
-                                <polyline points="6 9 12 15 18 9" />
-                              </svg>
-                            )}
-                          </div>
+                    return (
+                      <div key={m.id}>
+                        <div
+                          className={`flex items-center gap-3 px-3 py-2 rounded-r-lg bg-surface-card border border-border border-l-[3px] ${borderClass} ${hasChildren ? 'cursor-pointer' : ''} transition-colors hover:bg-surface-hover`}
+                          onClick={() => {
+                            if (hasChildren) setExpandedId(isExpanded ? null : m.id);
+                          }}
+                        >
+                          {/* Date */}
+                          <span className="text-xs text-content-muted tabular-nums w-[80px] shrink-0">
+                            {dateStr}
+                          </span>
 
-                          {/* Expanded child activations */}
-                          {isExpanded && m.childMoments && m.childMoments.length > 0 && (
-                            <div className="ml-6 mt-1 space-y-1 pl-3 border-l-2 border-border">
-                              {m.childMoments.map((child) => {
-                                const childStyle = typeStyles[child.type] || typeStyles.ACTIVATION;
-                                const childDate = child.date
-                                  ? new Date(child.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-                                  : '';
+                          {/* Type pill */}
+                          <span className={`text-[10px] uppercase font-medium border rounded-full px-1.5 py-0.5 w-[60px] text-center shrink-0 opacity-70 ${pill}`}>
+                            {typeLabels[m.type] || m.type}
+                          </span>
 
-                                return (
-                                  <div key={child.id} className={`flex items-center gap-2.5 px-3 py-2 rounded-lg ${childStyle.bg} border ${childStyle.border}`}>
-                                    <span className={`w-1.5 h-1.5 rounded-full ${childStyle.dot}`} />
-                                    <span className={`text-xs font-medium ${childStyle.text} flex-1`}>{child.label}</span>
-                                    <span className={`text-[10px] ${childStyle.text} opacity-70`}>{childDate}</span>
-                                  </div>
-                                );
-                              })}
-                            </div>
+                          {/* Label */}
+                          <span className="text-sm font-medium text-content-primary flex-1 min-w-0 truncate">
+                            {m.label}
+                          </span>
+
+                          {/* Project link */}
+                          {m.project && (
+                            <Link
+                              href={`/gtm/projects/${m.project.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-xs text-content-faint hover:text-blue-600 dark:hover:text-blue-400 underline-offset-2 hover:underline truncate max-w-[160px] shrink-0"
+                            >
+                              {m.project.name}
+                            </Link>
+                          )}
+
+                          {/* Expand chevron */}
+                          {hasChildren && (
+                            <svg
+                              className={`w-3.5 h-3.5 text-content-faint transition-transform shrink-0 ${isExpanded ? 'rotate-180' : ''}`}
+                              viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                            >
+                              <polyline points="6 9 12 15 18 9" />
+                            </svg>
                           )}
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
+
+                        {/* Expanded children */}
+                        {isExpanded && m.childMoments && m.childMoments.length > 0 && (
+                          <div className="ml-6 mt-0.5 space-y-0.5 pl-3 border-l-2 border-border">
+                            {m.childMoments.map((child) => {
+                              const childDot = dotColor[child.type] || dotColor.ACTIVATION;
+                              const childDate = child.date
+                                ? new Date(child.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+                                : '';
+
+                              return (
+                                <div key={child.id} className="flex items-center gap-2.5 px-2 py-1.5 text-xs">
+                                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${childDot}`} />
+                                  <span className="text-content-muted tabular-nums w-[100px] shrink-0">{childDate}</span>
+                                  <span className="text-content-secondary flex-1 min-w-0 truncate">{child.label}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             );
           })}
