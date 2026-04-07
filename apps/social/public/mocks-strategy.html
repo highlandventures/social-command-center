@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>YLDS.com Website Upgrade — Strategy Brief</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { margin: 0; background: #08081a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+  * { box-sizing: border-box; }
+  table { border-collapse: collapse; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, Fragment } = React;
+
+/* ── INLINE ICON COMPONENTS ── */
+const Icon = ({ d, size = 18, color = "currentColor", className = "" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={{display:"inline-block",verticalAlign:"middle",flexShrink:0}}>
+    <path d={d} />
+  </svg>
+);
+const MultiIcon = ({ paths, size = 18, color = "currentColor", className = "" }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} style={{display:"inline-block",verticalAlign:"middle",flexShrink:0}}>
+    {paths.map((p, i) => typeof p === "string" ? <path key={i} d={p} /> : p)}
+  </svg>
+);
+
+const ChevronDown = ({ size = 14, className = "" }) => <Icon d="M6 9l6 6 6-6" size={size} className={className} />;
+const ChevronRight = ({ size = 14, className = "" }) => <Icon d="M9 18l6-6-6-6" size={size} className={className} />;
+const ArrowRight = ({ size = 13, className = "", style = {} }) => <span style={{...style, display:"inline-flex"}} className={className}><Icon d="M5 12h14M12 5l7 7-7 7" size={size} /></span>;
+const Shield = ({ size = 18, className = "" }) => <MultiIcon size={size} className={className} paths={["M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"]} />;
+const Zap = ({ size = 18, className = "" }) => <Icon d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" size={size} className={className} />;
+const DollarSign = ({ size = 18, className = "" }) => <MultiIcon size={size} className={className} paths={["M12 1v22", "M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"]} />;
+const Clock = ({ size = 18, className = "" }) => <MultiIcon size={size} className={className} paths={[<circle key="c" cx="12" cy="12" r="10" />, "M12 6v6l4 2"]} />;
+const Layers = ({ size = 18, className = "" }) => <MultiIcon size={size} className={className} paths={["M12 2L2 7l10 5 10-5-10-5z", "M2 17l10 5 10-5", "M2 12l10 5 10-5"]} />;
+const Lock = ({ size = 18, className = "" }) => <MultiIcon size={size} className={className} paths={[<rect key="r" x="3" y="11" width="18" height="11" rx="2" ry="2" />, "M7 11V7a5 5 0 0110 0v4"]} />;
+const Globe = ({ size = 18, className = "" }) => <MultiIcon size={size} className={className} paths={[<circle key="c" cx="12" cy="12" r="10" />, "M2 12h20", "M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"]} />;
+const Building2 = ({ size = 18, className = "" }) => <MultiIcon size={size} className={className} paths={["M6 22V4a2 2 0 012-2h8a2 2 0 012 2v18z", "M6 12H4a2 2 0 00-2 2v6a2 2 0 002 2h2", "M18 9h2a2 2 0 012 2v9a2 2 0 01-2 2h-2", "M10 6h4", "M10 10h4", "M10 14h4", "M10 18h4"]} />;
+const BarChart3 = ({ size = 18, className = "" }) => <MultiIcon size={size} className={className} paths={["M18 20V10", "M12 20V4", "M6 20v-6"]} />;
+const Network = ({ size = 18, className = "" }) => <MultiIcon size={size} className={className} paths={[<circle key="c1" cx="12" cy="5" r="3" />, <circle key="c2" cx="5" cy="19" r="3" />, <circle key="c3" cx="19" cy="19" r="3" />, "M12 8v4m-5 4l3.5-3.5M17 16l-3.5-3.5"]} />;
+const CreditCard = ({ size = 18, className = "" }) => <MultiIcon size={size} className={className} paths={[<rect key="r" x="1" y="4" width="22" height="16" rx="2" ry="2" />, "M1 10h22"]} />;
+const Landmark = ({ size = 18, className = "" }) => <MultiIcon size={size} className={className} paths={["M3 22h18", "M6 18V11", "M10 18V11", "M14 18V11", "M18 18V11", "M12 2L2 8h20L12 2z"]} />;
+const TrendingUp = ({ size = 18, className = "" }) => <MultiIcon size={size} className={className} paths={["M23 6l-9.5 9.5-5-5L1 18", "M17 6h6v6"]} />;
+const Layout = ({ size = 13, className = "" }) => <MultiIcon size={size} className={className} paths={[<rect key="r" x="3" y="3" width="18" height="18" rx="2" ry="2" />, "M3 9h18", "M9 21V9"]} />;
+const CheckCircle = ({ size = 13, className = "" }) => <MultiIcon size={size} className={className} paths={["M22 11.08V12a10 10 0 11-5.93-9.14", "M22 4L12 14.01l-3-3"]} />;
+const XCircle = ({ size = 13, className = "" }) => <MultiIcon size={size} className={className} paths={[<circle key="c" cx="12" cy="12" r="10" />, "M15 9l-6 6", "M9 9l6 6"]} />;
+const MinusCircle = ({ size = 13, className = "" }) => <MultiIcon size={size} className={className} paths={[<circle key="c" cx="12" cy="12" r="10" />, "M8 12h8"]} />;
+const AlertTriangle = ({ size = 13, className = "" }) => <MultiIcon size={size} className={className} paths={["M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z", "M12 9v4", "M12 17h.01"]} />;
+const Code = ({ size = 18, className = "" }) => <MultiIcon size={size} className={className} paths={["M16 18l6-6-6-6", "M8 6l-6 6 6 6"]} />;
+const Users = ({ size = 18, className = "" }) => <MultiIcon size={size} className={className} paths={["M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2", <circle key="c1" cx="9" cy="7" r="4" />, "M23 21v-2a4 4 0 00-3-3.87", "M16 3.13a4 4 0 010 7.75"]} />;
+const Mail = ({ size = 18, className = "" }) => <MultiIcon size={size} className={className} paths={[<rect key="r" x="2" y="4" width="20" height="16" rx="2" />, "M22 7l-8.97 5.7a1.94 1.94 0 01-2.06 0L2 7"]} />;
+const FileText = ({ size = 18, className = "" }) => <MultiIcon size={size} className={className} paths={["M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z", "M14 2v6h6", "M16 13H8", "M16 17H8", "M10 9H8"]} />;
+
+/* ═══════════════════════════════════════════
+   YLDS.COM WEBSITE UPGRADE — STRATEGY BRIEF
+   Copy-edited: Seven Sweeps applied
+   ═══════════════════════════════════════════ */
+
+const tabs = [
+  { id: "personas", label: "Personas" },
+  { id: "valueprops", label: "Value Props" },
+  { id: "competitive", label: "Competitive" },
+  { id: "regulatory", label: "Regulatory" },
+  { id: "clients", label: "Clients" },
+  { id: "sitemap", label: "Sitemap" },
+  { id: "wireframes", label: "Wireframes" },
+];
+
+// ═══════════════ DATA ═══════════════
+
+const personas = [
+  {
+    tier: "Tier 1 — Active Pipeline",
+    desc: "Talking to us now. Site must close. B2B / KYB flow.",
+    color: "#6366f1",
+    personas: [
+      { name: "Crypto Treasury Manager", subtitle: "VCs, funds, foundations, DAOs", icon: <Building2 size={18} />,
+        decisionMaker: "CFO / CIO / Treasury Council → multi-sig or governance vote. 2-4 week approval cycle.",
+        pain: "$305B in idle stablecoins earning 0%. Arbitrum DAO calls them 'idle funds.' Compound governance crisis redirected $25M to yield vault. Risk committees reject DeFi — but 0% is indefensible.",
+        job: "Earn yield on idle stablecoins without DeFi risk or regulatory exposure.",
+        needs: ["Registered security (risk committee requirement)", "Multi-custodian (Fireblocks, BitGo, Copper)", "24/7 mint/redeem", "Governance-compatible (proposal-ready materials)"],
+        objections: ["Yield too low vs DeFi (counter: no smart contract risk = floor yield with certainty)", "Figure insolvency risk (counter: Nasdaq-listed, KPMG audited, 1:1 Treasury backing)", "Chain availability (counter: Provenance + Stellar live, more on deck)", "SEC registration = compliance burden (counter: GENIUS Act endorses this path)", "Regulatory overhang on yield itself (counter: GENIUS Act loophole for non-issuer yield)"],
+        pipeline: "Ondo ($50M), Infineo ($10M done), DCG, Blockchange, Coin Operated, B2C2",
+        tam: "$22.7B tokenized yield market; $305B idle stablecoins globally",
+        research: ["$305B in 'lazy stablecoins' globally = $8.8-11.8B annual yield opportunity at 3-4%", "Arbitrum DAO actively deploying idle stablecoins to Treasury Mgmt Portfolio (Mar 2026)", "Compound governance crisis: $25M redirected to yield vault after 'asleep at the wheel' criticism", "Pantera Capital invested $300M+ in digital asset treasury companies — YLDS is natural fit", "OCC/FDIC final rules due July 18, 2026 — removes all remaining ambiguity", "Real liquid stablecoin pools are <5% of reported DAO treasury value (rest is native tokens)"],
+        language: ["dead capital", "opportunity cost", "idle funds", "yield optimization", "productive stablecoins", "treasury diversification", "regulatory premium"],
+        websiteNeeds: "Rate methodology, custodian matrix, prospectus. Governance-ready one-pager for DAO proposals.", kpi: "AUM" },
+      { name: "Digitally Forward Bank", subtitle: "Banks, settlement networks", icon: <Landmark size={18} />,
+        decisionMaker: "CTO + CFO/Treasurer + Chief Risk Officer. C-suite consensus required post-GENIUS Act. New role: 'Head of Digital Assets.'",
+        pain: "$27T locked in nostro/vostro accounts costing 3-5% annually. T+2 settlement. Manual sweeps. JPMorgan Kinexys creating FOMO — smaller banks fear lock-in.",
+        job: "Deploy YLDS sweep programs and real-time settlement. Reduce nostro/vostro drag.",
+        needs: ["OCC/Fed-compatible compliance", "Automated sweep integration", "Permissioned blockchain option", "Credit lines for instant redemption"],
+        objections: ["Prefer tokenized deposits over stablecoins (FDIC insured, earn interest)", "OCC final rule not until July 2026 — 'wait and see'", "Legacy system integration complexity (core built for T+2, not 24/7)", "AML/CFT burden on public blockchain transactions", "Platform fragmentation — JPM Kinexys vs SWIFT vs Fnality vs Cari Network"],
+        pipeline: "Customers Bank (sweep, late-stage), Erebor ($50M credit line), N3XT, Stellar ($10M)",
+        tam: "$27T nostro/vostro globally; $390B stablecoin payments in 2025",
+        research: ["U.S. Bank launched Stellar stablecoin pilot (Nov 2025) — bank-grade controls testing", "Cari Network: First Horizon, Huntington, KeyCorp, M&T, Old National — tokenized deposits Q3-Q4 2026", "Cross River Bank: live USDC settlement with Visa on Solana", "JPMorgan Kinexys (JPM Coin) live on Base, expanding to Canton 2026 — creating FOMO", "SWIFT blockchain MVP: 40+ institutions, live transactions before end of 2026", "Stablecoin payment volume: $390B actual in 2025 (2x 2024); forecast $1T/month by end 2026"],
+        language: ["settlement friction", "nostro optimization", "real-time settlement", "alternative payment rail", "bank-grade", "permissioned blockchain", "regulatory clarity"],
+        websiteNeeds: "Compliance-first language. Sweep mechanics diagram. No crypto jargon.", kpi: "AUM" },
+    ]
+  },
+  {
+    tier: "Tier 2 — Building Now",
+    desc: "In development or early pipeline. Educate + capture inbound.",
+    color: "#8b5cf6",
+    personas: [
+      { name: "DeFi Protocol / L1", subtitle: "Lending protocols, DEXs, chain foundations, Stellar ecosystem", icon: <Globe size={18} />,
+        decisionMaker: "Governance token holders → Risk Committee → BD team. 10-15 day voting cycle. Foundation grants for Stellar.",
+        pain: "Need a USD yield primitive that won't get a Wells notice. UST/Luna collapse left scars — protocols now demand reserve-backed yield, not governance subsidies. Rebase token integration is painful.",
+        job: "Integrate YLDS or wYLDS as collateral, lending base, or sweep asset.",
+        needs: ["Native chain issuance (not wrapped)", "wYLDS for permissionless DeFi via Hastra", "Smart contract integration docs", "Governance proposal template"],
+        objections: ["Chain not supported / non-EVM friction", "SEC registration = KYC friction for DeFi users (counter: wYLDS is permissionless)", "Governance approval timelines unpredictable", "Preference for native yield (sDAI, staking)", "Whale governance can block integration"],
+        pipeline: "Stellar ($6M+, mainnet ~Apr 19), Hastra/Kamino, Pendle, Bitmart, Codex, Agora (live)",
+        tam: "$22.7B tokenized yield market (15x YoY growth); Stellar DeFi TVL $143M (284% YoY)",
+        research: ["Yield-bearing stablecoin market: $22.7B, grew 15x faster than overall stablecoin market", "Stellar DeFi TVL: $143M (up 284% YoY); Blend protocol at $1.8B TVL", "Stellar: 10M+ accounts, $0.00055/txn, 5.76s ledger close, 99.99% uptime", "$100M+ Soroban Adoption Fund for Stellar ecosystem projects", "Key Stellar wallets: LOBSTR (millions of users), Solar, StellarX (DEX)", "Stellar fintechs: Airtm, Meru, Wirex — payments infrastructure on Soroban", "RWA tokenization: $12.88B in tokenized US Treasuries (266% YoY growth)"],
+        language: ["yield primitive", "composability", "collateral", "TVL", "RWA", "regulated asset", "anchor", "Soroban", "trustline", "wrapped asset"],
+        websiteNeeds: "Dev docs. Contract addresses. Integration guides. Governance proposal template for protocol listings.", kpi: "AUM + Tx" },
+      { name: "Fintech / Payroll Platform", subtitle: "Payment processors, payroll providers, settlement networks", icon: <CreditCard size={18} />,
+        decisionMaker: "CFO/Treasury (yield strategy) + CPO/Head of Payments (integration) + CCO (compliance gate). Cross-functional committee.",
+        pain: "Payment float is dead capital — $10B+ annual opportunity. Cross-border via SWIFT takes 3-5 days at 2-7% cost. Competitors (Stripe/Bridge, Deel, PayPal) are moving. Yield on float is the new CFO obsession.",
+        job: "Use YLDS as a yield-accruing payment rail for payroll, settlement, and cross-border transfers.",
+        needs: ["Stellar integration (fastest fiat rails in emerging markets)", "Pre-built connectors (Stripe, Fireblocks)", "Multi-jurisdiction compliance", "API-first integration (<4 weeks)"],
+        objections: ["Integration complexity (counter: pre-built connectors, <4 week integration)", "USDC/USDT liquidity preference (counter: yield differentiates — 4% vs 0%)", "Customers want speed not yield (counter: speed is table stakes; yield is margin)", "KYC/KYB friction (counter: modern stacks handle in <48 hours)", "Regulatory uncertainty in non-US jurisdictions (counter: GENIUS Act + EU MiCAR)"],
+        pipeline: "Franklin Payroll, Toku, Marinade, FacilitaPay, Lydian, Rainl",
+        tam: "$31.7T B2B cross-border market; $9T US annual payroll; $33T stablecoin tx volume (2025)",
+        research: ["225+ businesses integrated stablecoins for payroll in 2025; B2B volumes: <$100M/mo (2023) → $6B/mo (mid-2025)", "Toku: native stablecoin payroll in 100+ countries (Jan 2026). Deel: MoonPay integration (Feb 2026). Papaya Global: Banco Wallet (Feb 2026)", "LatAm: 71% institutional stablecoin adoption. Colombia corridor: 80% cost reduction vs SWIFT", "Africa: 200-300% YoY stablecoin growth via Mobile Money Operators. Stellar Anchor Platform: 475K+ access points", "PayPal PYUSD yield at 3.7% — YLDS beats at ~4% with institutional-grade structure", "$200 USD → Colombia: $12.13 via wire vs <$0.01 via Stellar stablecoin", "Stripe acquired Bridge ($1.1B) for stablecoin payments — Stellar already integrated"],
+        language: ["float", "yield on float", "settlement time", "corridor", "disbursement", "pre-funding elimination", "working capital efficiency", "settlement lag"],
+        websiteNeeds: "Speed benchmarks. Corridor cost comparisons. Stellar integration story. International positioning.", kpi: "Tx Volume" },
+    ]
+  },
+  {
+    tier: "Tier 3 — Future",
+    desc: "Plant seeds. Don't over-invest. Phase 2 (consumer) lives here.",
+    color: "#a78bfa",
+    personas: [
+      { name: "Consumer Platform", subtitle: "Prediction markets, retail apps", icon: <TrendingUp size={18} />,
+        pain: "Users hold idle balances earning nothing.",
+        job: "YLDS as idle-balance sweep or payment method in consumer apps.",
+        needs: ["Consumer UX", "Merchant integration", "Stablecoin interop"],
+        pipeline: "Kalshi, Polymarket (early), Lydian",
+        tam: "$1.68T (PayPal TPV)", websiteNeeds: "Phase 2. Minimal for now. Contact form.", kpi: "Tx Volume" },
+    ]
+  }
+];
+
+const valueProps = [
+  { icon: <Shield size={20} />, title: "Registered Fixed-Income Security", short: "Not a gray-area token",
+    desc: "Registered under the Investment Company Act. Exempt from GENIUS Act yield ban and CLARITY Act platform restrictions. The only digital asset with daily yield that survives both laws.",
+    vs: "USDY ($2.8B): unregistered — CLARITY Act could force restructure. USDe: synthetic perp yield, unregistered. BUIDL ($2.9B): registered fund but can't transfer P2P." },
+  { icon: <DollarSign size={20} />, title: "~4% Yield", short: "SOFR minus 35bps, daily accrual",
+    desc: "Backed 1:1 by short-dated treasuries and bank deposits at UMB Bank. Bankruptcy remote. KPMG audited. No smart contract risk, no perp funding volatility — a floor yield with certainty.",
+    vs: "USDC/USDT: 0% (GENIUS Act bans adding yield). PayPal PYUSD: 3.7%. USDe: 3.6-4.8% but synthetic perp funding — volatile and unregulated." },
+  { icon: <Clock size={20} />, title: "24/7 Liquidity", short: "Mint and redeem around the clock",
+    desc: "No market hours. No T+1 wait. Credit lines from Erebor ($50M) and Stellar ($10M) back instant redemptions. Banks: reduce $27T in nostro/vostro drag with real-time settlement.",
+    vs: "Money market funds: T+1 during business hours. BUIDL: requires whitelisted redemption. Wire transfers: 1-3 days, $25-50 per transaction." },
+  { icon: <Layers size={20} />, title: "Multi-Chain", short: "Provenance + Stellar live, more coming",
+    desc: "Native issuance on each chain — not a wrapped token. Stellar: 10M+ accounts, $0.00055/txn, 5.76s finality, 475K+ fiat access points globally. wYLDS (via Hastra) unlocks permissionless DeFi.",
+    vs: "BUIDL: Ethereum only. BENJI: Ethereum only. USDY: 7 chains but no SEC registration. USYC: Cayman CIMA, single ERC-20." },
+  { icon: <Zap size={20} />, title: "P2P Transferable", short: "Move it, post it, settle with it",
+    desc: "Transfer between wallets. Use as collateral. Settle payments 24/7. The only registered digital asset you can freely move — and the only one that earns yield while you do it.",
+    vs: "BUIDL: no P2P transfer. BENJI: fund shares, not transferable. USDC: P2P but 0% yield. USDY: transferable but unregistered — regulatory risk." },
+  { icon: <Lock size={20} />, title: "Institutional Custody", short: "Fireblocks, Copper, BitGo, Figure Markets",
+    desc: "UMB Bank reserves. KPMG audit. Nasdaq-listed parent (FIGR). Multi-custodian choice satisfies risk committees. Built for compliance teams that need names, not promises.",
+    vs: "Most yield tokens lack Big 4 audit or named custodians. USDe: no named reserve bank. Offshore products (USYC): Cayman domicile, outside US jurisdiction." },
+];
+
+const products = [
+  { name: "Save & Earn", tag: "Earn on idle holdings. Auto-sweep.", audience: "Funds, VCs, corporates, banks", status: "Live — $609M AUM", c: "#10b981" },
+  { name: "Pay & Spend", tag: "Payments, payroll, expense management", audience: "Payroll platforms, fintechs, settlement networks", status: "Building — Stellar ~Apr 19. Spend coming soon.", c: "#6366f1" },
+];
+
+const competitiveData = [
+  { name: "USDC", issuer: "Circle", aum: "$60B+", yield: "0%", reg: "Payment Stablecoin", chains: "20+", edge: "Zero yield. GENIUS bans adding it." },
+  { name: "USDY", issuer: "Ondo", aum: "$2.8B", yield: "~5%", reg: "Unregistered", chains: "7+", edge: "No SEC registration. CLARITY Act could force restructure." },
+  { name: "BUIDL", issuer: "BlackRock", aum: "$2.9B", yield: "~5%", reg: "SEC Fund", chains: "7 chains", edge: "Can't transfer P2P. Fund shares only." },
+  { name: "BENJI", issuer: "Franklin Templeton", aum: "$680M", yield: "~5%", reg: "SEC Fund", chains: "ETH", edge: "Fund shares. Not transferable." },
+  { name: "USDe", issuer: "Ethena", aum: "Large", yield: "3.6-4.8%", reg: "Unregistered", chains: "EVM", edge: "Perp funding. Volatile. CLARITY risk." },
+  { name: "PYUSD", issuer: "PayPal", aum: "$1B+", yield: "3.7%", reg: "Payment Stablecoin", chains: "ETH + Solana", edge: "Lower yield. GENIUS Act restricts adding more. Consumer focus." },
+  { name: "USYC", issuer: "Hashnote/Circle", aum: "Growing", yield: "~5%", reg: "Cayman CIMA", chains: "ERC-20", edge: "Offshore. Permissioned. Not SEC registered." },
+];
+
+const regData = [
+  { product: "YLDS", issuer: "Figure", type: "Registered Fixed-Income Security", yield: "SOFR-35bps (~4%)",
+    genius: "exempt", gNote: "Not a payment stablecoin. Registered under the Investment Company Act.",
+    clarity: "exempt", cNote: "Registered security. Stablecoin yield bans don't apply.",
+    p2p: true, multi: true, hl: true },
+  { product: "USDC", issuer: "Circle", type: "Payment Stablecoin", yield: "0%",
+    genius: "restricted", gNote: "Issuers can't pay yield. Circle stock dropped 20% on the news.",
+    clarity: "restricted", cNote: "Platforms can't offer passive yield either.",
+    p2p: true, multi: true, hl: false },
+  { product: "USDY", issuer: "Ondo", type: "Unregistered Yield Token", yield: "~5%",
+    genius: "gray", gNote: "Not technically a \"payment stablecoin\" — outside scope. But unregistered.",
+    clarity: "at_risk", cNote: "May need to register or restructure.",
+    p2p: true, multi: true, hl: false },
+  { product: "BUIDL", issuer: "BlackRock", type: "Registered Fund (SEC)", yield: "~5%",
+    genius: "exempt", gNote: "Registered fund. Existing SEC framework.",
+    clarity: "exempt", cNote: "SEC fund. Stablecoin rules don't apply.",
+    p2p: false, multi: false, hl: false },
+  { product: "BENJI", issuer: "Franklin Templeton", type: "Registered Fund (SEC)", yield: "~5%",
+    genius: "exempt", gNote: "Same as BUIDL. Registered fund.",
+    clarity: "exempt", cNote: "SEC fund. Rules don't apply.",
+    p2p: false, multi: false, hl: false },
+  { product: "USDe", issuer: "Ethena", type: "Unregistered Yield Token", yield: "3.5-4.8%",
+    genius: "gray", gNote: "Yield comes from perp funding, not issuer payments. Classification TBD.",
+    clarity: "at_risk", cNote: "Perp rates may be reclassified as prohibited yield.",
+    p2p: true, multi: false, hl: false },
+  { product: "USYC", issuer: "Hashnote/Circle", type: "Cayman Fund", yield: "~5%",
+    genius: "gray", gNote: "Offshore. May avoid US jurisdiction — or SEC could assert authority.",
+    clarity: "gray", cNote: "Jurisdictional wildcard.",
+    p2p: false, multi: false, hl: false },
+];
+
+const clientCats = [
+  { cat: "Closed / Live", c: "#10b981", list: ["Jump ($10M)", "Infineo ($10M)", "Agora (Auto pool live)", "B2C2", "Stillman", "5 Kickstart Partners"] },
+  { cat: "Active Pipeline", c: "#6366f1", list: ["Ondo ($50M)", "Binance ($10M)", "Kraken ($5M)", "Deribit ($5M)", "EDX ($5M)", "FalconX ($5M)", "ZeroHash ($5M)", "Antalpha ($100M)", "Credibly", "C2FO", "Brk Cty"] },
+  { cat: "Strategic Partners", c: "#8b5cf6", list: ["Customers Bank (sweep)", "Erebor ($50M credit line)", "Stellar ($6M+)", "Morpho + Sentora ($50M target)", "Franklin Payroll", "Lydian"] },
+  { cat: "Figure Ecosystem", c: "#64748b", list: ["Jefferies", "JP Morgan", "Saluda Grade", "Marathon", "WestCap", "WSFS / BoNY / Etana"] },
+];
+
+const sitePages = [
+  { page: "Homepage", url: "/", purpose: "Route visitors by use case. Establish credibility. Product detail folded in.",
+    sections: ["Hero headline + sub", "Live metrics bar", "How it works (4 steps)", "What Is YLDS (structure, yield, reserves, transferability)", "Use case cards (Save & Earn / Pay & Spend)", "Chain availability", "Backed By logos", "3-step KYB CTA", "Final CTA"] },
+  { page: "Save & Earn", url: "/save", purpose: "Convert treasury managers, VCs, corporates, and banks sitting on idle stablecoins.",
+    sections: ["Hero: Replace 0% with ~4%", "Before/after yield comparison", "How it works (Mint → Earn → Redeem)", "Auto-sweep for banks", "YLDS ↔ wYLDS (Hastra) reference", "CTA: Contact Sales"] },
+  { page: "Pay & Spend", url: "/pay", purpose: "Convert payroll platforms, fintechs, and settlement networks. Lead with Pay; Spend flagged as coming soon.",
+    sections: ["Hero: Earn while you settle", "Pay use cases (Payroll, Settlement, Cross-Border)", "Speed comparison table", "Spend — coming soon (expense management first)", "YLDS ↔ wYLDS reference", "CTA: Lead gen form"] },
+  { page: "Regulatory", url: "/regulatory", purpose: "CLARITY/GENIUS advantage. SEO play.",
+    sections: ["Why structure matters now", "GENIUS + CLARITY explainer", "Comparison table", "What this means for you", "CTA: Contact Sales"] },
+  { page: "About", url: "/about", purpose: "Institutional credibility for diligence. Full trust infrastructure.",
+    sections: ["Figure (FIGR) overview", "Entity structure", "Trust infrastructure (reserve, auditor, custody, TA, registration)", "Chain availability", "Leadership", "Prospectus"] },
+  { page: "Contact", url: "/contact", purpose: "Lead gen. Route by use case. No calendar link.",
+    sections: ["Use case selector", "Lead gen form (name, company, email, volume, message)", "Submit — team responds directly"] },
+];
+
+/* ═══════════════ COMPONENTS ═══════════════ */
+
+function Badge({ impact }) {
+  const s = {
+    exempt: { bg: "rgba(16,185,129,0.12)", border: "rgba(16,185,129,0.3)", text: "#6ee7b7", label: "Exempt", icon: <CheckCircle size={11} /> },
+    restricted: { bg: "rgba(239,68,68,0.12)", border: "rgba(239,68,68,0.3)", text: "#fca5a5", label: "Restricted", icon: <XCircle size={11} /> },
+    at_risk: { bg: "rgba(245,158,11,0.12)", border: "rgba(245,158,11,0.3)", text: "#fcd34d", label: "At Risk", icon: <AlertTriangle size={11} /> },
+    gray: { bg: "rgba(100,116,139,0.12)", border: "rgba(100,116,139,0.3)", text: "#94a3b8", label: "Gray Zone", icon: <MinusCircle size={11} /> },
+  }[impact];
+  return <span style={{ background: s.bg, border: `1px solid ${s.border}`, color: s.text, display: "inline-flex", alignItems: "center", gap: "4px", padding: "2px 8px", borderRadius: "9999px", fontSize: "12px", fontWeight: 500 }}>{s.icon} {s.label}</span>;
+}
+
+function Bool({ v }) {
+  return v ? <CheckCircle size={13} color="#34d399" /> : <XCircle size={13} color="#475569" />;
+}
+
+/* ═══════════════ WIREFRAME SHARED ═══════════════ */
+
+function WireframeShell({ title, children }) {
+  const surface = { background: "#10102a", border: "1px solid rgba(99,102,241,0.12)" };
+  return (
+    <div style={{ background: "#08081a", borderRadius: "12px", padding: "20px", fontSize: "12px" }} className="space-y-4">
+      <div style={{color: "#475569", fontFamily: "monospace", fontSize: "12px"}}>{title}</div>
+      {/* Nav */}
+      <div style={{...surface, borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px"}}>
+        <div style={{display: "flex", alignItems: "center", gap: "8px"}}>
+          <div style={{width: "24px", height: "24px", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", color: "white", fontSize: "12px", background: "linear-gradient(135deg, #6366f1, #a855f7)"}}>Y</div>
+          <span style={{fontWeight: "bold", color: "white", fontSize: "14px"}}>YLDS</span>
+        </div>
+        <div style={{display: "flex", gap: "16px", color: "#94a3b8", fontSize: "11px"}}>
+          <span>Save & Earn</span><span>Pay & Spend</span><span>Regulatory</span><span>About</span>
+        </div>
+        <div style={{display: "flex", gap: "8px"}}>
+          <span style={{background: "linear-gradient(135deg, #6366f1, #7c3aed)", fontSize: "11px", padding: "8px 16px", borderRadius: "8px", color: "white", fontWeight: 600}}>Talk to Sales</span>
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Section({ style: s = {}, children, ...rest }) {
+  return <div style={{background: "#10102a", border: "1px solid rgba(99,102,241,0.12)", borderRadius: "14px", padding: "24px", ...s}} {...rest}>{children}</div>;
+}
+
+function HeroBlock({ badge, headline, sub, cta1 = "Talk to Sales", cta2 = null, routing = null }) {
+  return (
+    <div style={{background: "linear-gradient(135deg, #0c0c24 0%, #1e1b4b 40%, #2e1065 80%, #1a0a2e 100%)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: "16px", padding: "48px 40px", textAlign: "center", position: "relative", overflow: "hidden"}}>
+      <div style={{position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.08) 0%, transparent 70%)", pointerEvents: "none"}} />
+      <div style={{position: "relative"}}>
+        {badge && <span style={{background: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.3)", color: "#6ee7b7", padding: "5px 14px", borderRadius: "9999px", fontSize: "11px", fontWeight: 500, display: "inline-flex", alignItems: "center", gap: "5px", letterSpacing: "0.3px"}}><Shield size={10} /> {badge}</span>}
+        <h1 style={{color: "white", fontSize: "26px", fontWeight: 700, lineHeight: 1.25, maxWidth: "560px", margin: "14px auto 0", letterSpacing: "-0.3px"}}>{headline}</h1>
+        <p style={{color: "#a5b4fc", fontSize: "14px", maxWidth: "480px", margin: "10px auto 0", lineHeight: 1.5}}>{sub}</p>
+        <div style={{display: "flex", gap: "12px", justifyContent: "center", paddingTop: "20px"}}>
+          <span style={{background: "#fff", color: "#1e1b4b", padding: "12px 28px", borderRadius: "10px", fontSize: "13px", fontWeight: 600, boxShadow: "0 0 20px rgba(255,255,255,0.1)"}}>{cta1}</span>
+          {cta2 && <span style={{background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.3)", color: "white", padding: "12px 28px", borderRadius: "10px", fontSize: "13px", fontWeight: 500}}>{cta2}</span>}
+        </div>
+        {routing && (
+          <div style={{display: "flex", gap: "20px", justifyContent: "center", paddingTop: "20px"}}>
+            {routing.map(r => <span key={r} style={{color: "#64748b", fontSize: "11px", borderBottom: "1px solid rgba(99,102,241,0.2)", paddingBottom: "2px", cursor: "pointer"}}>{r}</span>)}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function BottomCTA({ headline, sub, cta1 = "Talk to Sales", cta2 = "Read the Prospectus" }) {
+  return (
+    <div style={{background: "linear-gradient(135deg, #1e1b4b, #2e1065, #1a0a2e)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: "16px", padding: "40px", textAlign: "center", position: "relative", overflow: "hidden"}}>
+      <div style={{position: "absolute", top: 0, left: 0, right: 0, bottom: 0, background: "radial-gradient(ellipse at 50% 50%, rgba(99,102,241,0.06) 0%, transparent 70%)", pointerEvents: "none"}} />
+      <div style={{position: "relative"}}>
+        <div style={{color: "white", fontWeight: 700, fontSize: "18px", letterSpacing: "-0.2px"}}>{headline}</div>
+        <div style={{color: "#a5b4fc", fontSize: "13px", marginTop: "6px"}}>{sub}</div>
+        <div style={{display: "flex", gap: "12px", justifyContent: "center", marginTop: "20px"}}>
+          <span style={{background: "white", color: "#312e81", padding: "12px 28px", borderRadius: "10px", fontSize: "13px", fontWeight: 600, boxShadow: "0 0 20px rgba(255,255,255,0.08)"}}>{cta1}</span>
+          <span style={{background: "rgba(99,102,241,0.15)", border: "1px solid rgba(99,102,241,0.3)", padding: "12px 28px", borderRadius: "10px", color: "white", fontSize: "13px"}}>{cta2}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════ PAGE WIREFRAMES ═══════════════ */
+
+function HomepageWireframe() {
+  const surface = { background: "#10102a", border: "1px solid rgba(99,102,241,0.12)" };
+  return (
+    <WireframeShell title="ylds.com — Homepage">
+      <HeroBlock badge="Registered Fixed-Income Security"
+        headline="The only digital asset with daily yield that survives regulation."
+        sub="~4% daily accrual. Registered under the Investment Company Act. P2P transferable. Exempt from GENIUS Act and CLARITY Act."
+        cta1="Talk to Sales" cta2="Read the Prospectus"
+        routing={["I manage a treasury", "I'm at a bank", "I build on a protocol", "I run a fintech"]} />
+
+      {/* Metrics */}
+      <div style={{display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "10px"}}>
+        {[["$609M+","Ecosystem AUM"],["~4.0%","Current Yield"],["$5.8M","Interest Paid"],["2","Chains Live"],["24/7","Settlement"]].map(([v,l]) => (
+          <div key={l} style={{...surface, borderRadius: "12px", padding: "20px 12px", textAlign: "center"}}>
+            <div style={{background: "linear-gradient(135deg, #818cf8, #a78bfa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", fontWeight: 800, fontSize: "22px", letterSpacing: "-0.5px"}}>{v}</div>
+            <div style={{color: "#64748b", fontSize: "10px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginTop: "4px"}}>{l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* How it works */}
+      <Section>
+        <div style={{color: "white", fontSize: "14px", fontWeight: 600, textAlign: "center", marginBottom: "16px"}}>How $YLDS Works</div>
+        <div style={{display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px"}}>
+          {[["1","Mint","Deposit USD. Get YLDS 1:1.","#6366f1"],["2","Earn","~4% accrues daily. KPMG audited reserves.","#7c3aed"],["3","Use","Transfer, collateralize, or settle. 24/7.","#8b5cf6"],["4","Redeem","Same-day fiat. Credit-line-backed liquidity.","#a855f7"]].map(([n,t,d,c]) => (
+            <div key={n} style={{textAlign: "center"}}>
+              <div style={{width: "36px", height: "36px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto", color: "white", fontSize: "14px", fontWeight: "bold", background: `linear-gradient(135deg, ${c}, ${c}dd)`}}>{n}</div>
+              <div style={{color: "white", fontSize: "12px", fontWeight: 600, marginTop: "8px"}}>{t}</div>
+              <div style={{color: "#94a3b8", fontSize: "10px", marginTop: "4px"}}>{d}</div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* Product Detail — folded from /product */}
+      <Section>
+        <div style={{color: "white", fontSize: "14px", fontWeight: 600, textAlign: "center", marginBottom: "16px"}}>What Is $YLDS</div>
+        <div style={{display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "12px", fontSize: "11px"}}>
+          <div><div style={{color: "#a5b4fc", fontWeight: 600}}>Structure</div><div style={{color: "#94a3b8", marginTop: "4px"}}>Fixed-income security registered under the Investment Company Act. Issued by Figure Certificate Corporation. Not a stablecoin.</div></div>
+          <div><div style={{color: "#a5b4fc", fontWeight: 600}}>How Yield Works</div><div style={{color: "#94a3b8", marginTop: "4px"}}>Reserves in short-dated treasuries and bank deposits. SOFR - 35bps accrues daily to holder balances.</div></div>
+          <div><div style={{color: "#a5b4fc", fontWeight: 600}}>Reserve Backing</div><div style={{color: "#94a3b8", marginTop: "4px"}}>1:1 USD reserves at UMB Bank. Bankruptcy remote. KPMG audited.</div></div>
+          <div><div style={{color: "#a5b4fc", fontWeight: 600}}>Transferability</div><div style={{color: "#94a3b8", marginTop: "4px"}}>P2P transferable on-chain. Use as collateral, payment instrument, or DeFi primitive via wYLDS.</div></div>
+        </div>
+      </Section>
+
+      {/* Use Case Cards */}
+      <div style={{display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px"}}>
+        {[["Save & Earn","Turn dead capital into productive stablecoins. ~4% yield on idle holdings. Auto-sweep for banks.","Crypto treasuries, VCs, DAOs, banks"],["Pay & Spend","Yield on float. Cross-border at <$0.01 via Stellar. 475K+ fiat access points.","Payroll platforms, fintechs, settlement networks"]].map(([t,d,a]) => (
+          <div key={t} style={{...surface, borderRadius: "8px", padding: "16px"}}>
+            <div style={{color: "white", fontWeight: 600, fontSize: "14px"}}>{t}</div>
+            <div style={{color: "#94a3b8", marginTop: "4px", fontSize: "11px"}}>{d}</div>
+            <div style={{color: "#64748b", marginTop: "4px", fontSize: "10px"}}>{a}</div>
+            <div style={{color: "#818cf8", marginTop: "10px", fontSize: "11px", fontWeight: 500}}>Learn more →</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Chains */}
+      <Section style={{padding: "12px", textAlign: "center"}}>
+        <div style={{color: "#64748b", marginBottom: "8px", fontSize: "10px"}}>Available On</div>
+        <div style={{display: "flex", justifyContent: "center", gap: "24px"}}>
+          {["Provenance","Stellar"].map(n => <span key={n} style={{color: "#cbd5e1", fontSize: "12px", fontWeight: 500}}>{n}</span>)}
+        </div>
+      </Section>
+
+      {/* Trust logos — elevated */}
+      <Section style={{padding: "20px", textAlign: "center"}}>
+        <div style={{color: "#64748b", marginBottom: "12px", fontSize: "10px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px"}}>Backed By</div>
+        <div style={{display: "flex", justifyContent: "center", gap: "16px", flexWrap: "wrap", alignItems: "center"}}>
+          {["KPMG","UMB Bank","Fireblocks","Copper","BitGo"].map(n => (
+            <span key={n} style={{fontSize: "13px", fontWeight: 600, background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)", padding: "10px 20px", borderRadius: "10px", color: "#e2e8f0", letterSpacing: "0.3px"}}>{n}</span>
+          ))}
+        </div>
+      </Section>
+
+      {/* KYB */}
+      <Section>
+        <div style={{color: "white", fontSize: "14px", fontWeight: 600, textAlign: "center", marginBottom: "16px"}}>Get Started</div>
+        <div style={{display: "flex", gap: "16px"}}>
+          {[["1","Complete KYB","Verify your organization"],["2","Connect Wallet","Fireblocks, BitGo, Copper, or Figure Markets"],["3","Mint YLDS","Start earning. Redeem anytime."]].map(([n,t,d]) => (
+            <div key={n} style={{flex: 1, textAlign: "center"}}>
+              <div style={{width: "36px", height: "36px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto", color: "white", fontSize: "14px", fontWeight: "bold", background: "linear-gradient(135deg, #6366f1, #7c3aed)"}}>{n}</div>
+              <div style={{color: "white", fontSize: "12px", fontWeight: 500, marginTop: "8px"}}>{t}</div>
+              <div style={{color: "#64748b", fontSize: "10px", marginTop: "4px"}}>{d}</div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <BottomCTA headline="$305B in stablecoins earn nothing. Start here." sub="Talk to our institutional team about treasury optimization or payment flows." />
+    </WireframeShell>
+  );
+}
+
+function SaveWireframe() {
+  const surface = { background: "#10102a", border: "1px solid rgba(99,102,241,0.12)" };
+  return (
+    <WireframeShell title="ylds.com/save — Save & Earn">
+      <HeroBlock headline="$305B in stablecoins earn nothing. Yours don't have to."
+        sub="Turn dead capital into productive stablecoins. ~4% daily accrual, registered fixed-income security, same-day redemption. No DeFi risk."
+        cta1="Talk to Sales" cta2="Read the Prospectus" />
+
+      {/* Before / After */}
+      <Section>
+        <div style={{color: "white", fontSize: "14px", fontWeight: 600, marginBottom: "4px"}}>The Opportunity Cost of Idle Funds</div>
+        <div style={{color: "#94a3b8", fontSize: "11px", marginBottom: "16px"}}>$305B in stablecoins sit at 0%. At 4%, that's $8.8-11.8B in annual yield left on the table.</div>
+        <div style={{display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: "12px", alignItems: "center"}}>
+          <div style={{...surface, borderRadius: "8px", padding: "12px", textAlign: "center"}}>
+            <div style={{color: "#ef4444", fontSize: "24px", fontWeight: "bold"}}>0%</div>
+            <div style={{color: "#94a3b8", fontSize: "11px", marginTop: "4px"}}>USDC / USDT yield</div>
+            <div style={{color: "#64748b", fontSize: "9px", marginTop: "2px"}}>GENIUS Act bans issuers from adding yield</div>
+          </div>
+          <div style={{color: "#818cf8"}}>→</div>
+          <div style={{...surface, borderRadius: "8px", padding: "12px", textAlign: "center"}}>
+            <div style={{color: "#818cf8", fontSize: "24px", fontWeight: "bold"}}>~4%</div>
+            <div style={{color: "#a5b4fc", fontSize: "11px", marginTop: "4px"}}>YLDS yield (SOFR - 35bps)</div>
+            <div style={{color: "#64748b", fontSize: "9px", marginTop: "2px"}}>Registered security. Exempt from yield bans.</div>
+          </div>
+        </div>
+      </Section>
+
+      {/* How it works */}
+      <Section>
+        <div style={{color: "white", fontSize: "14px", fontWeight: 600, marginBottom: "12px"}}>How It Works</div>
+        <div style={{display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", fontSize: "10px"}}>
+          {[["Mint YLDS","Deposit USD 1:1. Choose your custodian — Fireblocks, BitGo, Copper, or Figure Markets."],["Earn ~4%","Daily accrual on KPMG-audited reserves at UMB Bank. No smart contract risk."],["Redeem Anytime","Same-day fiat. $60M in credit lines back instant liquidity."]].map(([t,d]) => (
+            <div key={t} style={{background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: "8px", padding: "12px", textAlign: "center"}}>
+              <div style={{color: "#a5b4fc", fontSize: "12px", fontWeight: 600}}>{t}</div>
+              <div style={{color: "#94a3b8", fontSize: "10px", marginTop: "4px"}}>{d}</div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* Who it's for */}
+      <Section>
+        <div style={{color: "white", fontSize: "14px", fontWeight: 600, marginBottom: "12px"}}>Who It's For</div>
+        <div style={{display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px"}}>
+          {[["Crypto Treasuries & Funds","Replace idle stablecoin reserves with yield. Governance-ready materials for DAO proposals. Multi-custodian choice satisfies risk committees.","$305B idle stablecoins globally"],["Banks & Settlement Networks","Auto-sweep idle balances into YLDS. Reduce nostro/vostro drag. OCC/FDIC final rules due July 2026 clear the path.","$27T locked in nostro/vostro accounts"]].map(([t,d,s]) => (
+            <div key={t} style={{background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: "8px", padding: "12px"}}>
+              <div style={{color: "#a5b4fc", fontSize: "12px", fontWeight: 600}}>{t}</div>
+              <div style={{color: "#94a3b8", fontSize: "10px", marginTop: "4px"}}>{d}</div>
+              <div style={{color: "#818cf8", fontSize: "9px", fontWeight: 500, marginTop: "8px"}}>{s}</div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* Auto-Sweep */}
+      <Section>
+        <div style={{color: "white", fontSize: "14px", fontWeight: 600, marginBottom: "4px"}}>Auto-Sweep for Banks</div>
+        <div style={{fontSize: "11px", color: "#94a3b8", marginBottom: "12px"}}>Deploy idle balances automatically. No manual sweeps. No T+2 settlement. Yield starts accruing immediately.</div>
+        <div style={{display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px", fontSize: "10px"}}>
+          {[["Idle Balance Detected","Automated threshold triggers"],["Auto-Sweep to YLDS","Instant mint 1:1"],["Yield Accrues","~4% daily, KPMG audited"],["Redemption on Demand","Same-day fiat, $60M credit lines"]].map(([t,d]) => (
+            <div key={t} style={{background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: "6px", padding: "8px", textAlign: "center"}}>
+              <div style={{color: "#a5b4fc", fontWeight: 600}}>{t}</div>
+              <div style={{color: "#94a3b8", marginTop: "3px", fontSize: "9px"}}>{d}</div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* YLDS ↔ wYLDS */}
+      <Section>
+        <div style={{color: "white", fontSize: "13px", fontWeight: 600, marginBottom: "8px"}}>YLDS ↔ wYLDS</div>
+        <div style={{fontSize: "11px", color: "#94a3b8"}}>
+          <div style={{marginBottom: "8px"}}>YLDS holders can convert to wYLDS (via Hastra) for permissionless DeFi access. Stellar is the first ecosystem where a regulated asset (YLDS) and unregulated asset (wYLDS) interact on-chain.</div>
+          <div style={{display: "flex", gap: "8px", alignItems: "center", justifyContent: "center"}}>
+            <span style={{background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", padding: "6px 12px", borderRadius: "8px", color: "#6ee7b7", fontSize: "10px", fontWeight: 500}}>YLDS (regulated)</span>
+            <span style={{color: "#818cf8"}}>→</span>
+            <span style={{background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.2)", padding: "6px 12px", borderRadius: "8px", color: "#c4b5fd", fontSize: "10px", fontWeight: 500}}>wYLDS (permissionless)</span>
+          </div>
+          <div style={{color: "#64748b", fontSize: "10px", marginTop: "8px", textAlign: "center"}}>One-way: YLDS → wYLDS. Certain counterparties will prefer one over the other.</div>
+        </div>
+      </Section>
+
+      <BottomCTA headline="Dead capital has a cost. We can fix that." sub="Talk to our team about treasury optimization." />
+    </WireframeShell>
+  );
+}
+
+function PaySpendWireframe() {
+  return (
+    <WireframeShell title="ylds.com/pay — Pay & Spend">
+      <HeroBlock headline="Payment float is dead capital. Make it work."
+        sub="Yield on float. Real-time settlement. Cross-border via Stellar at a fraction of SWIFT costs. Every dollar accrues until the moment it moves."
+        cta1="Talk to Sales" />
+
+      {/* Pay — primary */}
+      <Section>
+        <div style={{color: "white", fontSize: "14px", fontWeight: 600, marginBottom: "4px"}}>Pay</div>
+        <div style={{color: "#94a3b8", fontSize: "11px", marginBottom: "12px"}}>225+ businesses integrated stablecoins for payroll in 2025. B2B volumes: $6B/month and growing. The yield on float is the new CFO obsession.</div>
+        <div style={{display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px"}}>
+          {[["Payroll","Hold payroll funds in YLDS. Earn ~4% until disbursement. 100+ country coverage via partners like Toku and Deel."],["Settlement","Real-time settlement between counterparties. 24/7. Eliminate pre-funding requirements and settlement lag."],["Cross-Border","$200 → Colombia: $12.13 via wire vs <$0.01 via Stellar. 80% cost reduction. 475K+ fiat access points globally."]].map(([t,d]) => (
+            <div key={t} style={{background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: "8px", padding: "12px"}}>
+              <div style={{color: "#a5b4fc", fontSize: "12px", fontWeight: 600}}>{t}</div>
+              <div style={{color: "#94a3b8", fontSize: "10px", marginTop: "4px"}}>{d}</div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section>
+        <div style={{color: "white", fontSize: "13px", fontWeight: 600, marginBottom: "8px"}}>Speed & Cost Comparison</div>
+        <div style={{fontSize: "11px"}}>
+          <div style={{display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid rgba(99,102,241,0.12)", fontWeight: 500, color: "#64748b"}}>
+            <span style={{width: "30%"}}>Method</span><span style={{width: "30%"}}>Speed</span><span style={{width: "20%"}}>Cost</span><span style={{width: "20%"}}>Yield in Transit</span>
+          </div>
+          {[["SWIFT wire","3-5 business days","$25-50 + 2-7% FX","0%"],["ACH","2-3 business days","$0.20-1.50","0%"],["YLDS on Stellar","~6 seconds, 24/7","< $0.01","~4%"]].map(([m,s,c,y]) => (
+            <div key={m} style={{display: "flex", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px solid rgba(99,102,241,0.06)"}}>
+              <span style={{width: "30%", color: m.includes("YLDS") ? "#a5b4fc" : "#94a3b8", fontWeight: m.includes("YLDS") ? 600 : 400}}>{m}</span>
+              <span style={{width: "30%", color: "#94a3b8"}}>{s}</span>
+              <span style={{width: "20%", color: "#94a3b8"}}>{c}</span>
+              <span style={{width: "20%", color: y === "~4%" ? "#10b981" : "#ef4444", fontWeight: 600}}>{y}</span>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* International */}
+      <Section>
+        <div style={{color: "white", fontSize: "13px", fontWeight: 600, marginBottom: "8px"}}>Global Reach via Stellar</div>
+        <div style={{display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", fontSize: "10px"}}>
+          {[["Latin America","71% institutional stablecoin adoption. Colombia corridor: 80% cost reduction vs SWIFT."],["Africa","200-300% YoY stablecoin growth. Mobile Money Operator integration via Stellar Anchor Platform."],["Asia-Pacific","Stellar fintechs (Airtm, Meru, Wirex) providing payments infrastructure on Soroban."]].map(([t,d]) => (
+            <div key={t} style={{background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: "8px", padding: "10px"}}>
+              <div style={{color: "#a5b4fc", fontSize: "11px", fontWeight: 600}}>{t}</div>
+              <div style={{color: "#94a3b8", fontSize: "10px", marginTop: "4px"}}>{d}</div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* Spend — coming soon */}
+      <Section>
+        <div style={{display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px"}}>
+          <div style={{color: "white", fontSize: "14px", fontWeight: 600}}>Spend</div>
+          <span style={{background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.3)", color: "#fcd34d", padding: "2px 8px", borderRadius: "9999px", fontSize: "10px", fontWeight: 500}}>Coming Soon</span>
+        </div>
+        <div style={{fontSize: "11px", color: "#94a3b8", marginBottom: "12px"}}>Expense management is the first Spend feature. Earn yield on float between approval and disbursement — working capital efficiency, not idle balances.</div>
+        <div style={{display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px"}}>
+          {[["Expense Management","Pay vendors with YLDS. Earn on float between approval and disbursement. API-first integration."],["DeFi Composability","Convert to wYLDS (via Hastra) for permissionless DeFi access. Stellar is the first chain where regulated + unregulated interact."]].map(([t,d]) => (
+            <div key={t} style={{background: "rgba(99,102,241,0.04)", border: "1px dashed rgba(99,102,241,0.15)", borderRadius: "8px", padding: "12px"}}>
+              <div style={{color: "#818cf8", fontSize: "12px", fontWeight: 600}}>{t}</div>
+              <div style={{color: "#64748b", fontSize: "10px", marginTop: "4px"}}>{d}</div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* YLDS ↔ wYLDS */}
+      <Section>
+        <div style={{color: "white", fontSize: "13px", fontWeight: 600, marginBottom: "8px"}}>YLDS ↔ wYLDS</div>
+        <div style={{fontSize: "11px", color: "#94a3b8"}}>
+          <div style={{marginBottom: "8px"}}>Holders can go YLDS → wYLDS for permissionless use. Stellar is the first ecosystem where a regulated and unregulated asset interact on-chain.</div>
+          <div style={{display: "flex", gap: "8px", alignItems: "center", justifyContent: "center"}}>
+            <span style={{background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", padding: "6px 12px", borderRadius: "8px", color: "#6ee7b7", fontSize: "10px", fontWeight: 500}}>YLDS (regulated)</span>
+            <span style={{color: "#818cf8"}}>→</span>
+            <span style={{background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.2)", padding: "6px 12px", borderRadius: "8px", color: "#c4b5fd", fontSize: "10px", fontWeight: 500}}>wYLDS (permissionless)</span>
+          </div>
+        </div>
+      </Section>
+
+      <Section style={{padding: "12px", textAlign: "center"}}>
+        <div style={{color: "#64748b", marginBottom: "8px", fontSize: "10px"}}>Available On</div>
+        <div style={{display: "flex", justifyContent: "center", gap: "24px"}}>
+          {["Provenance","Stellar"].map(n => <span key={n} style={{color: "#cbd5e1", fontSize: "12px", fontWeight: 500}}>{n}</span>)}
+        </div>
+      </Section>
+
+      <BottomCTA headline="Every dollar in transit should be earning." sub="Tell us about your payment flows." cta1="Talk to Sales" cta2="Read the Prospectus" />
+    </WireframeShell>
+  );
+}
+
+
+function RegulatoryWireframe() {
+  return (
+    <WireframeShell title="ylds.com/regulatory — Regulatory Positioning">
+      <HeroBlock headline="Two new laws restrict stablecoin yield. YLDS is exempt from both."
+        sub="The GENIUS Act and CLARITY Act target payment stablecoins. YLDS is a registered fixed-income security — different structure, different rules."
+        cta1="Talk to Sales" cta2="Read the Prospectus" />
+
+      <Section>
+        <div style={{color: "white", fontSize: "13px", fontWeight: 600, marginBottom: "8px"}}>What Changed</div>
+        <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", fontSize: "11px"}}>
+          <div style={{background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)", borderRadius: "8px", padding: "12px"}}>
+            <div style={{color: "#fca5a5", fontWeight: 600}}>GENIUS Act (Law)</div>
+            <div style={{color: "#94a3b8", marginTop: "4px"}}>Payment stablecoin issuers can't pay yield on balances.</div>
+          </div>
+          <div style={{background: "rgba(245,158,11,0.06)", border: "1px solid rgba(245,158,11,0.15)", borderRadius: "8px", padding: "12px"}}>
+            <div style={{color: "#fcd34d", fontWeight: 600}}>CLARITY Act (Pending)</div>
+            <div style={{color: "#94a3b8", marginTop: "4px"}}>Extends the ban to platforms and intermediaries. Senate markup late April.</div>
+          </div>
+        </div>
+      </Section>
+
+      <Section>
+        <div style={{color: "white", fontSize: "13px", fontWeight: 600, marginBottom: "4px"}}>Why YLDS Is Exempt</div>
+        <div style={{color: "#94a3b8", fontSize: "11px", marginBottom: "12px"}}>YLDS is a fixed-income security registered under the Investment Company Act. These laws target payment stablecoins — YLDS is not a stablecoin.</div>
+        <div style={{fontSize: "11px", color: "#94a3b8"}}>
+          <div style={{display: "flex", padding: "8px 0", borderBottom: "1px solid rgba(99,102,241,0.08)", fontWeight: 500, color: "#64748b"}}>
+            <div style={{width: "20%"}}>Product</div><div style={{width: "20%"}}>GENIUS</div><div style={{width: "20%"}}>CLARITY</div><div style={{width: "20%"}}>P2P</div><div style={{width: "20%"}}>Multi-Chain</div>
+          </div>
+          {[
+            ["YLDS","Exempt","Exempt",true,true,true],
+            ["USDC","Restricted","Restricted",true,true,false],
+            ["USDY","Gray Zone","At Risk",true,true,false],
+            ["BUIDL","Exempt","Exempt",false,false,false],
+            ["USDe","Gray Zone","At Risk",true,false,false],
+          ].map(([p,g,c,pp,mc,hl]) => (
+            <div key={p} style={{display: "flex", padding: "6px 0", borderBottom: "1px solid rgba(99,102,241,0.06)", background: hl ? "rgba(99,102,241,0.06)" : "transparent"}}>
+              <div style={{width: "20%", color: hl ? "#a5b4fc" : "#cbd5e1", fontWeight: hl ? 600 : 400}}>{p}</div>
+              <div style={{width: "20%"}}><Badge impact={g === "Exempt" ? "exempt" : g === "Restricted" ? "restricted" : g === "At Risk" ? "at_risk" : "gray"} /></div>
+              <div style={{width: "20%"}}><Badge impact={c === "Exempt" ? "exempt" : c === "Restricted" ? "restricted" : c === "At Risk" ? "at_risk" : "gray"} /></div>
+              <div style={{width: "20%"}}>{pp ? <CheckCircle size={13} color="#34d399" /> : <XCircle size={13} color="#475569" />}</div>
+              <div style={{width: "20%"}}>{mc ? <CheckCircle size={13} color="#34d399" /> : <XCircle size={13} color="#475569" />}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{color: "#a5b4fc", fontSize: "11px", fontWeight: 500, marginTop: "12px"}}>YLDS is the only product that's Exempt + Exempt + P2P transferable + multi-chain.</div>
+      </Section>
+
+      <BottomCTA headline="Structure determines whether your yield survives regulation." sub="Talk to our team about YLDS." />
+    </WireframeShell>
+  );
+}
+
+function AboutWireframe() {
+  return (
+    <WireframeShell title="ylds.com/about — About">
+      <div style={{background: "linear-gradient(135deg, #10102a 0%, #1e1b4b 100%)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: "12px", padding: "32px", textAlign: "center"}}>
+        <h1 style={{color: "white", fontSize: "20px", fontWeight: "bold", margin: 0}}>About Figure</h1>
+        <p style={{color: "#94a3b8", fontSize: "13px", marginTop: "8px"}}>Nasdaq-listed (FIGR). Registered under the Investment Company Act. Built for institutional finance.</p>
+      </div>
+
+      <Section>
+        <div style={{color: "white", fontSize: "13px", fontWeight: 600, marginBottom: "12px"}}>Entity Structure</div>
+        <div style={{display: "flex", gap: "8px", alignItems: "center", justifyContent: "center", fontSize: "11px"}}>
+          {["Figure Technology Solutions (FIGR)","Figure Certificate Corp","$YLDS"].map((s,i) => (
+            <Fragment key={s}>
+              {i > 0 && <span style={{color: "#475569"}}>→</span>}
+              <span style={{background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.15)", padding: "8px 14px", borderRadius: "8px", color: "#c7d2fe"}}>{s}</span>
+            </Fragment>
+          ))}
+        </div>
+      </Section>
+
+      <Section>
+        <div style={{color: "white", fontSize: "13px", fontWeight: 600, marginBottom: "12px"}}>Trust Infrastructure</div>
+        <div style={{display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", textAlign: "center"}}>
+          {[["Reserve Bank","UMB Bank"],["Auditor","KPMG"],["Custody","Fireblocks · Copper · BitGo"],["Transfer Agent","Figure Certificate Corp"],["Parent Company","Figure Technology Solutions (FIGR, Nasdaq)"],["Registration","Registered under the Investment Company Act"]].map(([l,v]) => (
+            <div key={l} style={{background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.12)", borderRadius: "8px", padding: "10px"}}>
+              <div style={{color: "#64748b", fontSize: "10px"}}>{l}</div>
+              <div style={{color: "#cbd5e1", fontSize: "11px", fontWeight: 500, marginTop: "2px"}}>{v}</div>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section>
+        <div style={{color: "white", fontSize: "13px", fontWeight: 600, marginBottom: "8px"}}>Chain Availability</div>
+        <div style={{display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px"}}>
+          <div style={{background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.2)", borderRadius: "8px", padding: "10px"}}>
+            <div style={{color: "#6ee7b7", fontSize: "11px", fontWeight: 600}}>Live</div>
+            <div style={{color: "#a7f3d0", fontSize: "11px", marginTop: "4px"}}>Provenance · Stellar</div>
+          </div>
+          <div style={{background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.2)", borderRadius: "8px", padding: "10px"}}>
+            <div style={{color: "#818cf8", fontSize: "11px", fontWeight: 600}}>Coming</div>
+            <div style={{color: "#c7d2fe", fontSize: "11px", marginTop: "4px"}}>Additional chains on deck</div>
+          </div>
+        </div>
+      </Section>
+
+      <BottomCTA headline="Read the prospectus." sub="Full details on structure, risks, and terms." cta1="Download Prospectus" cta2="Contact Sales" />
+    </WireframeShell>
+  );
+}
+
+function ContactWireframe() {
+  return (
+    <WireframeShell title="ylds.com/contact — Contact / Lead Gen">
+      <HeroBlock headline="Get in touch" sub="Tell us about your use case. We'll route you to the right team." cta1="Submit" />
+
+      <Section>
+        <div style={{color: "white", fontSize: "13px", fontWeight: 600, marginBottom: "12px"}}>I'm interested in…</div>
+        <div style={{display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px"}}>
+          {["Save & Earn — Treasury / Yield","Pay & Spend — Payments / Payroll","Banking / Sweep Partnership","Protocol / Chain Integration","Large Purchase (>$1M)","Other"].map(uc => (
+            <div key={uc} style={{background: "rgba(99,102,241,0.06)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: "8px", padding: "8px", textAlign: "center", color: "#cbd5e1", fontSize: "11px", cursor: "pointer"}}>
+              {uc}
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section>
+        <div style={{color: "white", fontSize: "13px", fontWeight: 600, marginBottom: "12px"}}>Lead Gen Form</div>
+        <div style={{display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "8px", fontSize: "11px"}}>
+          {["Name","Company","Email","Expected Volume / AUM"].map(f => (
+            <div key={f} style={{background: "rgba(99,102,241,0.04)", border: "1px solid rgba(99,102,241,0.12)", borderRadius: "6px", padding: "10px", color: "#64748b"}}>{f}</div>
+          ))}
+        </div>
+        <div style={{background: "rgba(99,102,241,0.04)", border: "1px solid rgba(99,102,241,0.12)", borderRadius: "6px", padding: "10px", color: "#64748b", fontSize: "11px", marginTop: "8px"}}>Tell us about your use case…</div>
+        <div style={{marginTop: "12px", textAlign: "center"}}>
+          <span style={{background: "linear-gradient(135deg, #6366f1, #7c3aed)", color: "white", padding: "10px 32px", borderRadius: "8px", fontSize: "13px", fontWeight: 600}}>Submit</span>
+        </div>
+        <div style={{color: "#64748b", fontSize: "10px", textAlign: "center", marginTop: "8px"}}>No calendar link. Our team will respond directly.</div>
+      </Section>
+    </WireframeShell>
+  );
+}
+
+/* ═══════════════ MAIN APP ═══════════════ */
+
+function PersonaCard({ p, idx }) {
+  const [showResearch, setShowResearch] = useState(false);
+  const labelStyle = { color: "#64748b", fontSize: "9px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "3px" };
+  const cellStyle = { background: "rgba(99,102,241,0.04)", border: "1px solid rgba(99,102,241,0.08)", borderRadius: "6px", padding: "8px" };
+  return (
+    <div key={idx} style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: "10px", padding: "16px" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+        <div style={{ background: "rgba(99,102,241,0.15)", borderRadius: "8px", padding: "8px", display: "flex", alignItems: "center", justifyContent: "center" }}>{p.icon}</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ color: "white", fontWeight: 700, fontSize: "14px" }}>{p.name}</div>
+          <div style={{ color: "#94a3b8", fontSize: "11px" }}>{p.subtitle}</div>
+        </div>
+        {p.kpi && <span style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", color: "#6ee7b7", padding: "3px 8px", borderRadius: "9999px", fontSize: "9px", fontWeight: 600 }}>KPI: {p.kpi}</span>}
+      </div>
+
+      {/* Pain + Job — always visible */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "10px" }}>
+        <div style={cellStyle}>
+          <div style={labelStyle}>Pain</div>
+          <div style={{ color: "#fca5a5", fontSize: "11px", lineHeight: 1.45 }}>{p.pain}</div>
+        </div>
+        <div style={cellStyle}>
+          <div style={labelStyle}>Job to Be Done</div>
+          <div style={{ color: "#a5b4fc", fontSize: "11px", lineHeight: 1.45 }}>{p.job}</div>
+        </div>
+      </div>
+
+      {/* Decision Maker */}
+      {p.decisionMaker && (
+        <div style={{ ...cellStyle, marginBottom: "10px" }}>
+          <div style={labelStyle}>Decision Maker</div>
+          <div style={{ color: "#cbd5e1", fontSize: "11px" }}>{p.decisionMaker}</div>
+        </div>
+      )}
+
+      {/* Needs — pill chips */}
+      <div style={{ marginBottom: "10px" }}>
+        <div style={{ ...labelStyle, marginBottom: "6px" }}>Needs</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+          {p.needs.map((n, i) => (
+            <span key={i} style={{ background: "rgba(99,102,241,0.1)", border: "1px solid rgba(99,102,241,0.15)", padding: "3px 8px", borderRadius: "9999px", color: "#c7d2fe", fontSize: "10px" }}>{n}</span>
+          ))}
+        </div>
+      </div>
+
+      {/* Objections — if present */}
+      {p.objections && (
+        <div style={{ marginBottom: "10px" }}>
+          <div style={{ ...labelStyle, marginBottom: "6px" }}>Objections & Counters</div>
+          <div style={{ display: "grid", gap: "4px" }}>
+            {p.objections.map((o, i) => (
+              <div key={i} style={{ ...cellStyle, padding: "6px 8px", fontSize: "10px", color: "#94a3b8", lineHeight: 1.4 }}>{o}</div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Pipeline + TAM + Language — inline grid */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "10px" }}>
+        <div style={cellStyle}>
+          <div style={labelStyle}>Pipeline</div>
+          <div style={{ color: "#cbd5e1", fontSize: "10px", lineHeight: 1.4 }}>{p.pipeline}</div>
+        </div>
+        <div style={cellStyle}>
+          <div style={labelStyle}>TAM</div>
+          <div style={{ color: "#cbd5e1", fontSize: "10px", lineHeight: 1.4 }}>{p.tam}</div>
+        </div>
+      </div>
+
+      {/* Language chips */}
+      {p.language && (
+        <div style={{ marginBottom: "10px" }}>
+          <div style={{ ...labelStyle, marginBottom: "6px" }}>Copy Language</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+            {p.language.map((l, i) => (
+              <span key={i} style={{ background: "rgba(168,85,247,0.1)", border: "1px solid rgba(168,85,247,0.2)", padding: "2px 7px", borderRadius: "9999px", color: "#d8b4fe", fontSize: "9px", fontStyle: "italic" }}>{l}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Website Needs */}
+      {p.websiteNeeds && (
+        <div style={{ ...cellStyle, marginBottom: "10px" }}>
+          <div style={labelStyle}>Website Needs</div>
+          <div style={{ color: "#cbd5e1", fontSize: "10px", lineHeight: 1.4 }}>{p.websiteNeeds}</div>
+        </div>
+      )}
+
+      {/* Research — collapsible */}
+      {p.research && (
+        <div style={{ borderTop: "1px solid rgba(99,102,241,0.1)", paddingTop: "10px" }}>
+          <div onClick={(e) => { e.stopPropagation(); setShowResearch(!showResearch); }} style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer", userSelect: "none" }}>
+            <ChevronRight size={12} color="#818cf8" className={showResearch ? "" : ""} style={{ transform: showResearch ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.15s" }} />
+            <span style={{ color: "#818cf8", fontSize: "10px", fontWeight: 600 }}>Market Research ({p.research.length} data points)</span>
+          </div>
+          {showResearch && (
+            <div style={{ marginTop: "8px", display: "grid", gap: "4px" }}>
+              {p.research.map((r, i) => (
+                <div key={i} style={{ background: "rgba(99,102,241,0.04)", border: "1px solid rgba(99,102,241,0.06)", borderRadius: "4px", padding: "6px 8px", fontSize: "10px", color: "#94a3b8", lineHeight: 1.4 }}>{r}</div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function App() {
+  const [tab, setTab] = useState("personas");
+  const [wireframeTab, setWireframeTab] = useState("homepage");
+
+  const wireframeTabs = [
+    { id: "homepage", label: "Homepage" },
+    { id: "save", label: "Save & Earn" },
+    { id: "pay", label: "Pay & Spend" },
+    { id: "regulatory", label: "Regulatory" },
+    { id: "about", label: "About" },
+    { id: "contact", label: "Contact" },
+  ];
+
+  return (
+    <div style={{ padding: "20px", maxWidth: "1400px", margin: "0 auto" }}>
+      {/* Header */}
+      <div style={{ marginBottom: "20px", borderBottom: "1px solid rgba(99,102,241,0.1)", paddingBottom: "20px" }}>
+        <h1 style={{ color: "white", margin: "0 0 4px", fontSize: "24px" }}>YLDS.com Strategy Brief</h1>
+        <p style={{ color: "#94a3b8", margin: 0, fontSize: "13px" }}>Personas, messaging, wireframes, and regulatory positioning for institutional launch.</p>
+      </div>
+
+      {/* Main Tabs */}
+      <div style={{ display: "flex", gap: "8px", marginBottom: "20px", borderBottom: "1px solid rgba(99,102,241,0.1)", paddingBottom: "12px", flexWrap: "wrap" }}>
+        {tabs.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)} style={{ background: tab === t.id ? "rgba(99,102,241,0.2)" : "transparent", border: `1px solid ${tab === t.id ? "rgba(99,102,241,0.4)" : "rgba(99,102,241,0.1)"}`, color: tab === t.id ? "white" : "#94a3b8", padding: "8px 14px", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: tab === t.id ? 600 : 400 }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* PERSONAS */}
+      {tab === "personas" && (
+        <div className="space-y-6">
+          {personas.map((tier, tidx) => (
+            <div key={tidx}>
+              <div style={{ color: tier.color, fontWeight: 600, fontSize: "13px", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                {tier.tier}
+              </div>
+              <div style={{ color: "#94a3b8", fontSize: "11px", marginBottom: "12px" }}>{tier.desc}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(480px, 1fr))", gap: "16px" }}>
+                {tier.personas.map((p, pidx) => (
+                  <PersonaCard key={pidx} p={p} idx={pidx} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* VALUE PROPS */}
+      {tab === "valueprops" && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px" }}>
+          {valueProps.map((vp, idx) => (
+            <div key={idx} style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: "8px", padding: "16px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+                {vp.icon}
+                <div>
+                  <div style={{ color: "white", fontWeight: 600, fontSize: "13px" }}>{vp.title}</div>
+                  <div style={{ color: "#818cf8", fontSize: "11px" }}>{vp.short}</div>
+                </div>
+              </div>
+              <p style={{ color: "#cbd5e1", fontSize: "11px", lineHeight: 1.5, marginBottom: "8px" }}>{vp.desc}</p>
+              <div style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.15)", borderRadius: "6px", padding: "8px", fontSize: "10px", color: "#fca5a5" }}>
+                <strong>vs. Competitors:</strong> {vp.vs}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* COMPETITIVE */}
+      {tab === "competitive" && (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", fontSize: "11px", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid rgba(99,102,241,0.15)" }}>
+                {["Product","Issuer","AUM","Yield","Registration","Chains","Competitive Edge"].map(h => (
+                  <th key={h} style={{ color: "#a5b4fc", fontWeight: 600, padding: "8px", textAlign: "left" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {competitiveData.map((row, idx) => (
+                <tr key={idx} style={{ borderBottom: "1px solid rgba(99,102,241,0.08)", background: row.name === "YLDS" ? "rgba(99,102,241,0.08)" : "transparent" }}>
+                  <td style={{ padding: "8px", color: row.name === "YLDS" ? "#a5b4fc" : "#cbd5e1", fontWeight: row.name === "YLDS" ? 600 : 400 }}>{row.name}</td>
+                  <td style={{ padding: "8px", color: "#94a3b8" }}>{row.issuer}</td>
+                  <td style={{ padding: "8px", color: "#94a3b8" }}>{row.aum}</td>
+                  <td style={{ padding: "8px", color: row.yield === "0%" ? "#ef4444" : "#10b981", fontWeight: 600 }}>{row.yield}</td>
+                  <td style={{ padding: "8px", color: "#94a3b8" }}>{row.reg}</td>
+                  <td style={{ padding: "8px", color: "#94a3b8" }}>{row.chains}</td>
+                  <td style={{ padding: "8px", color: "#94a3b8" }}>{row.edge}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* REGULATORY */}
+      {tab === "regulatory" && (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", fontSize: "10px", borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ borderBottom: "1px solid rgba(99,102,241,0.15)" }}>
+                {["Product","Type","Yield","GENIUS","CLARITY","P2P","Multi-Chain"].map(h => (
+                  <th key={h} style={{ color: "#a5b4fc", fontWeight: 600, padding: "8px", textAlign: "left" }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {regData.map((row, idx) => (
+                <tr key={idx} style={{ borderBottom: "1px solid rgba(99,102,241,0.08)", background: row.hl ? "rgba(99,102,241,0.08)" : "transparent" }}>
+                  <td style={{ padding: "8px", color: row.hl ? "#a5b4fc" : "#cbd5e1", fontWeight: row.hl ? 600 : 400 }}>{row.product}</td>
+                  <td style={{ padding: "8px", color: "#94a3b8", fontSize: "9px" }}>{row.type}</td>
+                  <td style={{ padding: "8px", color: "#94a3b8", fontWeight: 600 }}>{row.yield}</td>
+                  <td style={{ padding: "8px" }}><Badge impact={row.genius === "exempt" ? "exempt" : row.genius === "restricted" ? "restricted" : "gray"} /></td>
+                  <td style={{ padding: "8px" }}><Badge impact={row.clarity === "exempt" ? "exempt" : row.clarity === "restricted" ? "restricted" : row.clarity === "at_risk" ? "at_risk" : "gray"} /></td>
+                  <td style={{ padding: "8px" }}><Bool v={row.p2p} /></td>
+                  <td style={{ padding: "8px" }}><Bool v={row.multi} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* CLIENTS */}
+      {tab === "clients" && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "16px" }}>
+          {clientCats.map((cat, idx) => (
+            <div key={idx} style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: "8px", padding: "16px" }}>
+              <div style={{ color: cat.c, fontWeight: 600, fontSize: "12px", marginBottom: "12px" }}>{cat.cat}</div>
+              <ul style={{ margin: 0, paddingLeft: "16px", color: "#cbd5e1", fontSize: "11px", lineHeight: 1.6 }}>
+                {cat.list.map((item, i) => <li key={i}>{item}</li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* SITEMAP */}
+      {tab === "sitemap" && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "16px" }}>
+          {sitePages.map((p, idx) => (
+            <div key={idx} style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.15)", borderRadius: "8px", padding: "16px" }}>
+              <div style={{ color: "#a5b4fc", fontWeight: 600, fontSize: "12px", marginBottom: "4px" }}>{p.page}</div>
+              <div style={{ color: "#64748b", fontSize: "10px", marginBottom: "8px" }}>{p.url}</div>
+              <p style={{ color: "#cbd5e1", fontSize: "11px", marginBottom: "12px" }}>{p.purpose}</p>
+              <div style={{ fontSize: "10px", color: "#94a3b8" }}>
+                <strong style={{ color: "#a5b4fc" }}>Sections:</strong><br />
+                {p.sections.join(" · ")}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* WIREFRAMES */}
+      {tab === "wireframes" && (
+        <div>
+          <div style={{ display: "flex", gap: "8px", marginBottom: "20px", borderBottom: "1px solid rgba(99,102,241,0.1)", paddingBottom: "12px", flexWrap: "wrap" }}>
+            {wireframeTabs.map(wt => (
+              <button key={wt.id} onClick={() => setWireframeTab(wt.id)} style={{ background: wireframeTab === wt.id ? "rgba(99,102,241,0.2)" : "transparent", border: `1px solid ${wireframeTab === wt.id ? "rgba(99,102,241,0.4)" : "rgba(99,102,241,0.1)"}`, color: wireframeTab === wt.id ? "white" : "#94a3b8", padding: "8px 14px", borderRadius: "6px", cursor: "pointer", fontSize: "12px", fontWeight: wireframeTab === wt.id ? 600 : 400 }}>
+                {wt.label}
+              </button>
+            ))}
+          </div>
+          {wireframeTab === "homepage" && <HomepageWireframe />}
+          {wireframeTab === "save" && <SaveWireframe />}
+          {wireframeTab === "pay" && <PaySpendWireframe />}
+          {wireframeTab === "regulatory" && <RegulatoryWireframe />}
+          {wireframeTab === "about" && <AboutWireframe />}
+          {wireframeTab === "contact" && <ContactWireframe />}
+        </div>
+      )}
+    </div>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById("root"));
+</script>
+</body>
+</html>
