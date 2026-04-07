@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { TRPCError } from '@trpc/server';
-import { router, adminProcedure } from '../trpc';
+import { router, adminProcedure, protectedProcedure } from '../trpc';
 
 export const adminRouter = router({
   users: router({
@@ -87,7 +87,7 @@ export const adminRouter = router({
    * admin.apiCosts
    * Aggregate APICallLog by provider and time period.
    */
-  apiCosts: adminProcedure
+  apiCosts: protectedProcedure
     .input(
       z.object({
         days: z.number().min(1).max(365).default(30),

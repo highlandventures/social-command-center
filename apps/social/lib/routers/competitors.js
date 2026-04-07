@@ -279,9 +279,15 @@ export const competitorsRouter = router({
         orderBy: { date: 'desc' },
       });
 
-      const latestFigureFollowers = figureMetrics.length > 0
-        ? figureMetrics.reduce((sum, m) => sum + (m.followers || 0), 0)
-        : 0;
+      // Get the latest metric per account (not sum of all rows)
+      const latestByAccount = {};
+      for (const m of figureMetrics) {
+        if (!latestByAccount[m.accountId] || m.date > latestByAccount[m.accountId].date) {
+          latestByAccount[m.accountId] = m;
+        }
+      }
+      const latestFigureFollowers = Object.values(latestByAccount)
+        .reduce((sum, m) => sum + (m.followers || 0), 0);
 
       // Find Figure's brand topic — try exact name first, then fall back to pattern match
       const figureTopic = await prisma.listeningTopic.findFirst({

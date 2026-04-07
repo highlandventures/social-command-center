@@ -557,8 +557,8 @@ function ShareOfVoiceTab() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border">
-                  {['Competitor', 'Followers', 'Posts/Day', 'Avg Engagement', 'Mentions', 'Sentiment', 'SOV', 'Follower Growth'].map((h) => (
-                    <th key={h} className="text-left py-2 px-3 text-xs font-medium text-content-muted uppercase">{h}</th>
+                  {['Competitor', 'Followers', 'Posts/Day', 'Avg Engagement', 'Mentions', 'Sentiment', 'SOV ⓘ', 'Follower Growth'].map((h) => (
+                    <th key={h} className="text-left py-2 px-3 text-xs font-medium text-content-muted uppercase" title={h.includes('SOV') ? 'Share of Voice — based on mention volume from social listening, not post count. A competitor can have high SOV with low posting if others mention them frequently.' : undefined}>{h}</th>
                   ))}
                 </tr>
               </thead>

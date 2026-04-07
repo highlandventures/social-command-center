@@ -358,7 +358,7 @@ const DevelopersPage = () => (
               {['YLDS — Bringing the permissioned security to my chain (via Figure)','wYLDS — Bringing the permissionless wrapped version (via Hastra)','Both — Exploring permissioned and permissionless paths','Purchasing YLDS — I want to buy YLDS directly'].map((label,i)=><label key={i} style={{display:'flex',alignItems:'center',gap:10,fontSize:14,cursor:'pointer'}}><input type="checkbox" style={{width:18,height:18,accentColor:S.purple}} />{label}</label>)}
             </div>
           </div>
-          <div><label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Tell us about your use case</label><textarea style={{ width: '100%', padding: '12px 16px', border: `1px solid ${S.border}`, borderRadius: 10, fontSize: 14, background: S.lightBg, minHeight: 100, resize: 'vertical', fontFamily: 'inherit' }} placeholder="What are you building? What chains are you on?" /></textarea></div>
+          <div><label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Tell us about your use case</label><textarea style={{ width: '100%', padding: '12px 16px', border: `1px solid ${S.border}`, borderRadius: 10, fontSize: 14, background: S.lightBg, minHeight: 100, resize: 'vertical', fontFamily: 'inherit' }} placeholder="What are you building? What chains are you on?" ></textarea></div>
           <div style={{ textAlign: 'center', marginTop: 12 }}><Pill variant="purple" style={{ padding: '16px 48px', fontSize: 16 }}>Submit</Pill></div>
         </div>
       </div>
@@ -403,7 +403,7 @@ const ContactPage = () => (
               <option>Not sure yet</option>
             </select>
           </div>
-          <div><label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Tell us more</label><textarea style={{ width: '100%', padding: '12px 16px', border: `1px solid ${S.border}`, borderRadius: 10, fontSize: 14, background: S.lightBg, minHeight: 100, resize: 'vertical', fontFamily: 'inherit' }} placeholder="What are you building or looking to do with YLDS?" /></textarea></div>
+          <div><label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Tell us more</label><textarea style={{ width: '100%', padding: '12px 16px', border: `1px solid ${S.border}`, borderRadius: 10, fontSize: 14, background: S.lightBg, minHeight: 100, resize: 'vertical', fontFamily: 'inherit' }} placeholder="What are you building or looking to do with YLDS?" ></textarea></div>
           <div style={{ textAlign: 'center', marginTop: 12 }}><Pill variant="purple" style={{ padding: '16px 48px', fontSize: 16 }}>Submit</Pill></div>
         </div>
         <p style={{ color: S.lightGray, fontSize: 12, marginTop: 24, textAlign: 'center' }}>For self-serve purchases, <a style={{ color: S.purple, fontWeight: 600, cursor: 'pointer' }}>get YLDS directly →</a></p>

@@ -692,14 +692,27 @@ export default function ComposerPage() {
                           accept="image/jpeg,image/png,image/gif,image/webp"
                           multiple
                           className="hidden"
-                          disabled={uploadedMedia.length >= maxMedia || i !== 0}
+                          disabled={uploadedMedia.length >= maxMedia}
                           onChange={(e) => {
                             if (e.target.files?.length) handleMediaUpload(e.target.files);
                             e.target.value = '';
                           }}
                         />
                       </label>
-                      <button className="text-[10px] text-composer-ink-muted hover:text-composer-ink2 px-1.5 py-0.5 rounded hover:bg-composer-s2 transition-colors">
+                      <button
+                        className="text-[10px] text-composer-ink-muted hover:text-composer-ink2 px-1.5 py-0.5 rounded hover:bg-composer-s2 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const url = window.prompt('Enter URL to insert:');
+                          if (url && url.trim()) {
+                            setTweets((prev) => {
+                              const updated = [...prev];
+                              updated[i] = (updated[i] || '') + (updated[i]?.endsWith(' ') ? '' : ' ') + url.trim();
+                              return updated;
+                            });
+                          }
+                        }}
+                      >
                         LINK
                       </button>
                       <button
