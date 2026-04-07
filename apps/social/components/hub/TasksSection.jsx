@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { trpc } from '@/lib/trpc-client';
 import { Skeleton } from '@/components/ui';
 
@@ -70,9 +71,20 @@ function TaskRow({ task, onToggle, onDelete }) {
       </button>
 
       {/* Title */}
-      <span className={`flex-1 text-sm truncate ${isDone ? 'line-through text-content-muted' : 'text-content-primary'}`}>
-        {task.title}
-      </span>
+      <div className="flex-1 min-w-0">
+        {task.source === 'gtm' && task.projectId ? (
+          <Link href={`/gtm/projects/${task.projectId}`} className={`block text-sm truncate ${isDone ? 'line-through text-content-muted' : 'text-content-primary hover:text-blue-600 dark:hover:text-blue-400'}`}>
+            {task.title}
+          </Link>
+        ) : (
+          <span className={`block text-sm truncate ${isDone ? 'line-through text-content-muted' : 'text-content-primary'}`}>
+            {task.title}
+          </span>
+        )}
+        {task.projectName && !isDone && (
+          <span className="text-[10px] text-content-faint truncate block">{task.projectName}</span>
+        )}
+      </div>
 
       {/* Priority badge */}
       {!isDone && (

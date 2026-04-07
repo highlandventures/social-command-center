@@ -15,14 +15,50 @@ export const tasksRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const { prisma, user } = ctx;
-      const where = { userId: user.id };
-      if (input.status) where.status = input.status;
+      const homeWhere = { userId: user.id };
+      if (input.status) homeWhere.status = input.status;
 
-      return prisma.homeTask.findMany({
-        where,
-        take: input.limit,
-        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
-      });
+      const [homeTasks, gtmTasks] = await Promise.all([
+        prisma.homeTask.findMany({
+          where: homeWhere,
+          take: input.limit,
+          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+        }),
+        prisma.gtmTask.findMany({
+          where: {
+            ownerId: user.id,
+            ...(input.status ? { status: input.status } : {}),
+          },
+          include: { project: { select: { id: true, name: true } } },
+          take: input.limit,
+          orderBy: { createdAt: 'desc' },
+        }),
+      ]);
+
+      // Normalize GTM tasks to match HomeTask shape
+      const normalizedGtm = gtmTasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        priority: t.priority,
+        dueDate: t.dueDate,
+        completedAt: null,
+        sortOrder: 0,
+        createdAt: t.createdAt,
+        updatedAt: t.updatedAt,
+        source: 'gtm',
+        projectId: t.project?.id || null,
+        projectName: t.project?.name || null,
+      }));
+
+      const normalizedHome = homeTasks.map((t) => ({
+        ...t,
+        source: 'hub',
+        projectId: null,
+        projectName: null,
+      }));
+
+      return [...normalizedHome, ...normalizedGtm];
     }),
 
   /**

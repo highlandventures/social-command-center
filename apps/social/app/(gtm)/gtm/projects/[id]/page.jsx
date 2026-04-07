@@ -1,8 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { trpc } from '@/lib/trpc-client';
+import AssigneePicker from '@/components/gtm/AssigneePicker';
 
 const healthColors = {
   ON_TRACK: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
@@ -27,9 +29,122 @@ const momentTypeColors = {
   ACTIVATION: 'bg-pink-400',
 };
 
+const NEXT_STATUS = {
+  TODO: 'IN_PROGRESS',
+  IN_PROGRESS: 'DONE',
+  BLOCKED: 'TODO',
+  DONE: 'TODO',
+};
+
+function AddGtmTaskForm({ projectId, members, onCreated }) {
+  const [expanded, setExpanded] = useState(false);
+  const [title, setTitle] = useState('');
+  const [priority, setPriority] = useState('MEDIUM');
+  const [dueDate, setDueDate] = useState('');
+  const [ownerId, setOwnerId] = useState(null);
+  const [ownerObj, setOwnerObj] = useState(null);
+
+  const createTask = trpc.gtmTasks.create.useMutation({
+    onSuccess: () => {
+      onCreated();
+      setTitle('');
+      setDueDate('');
+      setPriority('MEDIUM');
+      setOwnerId(null);
+      setOwnerObj(null);
+      setExpanded(false);
+    },
+  });
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    if (!title.trim()) return;
+    createTask.mutate({
+      projectId,
+      title: title.trim(),
+      priority,
+      ...(ownerId ? { ownerId } : {}),
+      ...(dueDate ? { dueDate } : {}),
+    });
+  }
+
+  if (!expanded) {
+    return (
+      <button
+        onClick={() => setExpanded(true)}
+        className="w-full flex items-center gap-2 text-sm text-content-muted hover:text-blue-600 dark:hover:text-blue-400 px-5 py-3 transition-colors"
+      >
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        Add task
+      </button>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} onKeyDown={(e) => e.key === 'Escape' && setExpanded(false)} className="px-5 py-3 space-y-2 border-t border-border">
+      <input
+        autoFocus
+        type="text"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Task title..."
+        className="w-full text-sm bg-transparent text-content-primary placeholder:text-content-faint outline-none"
+      />
+      <div className="flex items-center gap-2 flex-wrap">
+        <select
+          value={priority}
+          onChange={(e) => setPriority(e.target.value)}
+          className="text-xs bg-surface-secondary text-content-secondary rounded px-2 py-1 border border-border outline-none"
+        >
+          <option value="LOW">Low</option>
+          <option value="MEDIUM">Medium</option>
+          <option value="HIGH">High</option>
+        </select>
+        <input
+          type="date"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
+          className="text-xs bg-surface-secondary text-content-secondary rounded px-2 py-1 border border-border outline-none"
+        />
+        <AssigneePicker
+          currentOwner={ownerObj}
+          members={members}
+          onSelect={(id) => {
+            setOwnerId(id);
+            setOwnerObj(members.find((m) => m.id === id) || null);
+          }}
+        />
+        <div className="flex-1" />
+        <button type="button" onClick={() => setExpanded(false)} className="text-xs text-content-muted hover:text-content-primary">
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={!title.trim() || createTask.isLoading}
+          className="text-xs font-medium bg-blue-600 text-white rounded px-3 py-1 hover:bg-blue-700 disabled:opacity-40 transition-colors"
+        >
+          Add
+        </button>
+      </div>
+    </form>
+  );
+}
+
 export default function ProjectBriefPage() {
   const { id } = useParams();
+  const utils = trpc.useUtils();
   const { data: project, isLoading } = trpc.gtmProjects.byId.useQuery({ id });
+  const { data: members } = trpc.team.members.useQuery();
+
+  const updateTask = trpc.gtmTasks.update.useMutation({
+    onSuccess: () => {
+      utils.gtmProjects.byId.invalidate({ id });
+      utils.tasks.list.invalidate();
+    },
+  });
 
   if (isLoading) {
     return (
@@ -147,13 +262,17 @@ export default function ProjectBriefPage() {
         </div>
         {tasksTotal === 0 ? (
           <div className="px-5 py-8 text-center text-sm text-content-muted">
-            No tasks yet. Add tasks to track work for this project.
+            No tasks yet. Add one below.
           </div>
         ) : (
           <div className="divide-y divide-border">
             {project.tasks.map((task) => (
               <div key={task.id} className="px-5 py-3 flex items-center gap-3">
-                <span className={`w-3 h-3 rounded-full border-2 shrink-0 ${taskStatusColors[task.status]}`} />
+                <button
+                  onClick={() => updateTask.mutate({ id: task.id, status: NEXT_STATUS[task.status] })}
+                  className={`w-3 h-3 rounded-full border-2 shrink-0 cursor-pointer transition-colors ${taskStatusColors[task.status]}`}
+                  title={`${task.status} → ${NEXT_STATUS[task.status]}`}
+                />
                 <div className="min-w-0 flex-1">
                   <p className={`text-sm ${task.status === 'DONE' ? 'text-content-faint line-through' : 'text-content-primary'}`}>
                     {task.title}
@@ -166,11 +285,11 @@ export default function ProjectBriefPage() {
                 }`}>
                   {task.priority}
                 </span>
-                {task.owner && (
-                  <div className="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center text-white text-[8px] font-bold shrink-0">
-                    {(task.owner.name?.[0] || task.owner.email?.[0] || 'U').toUpperCase()}
-                  </div>
-                )}
+                <AssigneePicker
+                  currentOwner={task.owner}
+                  members={members || []}
+                  onSelect={(ownerId) => updateTask.mutate({ id: task.id, ownerId })}
+                />
                 {task.dueDate && (
                   <span className="text-[10px] text-content-faint whitespace-nowrap">
                     {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -180,6 +299,11 @@ export default function ProjectBriefPage() {
             ))}
           </div>
         )}
+        <AddGtmTaskForm
+          projectId={id}
+          members={members || []}
+          onCreated={() => utils.gtmProjects.byId.invalidate({ id })}
+        />
       </div>
 
       {/* Moments timeline */}
