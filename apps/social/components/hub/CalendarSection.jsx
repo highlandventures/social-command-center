@@ -88,13 +88,13 @@ function EventRow({ event, isNow, isUpNext }) {
   );
 }
 
-export default function CalendarSection() {
+export default function CalendarSection({ className = '' }) {
   const { data, isLoading } = trpc.google.calendarEvents.useQuery(undefined, {
     staleTime: 300_000, // 5 min
   });
 
   return (
-    <div className="bg-surface-card rounded-xl border border-border p-5">
+    <div className={`bg-surface-card rounded-xl border border-border p-5 ${className}`}>
       {/* Header */}
       <div className="flex items-center gap-2 mb-4">
         <svg className="w-4 h-4 text-content-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -141,18 +141,42 @@ export default function CalendarSection() {
         </div>
       )}
 
-      {/* Event list */}
-      {!isLoading && data?.connected && data.events.length > 0 && (
-        <div className="space-y-2">
-          {data.events.map(event => {
-            const now = isHappeningNow(event);
-            const upNext = !now && isNext(event, data.events);
-            return (
-              <EventRow key={event.id} event={event} isNow={now} isUpNext={upNext} />
-            );
-          })}
-        </div>
-      )}
+      {/* Event list — only current + upcoming (past events drop off) */}
+      {!isLoading && data?.connected && data.events.length > 0 && (() => {
+        const now = Date.now();
+        const visible = data.events.filter(e =>
+          e.allDay || new Date(e.end).getTime() > now
+        );
+
+        if (visible.length === 0) {
+          return (
+            <div className="text-center py-8">
+              <p className="text-sm text-content-muted">All done for today</p>
+              <p className="text-xs text-content-faint mt-1">No more meetings</p>
+            </div>
+          );
+        }
+
+        const shown = visible.slice(0, 5);
+        const overflow = visible.length - shown.length;
+
+        return (
+          <div className="space-y-2">
+            {shown.map(event => {
+              const happening = isHappeningNow(event);
+              const upNext = !happening && isNext(event, visible);
+              return (
+                <EventRow key={event.id} event={event} isNow={happening} isUpNext={upNext} />
+              );
+            })}
+            {overflow > 0 && (
+              <p className="text-xs text-content-faint text-center pt-1">
+                +{overflow} more event{overflow !== 1 ? 's' : ''} today
+              </p>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 }

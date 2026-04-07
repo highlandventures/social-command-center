@@ -97,7 +97,7 @@ function EmailRow({ message, onDismiss }) {
   );
 }
 
-export default function EmailSection() {
+export default function EmailSection({ className = '' }) {
   const { data, isLoading } = trpc.google.gmailHighlights.useQuery(undefined, {
     staleTime: 120_000, // 2 min
   });
@@ -113,11 +113,12 @@ export default function EmailSection() {
     });
   }, []);
 
-  const visibleMessages = (data?.messages || []).filter(m => !dismissed.has(m.id));
+  const allVisible = (data?.messages || []).filter(m => !dismissed.has(m.id));
+  const visibleMessages = allVisible.slice(0, 5);
   const unreadCount = visibleMessages.filter(m => m.isUnread).length;
 
   return (
-    <div className="bg-surface-card rounded-xl border border-border p-5">
+    <div className={`bg-surface-card rounded-xl border border-border p-5 ${className}`}>
       {/* Header */}
       <div className="flex items-center gap-2 mb-4">
         <svg className="w-4 h-4 text-content-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

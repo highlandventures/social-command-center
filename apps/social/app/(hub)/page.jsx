@@ -539,17 +539,21 @@ export default function HubPage() {
       {/* Pending Reviews Banner */}
       <PendingReviewsBanner />
 
-      {/* ── Home Hub: Calendar, Tasks, Email ── */}
+      {/* ── Home Hub: Calendar + Email (matched height), then Tasks ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-2">
-        {/* Left column: Calendar + Tasks */}
-        <div className="lg:col-span-2 space-y-5">
-          <CalendarSection />
-          <TasksSection />
+        {/* Calendar — left 2/3 */}
+        <div className="lg:col-span-2">
+          <CalendarSection className="h-full" />
         </div>
 
-        {/* Right column: Email */}
-        <div className="lg:self-start lg:sticky lg:top-6">
-          <EmailSection />
+        {/* Email — right 1/3, same row = matched height */}
+        <div>
+          <EmailSection className="h-full" />
+        </div>
+
+        {/* Tasks — full width below */}
+        <div className="lg:col-span-3">
+          <TasksSection />
         </div>
       </div>
 
