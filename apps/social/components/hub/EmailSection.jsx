@@ -48,9 +48,6 @@ function EmailRow({ message }) {
           <span className={`text-xs truncate ${message.isUnread ? 'font-semibold text-content-primary' : 'text-content-secondary'}`}>
             {message.from?.name || message.from?.email || 'Unknown'}
           </span>
-          {message.isImportant && (
-            <span className="text-[9px] font-medium px-1 py-0.5 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex-shrink-0">!</span>
-          )}
           <span className="text-xs text-content-faint flex-shrink-0 ml-auto">
             {timeAgo(message.date)}
           </span>
@@ -79,7 +76,7 @@ export default function EmailSection() {
           <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
           <polyline points="22,6 12,13 2,6" />
         </svg>
-        <h3 className="text-sm font-semibold text-content-primary">Email</h3>
+        <h3 className="text-sm font-semibold text-content-primary">Priority Inbox</h3>
         {data?.connected && data.messages.some(m => m.isUnread) && (
           <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
             {data.messages.filter(m => m.isUnread).length} new
