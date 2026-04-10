@@ -78,7 +78,7 @@ const MetricCard = ({ val, label, light }) => (
 const CompTable = ({ headers, rows }) => (
   <table style={{ width: '100%', borderCollapse: 'collapse' }}>
     <thead><tr>{headers.map((h, i) => <th key={i} style={{ textAlign: 'left', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, opacity: 0.5, padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.15)' }}>{h}</th>)}</tr></thead>
-    <tbody>{rows.map((row, i) => <tr key={i}>{row.map((cell, j) => <td key={j} style={{ padding: 16, borderBottom: '1px solid rgba(255,255,255,0.08)', fontSize: 14, fontWeight: j === 0 ? 600 : 400, color: cell === '0%' || cell === 'No' || cell === 'No (attestation)' || cell === 'Restricted' || cell === 'Wire fees' || cell === 'Attestation' || cell === 'T+1' ? 'rgba(255,255,255,0.4)' : cell.includes?.('Yes') || cell.includes?.('~4%') || cell.includes?.('Exempt') || cell.includes?.('KPMG') || cell.includes?.('P2P') || cell.includes?.('wYLDS') || cell.includes?.('<$0.01') || cell.includes?.('$1.00') ? '#BBB9F5' : 'white' }}>{cell}</td>)}</tr>)}</tbody>
+    <tbody>{rows.map((row, i) => <tr key={i}>{row.map((cell, j) => <td key={j} style={{ padding: 16, borderBottom: '1px solid rgba(255,255,255,0.08)', fontSize: 14, fontWeight: j === 0 ? 600 : 400, color: cell === '0%' || cell === 'No' || cell === 'No (attestation)' || cell === 'Restricted' || cell === 'Wire fees' || cell === 'Attestation' || cell === 'T+1' ? 'rgba(255,255,255,0.4)' : cell.includes?.('Yes') || cell.includes?.('~4%') || cell.includes?.('Compliant') || cell.includes?.('KPMG') || cell.includes?.('P2P') || cell.includes?.('wYLDS') || cell.includes?.('<$0.01') || cell.includes?.('$1.00') ? '#BBB9F5' : 'white' }}>{cell}</td>)}</tr>)}</tbody>
   </table>
 );
 
@@ -157,10 +157,10 @@ const BottomCTA = ({ title, sub, cta1, cta2 }) => (
 // ─── PAGE: HOMEPAGE ───
 const HomePage = ({ onNavigate }) => (
   <>
-    <Hero h1="Your stablecoins should be" h1Accent="earning." sub="Earn on it. Send it. Settle with it. Compliant through every regulatory cycle.*" cta1="Get YLDS" cta2="For large volumes, talk to our team →" coin />
+    <Hero h1="Your stablecoins should be" h1Accent="earning." sub="YLDS accrues ~4% daily.* Send it anywhere. Settle instantly. The only registered fixed-income security that transfers peer-to-peer on-chain." cta1="Get YLDS" cta2="For large volumes, talk to our team →" coin />
 
     <Section><SectionTitle sub="Not a stablecoin. A security that happens to behave like one.">What makes YLDS different</SectionTitle>
-      <Grid cols={4}><Card title="Yield accrues daily">Reserves in short-dated treasuries and bank deposits. ~4% accrues to holders every day.*</Card><Card title="Transferable on-chain">The only US digitally native security that moves peer-to-peer. No intermediaries. No lockups.</Card><Card title="Always-on settlement">Purchase, transfer, and settle 24/7/365. No banking hours. No T+1.</Card><Card title="Built for what's coming">Registered under the Investment Company Act. Exempt from GENIUS Act and CLARITY Act restrictions.</Card></Grid>
+      <Grid cols={4}><Card title="Earn ~4% by just holding it.">YLDS accrues yield every single day.* USDC and USDT pay you zero. You don't need to stake, lock, or do anything. Just hold it.</Card><Card title="Send it to anyone, anytime.">Transfer peer-to-peer on supported chains. No intermediaries. No waiting. 24/7/365.</Card><Card title="Settle at $1.00. Always.">Redeem to USD whenever you want. No gates, no redemption windows, no surprises. $1.00 NAV, KPMG-audited.</Card><Card title="Built for what's coming">Registered under the Investment Company Act. Compliant with GENIUS Act and CLARITY Act restrictions.</Card></Grid>
     </Section>
 
     <Section bg={S.purple} style={{ padding: '80px 48px' }}>
@@ -177,14 +177,14 @@ const HomePage = ({ onNavigate }) => (
     </Section>
 
     <Section><SectionTitle center>How it works</SectionTitle>
-      <Grid cols={4} gap={32}>{[['1','Mint','Deposit USD. Receive YLDS 1:1.'],['2','Hold','~4% accrues daily (variable). KPMG-audited reserves.'],['3','Move','Transfer, collateralize, or settle. 24/7.'],['4','Redeem','Typically same-day fiat. Credit-line-backed liquidity.']].map(([n,t,d],i)=><div key={i} style={{textAlign:'center'}}><div style={{width:56,height:56,borderRadius:'50%',background:S.purple,color:'white',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:22,fontWeight:800}}>{n}</div><h3 style={{fontSize:16,fontWeight:700,marginBottom:6}}>{t}</h3><p style={{color:S.gray,fontSize:13,lineHeight:1.5}}>{d}</p></div>)}</Grid>
+      <Grid cols={4} gap={32}>{[['1','Mint','Deposit USD. Receive YLDS 1:1.'],['2','Accrue','~4% accrues daily (variable).* KPMG-audited reserves.'],['3','Use','Transfer, collateralize, or settle. 24/7.'],['4','Redeem','Typically same-day. Credit-line-backed liquidity.']].map(([n,t,d],i)=><div key={i} style={{textAlign:'center'}}><div style={{width:56,height:56,borderRadius:'50%',background:S.purple,color:'white',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:22,fontWeight:800}}>{n}</div><h3 style={{fontSize:16,fontWeight:700,marginBottom:6}}>{t}</h3><p style={{color:S.gray,fontSize:13,lineHeight:1.5}}>{d}</p></div>)}</Grid>
     </Section>
 
     <Section bg={S.lightBg}><SectionTitle sub="YLDS meets you where you are.">One asset, every audience</SectionTitle>
       <Grid cols={3}>{[
-        {t:'For Crypto',d:'Protocol treasuries, DAOs, and DeFi builders. Daily yield. Composable via wYLDS. GENIUS-proof.',a:'Treasuries · DAOs · VCs · DeFi',logos:['Ondo','Hastra','Solana']},
-        {t:'For Institutions',d:'Banks, fintechs, and funds. Registered security. Cash sweep. KPMG-audited. Built for compliance.',a:'Banks · Fintechs · Funds · Corporate',logos:['Fireblocks','Toku','Stellar']},
-        {t:'Developers & Ecosystems',d:'Bring YLDS to your chain or integrate wYLDS into your protocol. Two forms, one asset.',a:'Foundations · Protocols · Wallets · Platforms',logos:['Provenance','Stellar','Solana']},
+        {t:'For Crypto',d:'Replace idle USDC/USDT with ~4% daily yield.* Composable via wYLDS. Compliant with GENIUS and CLARITY Acts.',a:'Treasuries · DAOs · VCs · DeFi',logos:['Ondo','Hastra','Solana']},
+        {t:'For Institutions',d:'Registered security. KPMG-audited. $1.00 NAV. The structure your compliance team will approve and your treasury team has been asking for.',a:'Banks · Fintechs · Funds · Corporate',logos:['Fireblocks','Toku','Stellar']},
+        {t:'Developers & Ecosystems',d:'Bring YLDS to your chain or integrate wYLDS into your protocol. Two forms, one asset, every audience.',a:'Foundations · Protocols · Wallets · Platforms',logos:['Provenance','Stellar','Solana']},
       ].map((c,i)=><div key={i} style={{background:'white',borderRadius:20,padding:36,border:`1px solid ${S.border}`}}><h3 style={{fontSize:22,fontWeight:700,marginBottom:8}}>{c.t}</h3><p style={{color:S.gray,fontSize:15,lineHeight:1.6,marginBottom:12}}>{c.d}</p><div style={{color:S.lightGray,fontSize:12,fontWeight:600,textTransform:'uppercase',letterSpacing:0.5}}>{c.a}</div><a style={{color:S.purple,fontSize:14,fontWeight:700,marginTop:16,display:'inline-block'}}>Explore →</a><div style={{display:'flex',gap:12,marginTop:20,paddingTop:20,borderTop:`1px solid ${S.lightBg}`}}>{c.logos.map((l,j)=><LogoPill key={j}>{l}</LogoPill>)}</div></div>)}</Grid>
     </Section>
 
@@ -198,15 +198,17 @@ const HomePage = ({ onNavigate }) => (
     <Section bg={S.lightBg} style={{ padding: '96px 48px' }}>
       <SectionTitle center>Frequently asked questions</SectionTitle>
       <div style={{ maxWidth: 800, margin: '0 auto' }}>
-        <FAQItem open q="How is YLDS different from a stablecoin?" a="YLDS is a registered fixed-income security, not a stablecoin. It maintains a $1.00 NAV and accrues ~4% daily to holders (variable rate, based on SOFR minus 35bps). Unlike stablecoins, YLDS is registered under the Investment Company Act and is structured to distribute yield to holders." />
+        <FAQItem open q="How is YLDS different from a stablecoin?" a="YLDS is a registered fixed-income security, not a stablecoin. It maintains a $1.00 NAV and accrues ~4% daily to holders* (variable rate, based on SOFR minus 35bps). Unlike stablecoins, YLDS is registered under the Investment Company Act and is structured to distribute yield to holders. Read the prospectus for full details." />
         <FAQItem q="What does 'registered under the Investment Company Act' mean?" a="It means YLDS is subject to a regulatory framework similar to mutual funds and money market funds. The fund's reserves, operations, and disclosures are subject to SEC oversight — a level of structural protection not typically associated with stablecoins." />
-        <FAQItem q="Why is YLDS exempt from the GENIUS Act?" a="The GENIUS Act (signed into law July 2025) prohibits payment stablecoin issuers from paying yield to holders. Because YLDS is a registered security — not a payment stablecoin — it falls outside the scope of this restriction. The same logic applies to the pending CLARITY Act." />
-        <FAQItem q="How does daily accrual work?" a="YLDS accrues yield daily based on SOFR minus 35 basis points. The rate is variable and changes with prevailing market conditions. Accrual is calculated on your holdings at the end of each business day and accumulates as long as you hold YLDS." />
-        <FAQItem q="What is wYLDS?" a="wYLDS is a wrapped, permissionless version of YLDS distributed by Hastra. It allows DeFi protocols and permissionless applications to access YLDS yield without going through the KYB process directly. wYLDS is currently live on Solana, with additional chains coming." />
+        <FAQItem q="Why is YLDS compliant with the GENIUS Act?" a="The GENIUS Act (signed into law July 2025) prohibits payment stablecoin issuers from paying yield to holders. Because YLDS is a registered security — not a payment stablecoin — it falls outside the scope of this restriction. The same logic applies to the pending CLARITY Act. YLDS is compliant with both." />
+        <FAQItem q="How does daily accrual work?" a="YLDS accrues yield daily based on SOFR minus 35 basis points. No staking or lockups required — just hold it. The rate is variable and changes with prevailing market conditions. Accrual is calculated on your holdings at the end of each business day and accumulates as long as you hold YLDS." />
+        <FAQItem q="What is wYLDS?" a="wYLDS is a wrapped, permissionless version of YLDS distributed by Hastra, an independent entity not affiliated with Figure Certificate Corporation. It allows DeFi protocols and permissionless applications to access YLDS yield without going through the KYB process directly. wYLDS is currently live on Solana, with additional chains coming." />
+        <FAQItem q="How do I buy YLDS?" a="You can get YLDS directly through app.ylds.io. For large-volume allocations or institutional onboarding, contact our team." />
+        <FAQItem q="What blockchains is YLDS on?" a="YLDS is live on Provenance and Stellar. wYLDS (the wrapped permissionless version via Hastra) is live on Solana. Additional chains are in the pipeline." />
       </div>
     </Section>
 
-    <BottomCTA title="Ready to put idle capital to work?" sub="Get YLDS directly or talk to our team for large-volume allocations." cta1="Get YLDS" cta2="Contact our team →" />
+    <BottomCTA title="Over $305B in stablecoins are sitting idle. Don't be one of them." sub="Your dollar should be earning. Start now, or talk to our team for large allocations." cta1="Get YLDS" cta2="Contact our team →" />
     <Footer hasHastra onNavigate={onNavigate} />
   </>
 );
@@ -217,13 +219,13 @@ const CryptoPage = ({ onNavigate }) => (
     <Hero h1="Idle capital is" h1Accent="a choice." sub="Your treasury is sitting in stablecoins that can't pay you — and after GENIUS, never will. YLDS accrues ~4% daily,* moves on-chain, and is the only registered security that transfers peer-to-peer." cta1="Get YLDS" cta2="For large volumes, talk to our team →" stats={[{val:'~4.0%',label:'Variable Yield (SOFR - 35bps)'},{val:'$5.8M+',label:'Interest Earned by Holders'}]} />
 
     <Section><SectionTitle sub="Not a stablecoin. Not a wrapper. A registered security that behaves like one.">What makes YLDS different</SectionTitle>
-      <Grid cols={4}><Card title="Yield accrues daily">~4% variable, based on SOFR. No staking, no lockups, no impermanent loss. Just daily accrual on every token held.</Card><Card title="P2P on-chain">The only US digitally native security that transfers peer-to-peer. Move it between wallets like any other token.</Card><Card title="Composable via wYLDS">Wrapped permissionless version via Hastra. Use it in DeFi — liquidity pools, lending protocols, vaults. No KYB for wYLDS.</Card><Card title="GENIUS-proof">GENIUS Act bans stablecoin yield. CLARITY Act extends it. YLDS is a registered security — exempt from both.</Card></Grid>
+      <Grid cols={4}><Card title="~4% APY. No staking. No lock-ups.">Hold it and earn. Paid monthly. No staking contracts, no claiming. Your dead capital starts working immediately.*</Card><Card title="The yield that's still legal.">GENIUS Act bans stablecoin yield. CLARITY Act extends it. YLDS is a registered security — compliant with both.</Card><Card title="Composable via wYLDS">Kamino. Morpho. Jupiter. wYLDS is live and composable today. Loop it, lend it, LP it. Real integrations, not a roadmap. No KYB for wYLDS.</Card><Card title="Reserve-backed. Not synthetic. Not subsidized.">Yield comes from U.S. Treasuries, not derivatives, governance votes, or protocol emissions. KPMG-audited. Your risk committee won't reject this one.</Card></Grid>
     </Section>
 
     <Section bg={S.dark} style={{ padding: '80px 48px' }}>
       <div style={{ maxWidth: 900, margin: '0 auto', textAlign: 'center' }}>
         <SectionTitle center light sub="Congress banned stablecoin yield. YLDS was registered before they did — and it's structured to stay compliant through whatever comes next.">The regulatory landscape changed. YLDS didn't.</SectionTitle>
-        <Grid cols={3}>{[{date:'2024',t:'YLDS registered',d:'Filed and registered under the Investment Company Act as a fixed-income security.'},{date:'July 2025',t:'GENIUS Act signed',d:'Bans payment stablecoin issuers from paying yield to holders. YLDS exempt.'},{date:'Pending',t:'CLARITY Act',d:'Extends yield restrictions to platforms. YLDS structured to remain compliant.'}].map((e,i)=><div key={i} style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:16,padding:24,textAlign:'center'}}><div style={{fontSize:12,fontWeight:700,textTransform:'uppercase',letterSpacing:1,color:S.accent,marginBottom:8}}>{e.date}</div><h3 style={{fontSize:16,fontWeight:700,marginBottom:6,color:'white'}}>{e.t}</h3><p style={{fontSize:13,color:'rgba(255,255,255,0.5)',lineHeight:1.5}}>{e.d}</p></div>)}</Grid>
+        <Grid cols={3}>{[{date:'2024',t:'YLDS registered',d:'Filed and registered under the Investment Company Act as a fixed-income security.'},{date:'July 2025',t:'GENIUS Act signed',d:'Bans payment stablecoin issuers from paying yield to holders. YLDS compliant.'},{date:'Pending',t:'CLARITY Act',d:'Extends yield restrictions to platforms. YLDS structured to remain compliant.'}].map((e,i)=><div key={i} style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:16,padding:24,textAlign:'center'}}><div style={{fontSize:12,fontWeight:700,textTransform:'uppercase',letterSpacing:1,color:S.accent,marginBottom:8}}>{e.date}</div><h3 style={{fontSize:16,fontWeight:700,marginBottom:6,color:'white'}}>{e.t}</h3><p style={{fontSize:13,color:'rgba(255,255,255,0.5)',lineHeight:1.5}}>{e.d}</p></div>)}</Grid>
         <p style={{ fontSize: 20, fontWeight: 500, color: S.accent, marginTop: 40 }}>Built before GENIUS. Ready for whatever follows.</p>
       </div>
     </Section>
@@ -235,7 +237,7 @@ const CryptoPage = ({ onNavigate }) => (
     <Section bg={S.purple} style={{ padding: '80px 48px' }}>
       <div style={{ maxWidth: 900, margin: '0 auto' }}>
         <SectionTitle center light sub="What you're giving up by sitting in USDC.">YLDS vs. your current stablecoin position</SectionTitle>
-        <CompTable headers={['','YLDS','USDC','USDT']} rows={[['Daily yield to holders','~4%*','0%','0%'],['Registered security','Yes','No','No'],['GENIUS Act compliant','Exempt','Restricted','Restricted'],['P2P transferable','Yes','Yes','Yes'],['DeFi composable','wYLDS','Native','Native'],['KPMG-audited reserves','Yes','No (attestation)','No'],['Dollar peg','$1.00 NAV','$1.00','$1.00']]} />
+        <CompTable headers={['','YLDS','USDC','USDT','sDAI','BUIDL']} rows={[['Daily yield to holders','~4%*','0%','0%','Variable','~4–5%'],['Registered security','Yes','No','No','No','Yes'],['GENIUS Act compliant','Compliant','Restricted','Restricted','Restricted','N/A'],['P2P transferable','Yes','Yes','Yes','Yes','Restricted'],['DeFi composable','wYLDS','Native','Native','Native','No'],['KPMG-audited reserves','Yes','No (attestation)','No','No','Yes'],['Dollar peg','$1.00 NAV','$1.00','$1.00','Variable','$1.00']]} />
       </div>
     </Section>
 
@@ -254,7 +256,7 @@ const CryptoPage = ({ onNavigate }) => (
       </div>
     </div>
 
-    <BottomCTA title="Your stablecoins can't pay you anymore. YLDS can." sub="Get YLDS directly or talk to our team for large-volume allocations." cta1="Get YLDS" cta2="Contact our team →" />
+    <BottomCTA title="Over $305B in stablecoins are sitting idle. Don't be one of them." sub="Your dollar should be earning. Start now, or talk to our team for large allocations." cta1="Get YLDS" cta2="Contact our team →" />
     <Footer hasHastra onNavigate={onNavigate} />
   </>
 );
@@ -265,7 +267,7 @@ const InstitutionsPage = ({ onNavigate }) => (
     <Hero h1="A registered security that earns like a money market" h1Accent="and moves like a stablecoin." sub="YLDS is a registered fixed-income security — subject to the same regulatory framework as money market funds. ~4% daily accrual,* $1.00 NAV, KPMG-audited, and transferable peer-to-peer on-chain." cta1="Get YLDS" cta2="Talk to our team →" stats={[{val:'~4.0%',label:'Variable Yield (SOFR - 35bps)'},{val:'$609M+',label:'Ecosystem AUM'},{val:'KPMG',label:'Annual Audit'}]} />
 
     <Section><SectionTitle sub="The structure your compliance team will approve. The yield your treasury team has been looking for.">Built for regulated capital</SectionTitle>
-      <Grid cols={4}><Card title="Registered security">Filed under the Investment Company Act. Subject to SEC oversight, same framework as mutual funds and money market funds.</Card><Card title="KPMG-audited">Annual audit by KPMG LLP. UMB Bank as reserve custodian. Reserve composition available on demand.</Card><Card title="NAV-stable at $1.00">Dollar peg maintained through short-dated US Treasuries, bank deposits, and repurchase agreements.</Card><Card title="Compliant with GENIUS">GENIUS Act bans stablecoin yield. YLDS is a registered security — exempt. Structured for CLARITY Act and beyond.</Card></Grid>
+      <Grid cols={4}><Card title="Registered under the Investment Company Act.">YLDS is registered under the same framework as money market funds. Filed with the SEC. Public prospectus. Your compliance team can review before committing.</Card><Card title="KPMG-audited">Annual audit by KPMG LLP. UMB Bank as reserve custodian. Reserve composition available on demand.</Card><Card title="NAV-stable at $1.00">Dollar peg maintained through short-dated US Treasuries, bank deposits, and repurchase agreements.</Card><Card title="Compliant with GENIUS & CLARITY">GENIUS Act bans stablecoin yield. CLARITY Act extends it. YLDS is a registered security — compliant with both. Structured for whatever comes next.</Card></Grid>
     </Section>
 
     <Section bg={S.dark} style={{ padding: '80px 48px' }}>
@@ -288,7 +290,7 @@ const InstitutionsPage = ({ onNavigate }) => (
     <Section bg={S.purple} style={{ padding: '80px 48px' }}>
       <div style={{ maxWidth: 900, margin: '0 auto' }}>
         <SectionTitle center light sub="How YLDS compares to what your treasury holds today.">YLDS vs. traditional alternatives</SectionTitle>
-        <CompTable headers={['','YLDS','Money Market Fund','Stablecoins']} rows={[['Yield to holders','~4%*','~4–5%','0%'],['On-chain transferable','P2P','No','Yes'],['24/7 settlement','Yes','T+1','Yes'],['Registered security','Yes','Yes','No'],['GENIUS Act compliant','Exempt','N/A','Restricted'],['Cross-border settlement','<$0.01','Wire fees','Variable'],['Audited reserves','KPMG','Varies','Attestation']]} />
+        <CompTable headers={['','YLDS','Money Market Fund','Stablecoins']} rows={[['Yield to holders','~4%*','~4–5%','0%'],['On-chain transferable','P2P','No','Yes'],['24/7 settlement','Yes','T+1','Yes'],['Registered security','Yes','Yes','No'],['GENIUS Act compliant','Compliant','N/A','Restricted'],['Cross-border settlement','<$0.01','Wire fees','Variable'],['Audited reserves','KPMG','Varies','Attestation']]} />
       </div>
     </Section>
 
@@ -341,8 +343,13 @@ const DevelopersPage = ({ onNavigate }) => (
     </Section>
 
     <Section bg={S.dark} style={{ padding: '80px 48px' }}>
-      <SectionTitle center light sub="Whether you're bringing YLDS or wYLDS to your chain.">Integration path</SectionTitle>
-      <Grid cols={4}>{[['1','Reach out','Contact Figure (YLDS) or Hastra (wYLDS) with your ecosystem details.'],['2','Technical scoping','Chain compatibility, custody, compliance framework, and GTM.'],['3','Deploy','YLDS or wYLDS goes live. APIs, docs, and custodian support ready.'],['4','Grow','Co-marketing, ecosystem incentives, and shared GTM.']].map(([n,t,d],i)=><div key={i} style={{textAlign:'center'}}><div style={{width:56,height:56,borderRadius:'50%',background:'rgba(255,255,255,0.1)',color:'white',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 16px',fontSize:22,fontWeight:800}}>{n}</div><h3 style={{fontSize:16,fontWeight:700,color:'white',marginBottom:6}}>{t}</h3><p style={{color:'rgba(255,255,255,0.5)',fontSize:13,lineHeight:1.5}}>{d}</p></div>)}</Grid>
+      <div style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center' }}>
+        <SectionTitle center light sub="Whether you're bringing YLDS or wYLDS to your chain — reach out and we'll scope the integration together.">Ready to integrate?</SectionTitle>
+        <div style={{ display: 'flex', gap: 16, justifyContent: 'center', alignItems: 'center', marginTop: 32 }}>
+          <Pill>Contact the Team</Pill>
+          <Pill variant="textLight">View docs →</Pill>
+        </div>
+      </div>
     </Section>
 
     <Section><SectionTitle sub="Live on three chains with more in the pipeline.">Where YLDS lives today</SectionTitle>
