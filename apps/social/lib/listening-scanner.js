@@ -23,13 +23,19 @@ const REDDIT_POLL_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 // ── Figure ecosystem terms for KOL relevance gate ──
 // HIGH_CONFIDENCE terms are unambiguous Figure references (used for KOL gate).
-// ALL_ECOSYSTEM_TERMS includes broader terms for general relevance scoring.
-const HIGH_CONFIDENCE_TERMS = [
+// ECOSYSTEM_TERMS includes broader terms for general relevance scoring.
+//
+// These are FALLBACK lists, used only when the DB is unreachable. The live
+// scanner loads merged HIGH_CONFIDENCE / ECOSYSTEM terms from global_algo_terms
+// via getAlgoTerms() below so operators can promote a token via the admin UI
+// and have it apply on the next scan without a code deploy.
+export const HIGH_CONFIDENCE_TERMS = [
   'figure', 'figr', '$figr', 'provenance blockchain', 'provenance', '$hash',
   'ylds', '$ylds', 'figure markets', 'figure lending', 'figure connect',
   'figure securities', 'figure ats', 'figure prime', '$prime', 'intellidebt',
   'heloc', 'mcagney', 'mike cagney', 'agora data',
   'figure pay', 'fgrd', 'open network', 'figure technology', 'figure certificate',
+  'hastra', 'hastrafi', '@hastrafi', '@figure', '@figuremarkets', '@provenancefdn',
 ];
 
 const ECOSYSTEM_TERMS = [
@@ -39,6 +45,44 @@ const ECOSYSTEM_TERMS = [
   'figure certificate company', 'on-chain public equity', 'provwasm',
   'dart digital asset',
 ];
+
+// ── DB-driven term loader (5-min in-memory cache) ──
+// Scanner + diagnose tool call getAlgoTerms() so operator edits via the admin
+// UI apply on the next scan without a deploy. Cache ensures we don't hammer
+// the DB on every query iteration.
+let _termCache = null;
+let _termCacheAt = 0;
+const TERM_CACHE_TTL_MS = 5 * 60 * 1000;
+
+export async function getAlgoTerms() {
+  const now = Date.now();
+  if (_termCache && now - _termCacheAt < TERM_CACHE_TTL_MS) return _termCache;
+  try {
+    const rows = await prisma.globalAlgoTerm.findMany({
+      where: { enabled: true },
+      select: { term: true, kind: true },
+    });
+    const hc = new Set(HIGH_CONFIDENCE_TERMS);
+    const eco = new Set(ECOSYSTEM_TERMS);
+    for (const r of rows) {
+      if (r.kind === 'HIGH_CONFIDENCE') { hc.add(r.term); eco.add(r.term); }
+      else if (r.kind === 'ECOSYSTEM') { eco.add(r.term); }
+    }
+    _termCache = { highConfidence: [...hc], ecosystem: [...eco] };
+    _termCacheAt = now;
+    return _termCache;
+  } catch {
+    // DB unreachable — fall back to hardcoded lists so the scanner never dies.
+    return { highConfidence: [...HIGH_CONFIDENCE_TERMS], ecosystem: [...ECOSYSTEM_TERMS] };
+  }
+}
+
+// Called after a term is promoted/disabled via the admin UI so the next scan
+// picks up the change immediately instead of waiting for the TTL.
+export function invalidateAlgoTermsCache() {
+  _termCache = null;
+  _termCacheAt = 0;
+}
 
 // ── Topic-adaptive weight profiles ──────────────────────────
 // Different topic types prioritize different scoring dimensions.
@@ -608,11 +652,20 @@ function getTopicKeyTerms(topic) {
  *
  * @param {Object} options
  * @param {string[]} [options.topicIds] - Specific topic IDs to scan (omit for all active)
+ * @param {boolean}  [options.force]    - Bypass adapter caches so the scan sees fresh API data.
+ *                                        Set this when called from on-demand triggers; leave
+ *                                        false for cron (cron cadence already aligns with cache TTL).
  * @returns {Object} Results summary { hitsCreated, topicsProcessed, errors }
  */
-export async function scanListeningTopics({ topicIds } = {}) {
+export async function scanListeningTopics({ topicIds, force = false } = {}) {
   const results = { hitsCreated: 0, topicsProcessed: 0, errors: [], redditSkipped: false, tasksCreated: 0 };
   const newHits = []; // Track newly created hits for task generation
+
+  // Load merged (hardcoded + DB) algo terms once per scan run so per-query gate
+  // checks use a consistent snapshot. Array form matches the existing .some()/.filter() usage.
+  const algoTerms = await getAlgoTerms();
+  const HIGH_CONFIDENCE_RUNTIME = algoTerms.highConfidence;
+  const ECOSYSTEM_RUNTIME = algoTerms.ecosystem;
 
   try {
     // Create shared X adapter (uses TWITTERAPI_IO_API_KEY for reads internally)
@@ -665,10 +718,19 @@ export async function scanListeningTopics({ topicIds } = {}) {
         for (const query of topic.queries) {
           try {
             let rawHits = [];
+            let newHighWaterMark = null;
 
             if (query.platform === 'X') {
-              const response = await xAdapter.searchTweets(query.queryString);
+              // sinceId = query.lastHitPlatformId: only fetch tweets newer than the last
+              // tweet we processed for this query. Prevents re-scanning the same top-20
+              // window every run and lets pagination go deep on first run / after edits.
+              const response = await xAdapter.searchTweets(
+                query.queryString,
+                undefined,
+                { skipCache: force, sinceId: query.lastHitPlatformId || undefined, maxPages: 5 }
+              );
               rawHits = response?.data?.tweets || response?.tweets || [];
+              newHighWaterMark = response?.latestId || null;
             } else if (query.platform === 'REDDIT') {
               if (!shouldPollReddit) continue; // Throttled — skip until next window
               // SociaVault: keyword search or full subreddit monitoring
@@ -736,18 +798,19 @@ export async function scanListeningTopics({ topicIds } = {}) {
                 });
                 if (hasNegativeKeyword) continue;
 
-                // ── Relevance gate for KOL topics ──
-                // KOL queries use (from:user) AND (ecosystem terms) but TwitterAPI.io
-                // doesn't always enforce the AND. Verify content actually mentions Figure.
-                // Require at least 1 HIGH_CONFIDENCE term or 2+ general ecosystem terms.
-                const isKolTopic = topic.name.toLowerCase().includes('kol');
-                if (isKolTopic) {
-                  const hasHighConfidence = HIGH_CONFIDENCE_TERMS.some((term) =>
+                // ── Strict relevance gate ──
+                // For topics flagged with strictRelevance=true (historically "KOL"-named
+                // topics): require at least 1 HIGH_CONFIDENCE term or 2+ general ecosystem
+                // terms. Back-compat: topics whose name still contains "kol" and haven't been
+                // migrated to the flag are treated as strict as well.
+                const isStrictTopic = topic.strictRelevance || topic.name.toLowerCase().includes('kol');
+                if (isStrictTopic) {
+                  const hasHighConfidence = HIGH_CONFIDENCE_RUNTIME.some((term) =>
                     lower.includes(term)
                   );
                   if (!hasHighConfidence) {
                     // Fallback: accept if 2+ general ecosystem terms match
-                    const ecosystemMatchCount = ECOSYSTEM_TERMS.filter((term) =>
+                    const ecosystemMatchCount = ECOSYSTEM_RUNTIME.filter((term) =>
                       lower.includes(term)
                     ).length;
                     if (ecosystemMatchCount < 2) continue;
@@ -1044,8 +1107,15 @@ export async function scanListeningTopics({ topicIds } = {}) {
               }
             }
 
-            // Update per-query performance counters
-            if (queryHitsCreated > 0 || queryActionable > 0 || querySpam > 0) {
+            // Update per-query performance counters + high-water mark.
+            // The water mark gets updated whenever we fetched any tweets at all, not just
+            // when hits were created — we still want to advance past noise/filtered posts.
+            const shouldUpdate =
+              queryHitsCreated > 0 ||
+              queryActionable > 0 ||
+              querySpam > 0 ||
+              (newHighWaterMark && newHighWaterMark !== query.lastHitPlatformId);
+            if (shouldUpdate) {
               try {
                 await prisma.listeningQuery.update({
                   where: { id: query.id },
@@ -1055,6 +1125,9 @@ export async function scanListeningTopics({ topicIds } = {}) {
                     spamHits: { increment: querySpam },
                     avgHeuristic: queryHitsCreated > 0 ? queryHeuristicSum / queryHitsCreated : undefined,
                     lastEvaluatedAt: new Date(),
+                    ...(newHighWaterMark && newHighWaterMark !== query.lastHitPlatformId
+                      ? { lastHitPlatformId: newHighWaterMark, lastHitSyncAt: new Date() }
+                      : {}),
                   },
                 });
               } catch (err) {

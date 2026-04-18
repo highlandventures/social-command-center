@@ -1164,18 +1164,34 @@ const DashboardTab = () => {
 
             {/* Per-platform breakdown */}
             <div className="border-t border-gray-100 pt-3 space-y-2">
-              <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">By Platform</div>
+              <div className="flex items-center gap-1.5">
+                <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">By Platform</div>
+                <span
+                  className="text-[10px] text-gray-400 cursor-help"
+                  title="Leftmost number is the Brand Sentiment Score for that platform (0–100 composite of positive/negative ratio). The pos/neu/neg percentages to the right are the share of mentions in each sentiment bucket. The trend value is the score change vs. last period."
+                >
+                  ⓘ
+                </span>
+              </div>
               {brandSentimentByPlatform.map(p => (
                 <div key={p.platform} className="flex items-center justify-between py-1">
                   <div className="flex items-center gap-2">
                     <PlatformBadge platform={p.platform} />
-                    <span className="text-sm font-medium">{p.score}</span>
+                    <span
+                      className="text-sm font-medium"
+                      title={`Brand Sentiment Score on ${p.platform}: ${p.score}/100`}
+                    >
+                      {p.score}
+                    </span>
                   </div>
                   <div className="flex items-center gap-3 text-xs">
-                    <span className="text-green-600">{p.positive}% pos</span>
-                    <span className="text-gray-400">{p.neutral}% neu</span>
-                    <span className="text-red-500">{p.negative}% neg</span>
-                    <span className={`font-medium ${p.change > 0 ? "text-green-600" : "text-red-500"}`}>
+                    <span className="text-green-600" title="% of mentions classified as positive">{p.positive}% pos</span>
+                    <span className="text-gray-400" title="% of mentions classified as neutral">{p.neutral}% neu</span>
+                    <span className="text-red-500" title="% of mentions classified as negative">{p.negative}% neg</span>
+                    <span
+                      className={`font-medium ${p.change > 0 ? "text-green-600" : "text-red-500"}`}
+                      title="Score change vs. last period"
+                    >
                       {p.change > 0 ? "↑" : "↓"} {Math.abs(p.change)}
                     </span>
                   </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { trpc } from '@/lib/trpc-client';
 import { SectionTitle, Skeleton } from '@/components/ui';
@@ -28,6 +29,16 @@ export default function AdHocReportsPage() {
 
   return (
     <div>
+      <div className="mb-2 flex items-center gap-3">
+        <Link
+          href="/reports"
+          className="text-sm text-content-muted hover:text-blue-600 transition-colors"
+        >
+          Reports
+        </Link>
+        <span className="text-content-faint">/</span>
+        <span className="text-sm font-semibold text-content-primary">Ad Hoc</span>
+      </div>
       <div className="flex items-center justify-between mb-6">
         <SectionTitle subtitle="Create custom reports through AI-guided conversations">
           Ad Hoc Reports

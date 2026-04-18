@@ -1,0 +1,8 @@
+.vercel
+# Do not track env files; they carry secrets. `.env.example` is a deliberate
+# template and exempted via the `!` rule below.
+.env
+.env.local
+.env.production
+.env*.local
+!.env.example

@@ -1484,13 +1484,19 @@ function AmplifiersTab() {
       <EmptyState
         icon="📡"
         title="No amplifier data yet"
-        description="Amplifier data is collected during the daily competitor poll cron. Check back after it runs."
+        description="Amplifier data is collected during the daily competitor poll (runs automatically once per day). Check back after it runs."
       />
     );
   }
 
   return (
     <div className="space-y-6">
+      {/* Explainer — what are Amplifiers? */}
+      <div className="bg-surface-secondary/50 dark:bg-surface-secondary rounded-xl border border-border-secondary p-3 text-xs text-content-secondary">
+        <span className="font-semibold text-content-primary">What are Amplifiers?</span>{' '}
+        Accounts (not the competitors themselves) who repost, quote-tweet, or reply to your competitors — effectively helping their reach. Use this list to spot potential KOLs, bots, or industry influencers worth engaging. Data refreshes once per day.
+      </div>
+
       {/* Filter */}
       <div className="flex items-center gap-3">
         <select

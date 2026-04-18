@@ -15,6 +15,9 @@ export default function CalendarPage() {
   const [newTime, setNewTime] = useState('09:15');
   const [selectedPost, setSelectedPost] = useState(null); // click-to-view
   const [hideTestAccounts, setHideTestAccounts] = useState(true);
+  const [contentTypeFilter, setContentTypeFilter] = useState('all'); // 'all' | 'POST' | 'THREAD' | 'ARTICLE'
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'scheduled' | 'published'
+  const [focusAccountId, setFocusAccountId] = useState(null); // null = all accounts
   const isDraggingRef = useRef(false);
 
   const toast = useToast();
@@ -62,9 +65,20 @@ export default function CalendarPage() {
   }, [accountsQ.data]);
   const allPosts = postsQ.data?.items ?? [];
   const posts = useMemo(() => {
-    if (!hideTestAccounts || testAccountIds.size === 0) return allPosts;
-    return allPosts.filter((p) => !testAccountIds.has(p.account?.id));
-  }, [allPosts, hideTestAccounts, testAccountIds]);
+    return allPosts.filter((p) => {
+      if (hideTestAccounts && testAccountIds.size > 0 && testAccountIds.has(p.account?.id)) return false;
+      if (focusAccountId && p.account?.id !== focusAccountId) return false;
+      if (contentTypeFilter !== 'all') {
+        const ct = (p.contentType || 'POST').toUpperCase();
+        if (ct !== contentTypeFilter) return false;
+      }
+      if (statusFilter !== 'all') {
+        const st = (p.status || '').toLowerCase();
+        if (st !== statusFilter) return false;
+      }
+      return true;
+    });
+  }, [allPosts, hideTestAccounts, testAccountIds, focusAccountId, contentTypeFilter, statusFilter]);
 
   // ── Account color map ───────────────────────────────────────
   const ACCOUNT_COLORS = [
@@ -79,9 +93,14 @@ export default function CalendarPage() {
   ];
 
   const accountColorMap = useMemo(() => {
+    // Build from allPosts (minus test accounts when hidden) so the Focus-account
+    // dropdown still lists every account even when a focus filter is active.
+    const sourcePosts = hideTestAccounts && testAccountIds.size > 0
+      ? allPosts.filter((p) => !testAccountIds.has(p.account?.id))
+      : allPosts;
     const map = {};
     const seen = [];
-    posts.forEach((p) => {
+    sourcePosts.forEach((p) => {
       const id = p.account?.id;
       if (id && !map[id]) {
         map[id] = {
@@ -93,7 +112,7 @@ export default function CalendarPage() {
       }
     });
     return map;
-  }, [posts]);
+  }, [allPosts, hideTestAccounts, testAccountIds]);
 
   // ── Build calendar data from real posts ───────────────────
   const scheduledPosts = posts.filter(
@@ -283,7 +302,36 @@ export default function CalendarPage() {
             <button onClick={goToNextMonth} className="p-1 text-content-faint hover:text-content-secondary">{'\u2192'}</button>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
+          <select
+            value={contentTypeFilter}
+            onChange={(e) => setContentTypeFilter(e.target.value)}
+            className="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-surface-secondary text-content-secondary hover:bg-surface-tertiary border border-border cursor-pointer"
+          >
+            <option value="all">All types</option>
+            <option value="POST">Posts</option>
+            <option value="THREAD">Threads</option>
+            <option value="ARTICLE">Articles</option>
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-2.5 py-1.5 text-xs font-medium rounded-lg bg-surface-secondary text-content-secondary hover:bg-surface-tertiary border border-border cursor-pointer"
+          >
+            <option value="all">All statuses</option>
+            <option value="scheduled">Scheduled</option>
+            <option value="published">Published</option>
+          </select>
+          <select
+            value={focusAccountId || ''}
+            onChange={(e) => setFocusAccountId(e.target.value || null)}
+            className={`px-2.5 py-1.5 text-xs font-medium rounded-lg border cursor-pointer ${focusAccountId ? 'bg-blue-500/20 text-blue-600 dark:text-blue-300 border-blue-500/40' : 'bg-surface-secondary text-content-secondary hover:bg-surface-tertiary border-border'}`}
+          >
+            <option value="">All accounts</option>
+            {Object.entries(accountColorMap).map(([id, acct]) => (
+              <option key={id} value={id}>Focus: @{acct.username}</option>
+            ))}
+          </select>
           <button
             onClick={() => setHideTestAccounts(!hideTestAccounts)}
             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
@@ -377,7 +425,16 @@ export default function CalendarPage() {
                       </span>
                     </div>
                     <div className="space-y-1">
-                      {day.posts.map((post, i) => renderPostCard(post, i, true))}
+                      {day.posts.slice(0, 3).map((post, i) => renderPostCard(post, i, true))}
+                      {day.posts.length > 3 && (
+                        <button
+                          onClick={() => setView('list')}
+                          title={day.posts.map((p) => `${p.time} — ${p.label}`).join('\n')}
+                          className="w-full text-[10px] font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-left pl-1"
+                        >
+                          +{day.posts.length - 3} more
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}

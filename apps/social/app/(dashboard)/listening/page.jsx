@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   AreaChart, Area, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip,
@@ -11,6 +13,7 @@ import {
   COLORS, PlatformBadge, RelevanceBadge, SentimentDot,
   TabButton, SectionTitle, Skeleton, MetricCard, MetricCardSkeleton, useChartColors,
 } from '@/components/ui';
+import DiagnosePanel from '@/components/listening/DiagnosePanel';
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -60,9 +63,17 @@ function formatFollowers(n) {
 
 export default function ListeningPage() {
   const chartColors = useChartColors();
-  const [subTab, setSubTab] = useState('feed');
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [subTab, setSubTab] = useState(() => {
+    // Honor ?tab=diagnose so deep links from /admin land users on the right pane.
+    const t = typeof window !== 'undefined' ? searchParams?.get?.('tab') : null;
+    return t && ['feed', 'insights', 'topics', 'diagnose'].includes(t) ? t : 'feed';
+  });
   const [relevanceFilter, setRelevanceFilter] = useState('HIGH');
   const [actionFilter, setActionFilter] = useState('all');
+  const [feedDensity, setFeedDensity] = useState('comfortable'); // 'compact' | 'comfortable'
+  const [feedGroupBy, setFeedGroupBy] = useState('none'); // 'none' | 'platform' | 'sentiment'
   const [selectedBrands, setSelectedBrands] = useState([]); // multi-select topic IDs
   const [platformFilter, setPlatformFilter] = useState('all'); // 'all' | 'X' | 'REDDIT'
   const [feedTimeRange, setFeedTimeRange] = useState('7d'); // '24h' | '7d' | '30d' | '90d' | 'all'
@@ -416,6 +427,7 @@ export default function ListeningPage() {
           { key: 'feed', label: 'Listening Feed', badge: filteredFeed.length || undefined },
           { key: 'insights', label: 'AI Insights' },
           { key: 'topics', label: 'Topics', badge: listeningTopics.length || undefined },
+          { key: 'diagnose', label: 'Diagnose' },
         ].map((t) => (
           <TabButton key={t.key} active={subTab === t.key} onClick={() => setSubTab(t.key)} badge={t.badge}>
             {t.label}
@@ -502,6 +514,29 @@ export default function ListeningPage() {
                   {f === 'all' ? 'All Actions' : f.charAt(0) + f.slice(1).toLowerCase()}
                 </button>
               ))}
+              <span className="text-gray-300 mx-1">|</span>
+              <span className="text-sm text-content-muted">Group by:</span>
+              {[
+                { key: 'none', label: 'None' },
+                { key: 'platform', label: 'Platform' },
+                { key: 'sentiment', label: 'Sentiment' },
+              ].map((g) => (
+                <button
+                  key={g.key}
+                  onClick={() => setFeedGroupBy(g.key)}
+                  className={`px-2.5 py-1 text-xs rounded-lg font-medium ${feedGroupBy === g.key ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900' : 'bg-surface-secondary text-content-secondary hover:bg-surface-tertiary'}`}
+                >
+                  {g.label}
+                </button>
+              ))}
+              <span className="text-gray-300 mx-1">|</span>
+              <button
+                onClick={() => setFeedDensity((d) => (d === 'compact' ? 'comfortable' : 'compact'))}
+                title={`Switch to ${feedDensity === 'compact' ? 'comfortable' : 'compact'} density`}
+                className="px-2.5 py-1 text-xs rounded-lg font-medium bg-surface-secondary text-content-secondary hover:bg-surface-tertiary"
+              >
+                {feedDensity === 'compact' ? '☰ Compact' : '▦ Comfortable'}
+              </button>
               <div className="ml-auto">
                 <button
                   onClick={() => handleScanTopic(null)}
@@ -547,32 +582,59 @@ export default function ListeningPage() {
                 </button>
               </div>
             ) : (
-              <div className="space-y-3">
-                {filteredFeed.map((hit) => (
+              (() => {
+                const isCompact = feedDensity === 'compact';
+                const groupKeyFor = (hit) => {
+                  if (feedGroupBy === 'platform') return (hit.platform || 'unknown').toUpperCase();
+                  if (feedGroupBy === 'sentiment') return (hit.sentiment || 'neutral').toLowerCase();
+                  return null;
+                };
+                const groups = new Map();
+                for (const hit of filteredFeed) {
+                  const key = groupKeyFor(hit) ?? '__all__';
+                  if (!groups.has(key)) groups.set(key, []);
+                  groups.get(key).push(hit);
+                }
+                const groupOrder =
+                  feedGroupBy === 'sentiment'
+                    ? ['negative', 'neutral', 'positive']
+                    : feedGroupBy === 'platform'
+                    ? ['X', 'REDDIT']
+                    : ['__all__'];
+                const orderedKeys = [
+                  ...groupOrder.filter((k) => groups.has(k)),
+                  ...[...groups.keys()].filter((k) => !groupOrder.includes(k)),
+                ];
+
+                const renderHit = (hit) => (
                   <div
                     key={hit.id}
-                    className={`bg-surface-card rounded-xl border p-4 hover:shadow-md transition-shadow ${
-                      hit.relevance === 'HIGH' ? 'border-green-200 bg-green-50/30 dark:bg-green-900/30' : 'border-border'
-                    }`}
+                    className={`bg-surface-card rounded-xl border hover:shadow-md transition-shadow ${
+                      isCompact ? 'p-2.5' : 'p-4'
+                    } ${hit.relevance === 'HIGH' ? 'border-green-200 bg-green-50/30 dark:bg-green-900/30' : 'border-border'}`}
                   >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
+                    <div className={`flex items-start justify-between ${isCompact ? 'mb-1' : 'mb-2'}`}>
+                      <div className="flex items-center gap-2 min-w-0">
                         <PlatformBadge platform={hit.platform} />
-                        <span className="font-semibold text-content-primary text-sm">
+                        <span className={`font-semibold text-content-primary ${isCompact ? 'text-xs' : 'text-sm'} truncate`}>
                           {hit.platform === 'x' ? `@${hit.author}` : `u/${hit.author}`}
                         </span>
                         <span className="text-xs text-content-faint">{formatFollowers(hit.followers)}</span>
                         {hit.subreddit && <span className="text-xs text-orange-600 font-medium">{hit.subreddit}</span>}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         <ActionTypeBadge type={hit.actionType} />
                         <RelevanceBadge level={hit.relevance} />
                         <SentimentDot sentiment={hit.sentiment?.toLowerCase()} />
                         <span className="text-xs text-content-faint">{timeAgo(hit.time)}</span>
                       </div>
                     </div>
-                    <p className="text-sm text-content-secondary leading-relaxed mb-2">{hit.content}</p>
-                    {hit.topicName && (
+                    <p
+                      className={`text-content-secondary leading-relaxed ${isCompact ? 'text-xs mb-1 line-clamp-1' : 'text-sm mb-2'}`}
+                    >
+                      {hit.content}
+                    </p>
+                    {!isCompact && hit.topicName && (
                       <p className="text-[11px] text-content-faint mb-2">Topic: {hit.topicName}</p>
                     )}
                     <div className="flex items-center justify-between">
@@ -600,8 +662,35 @@ export default function ListeningPage() {
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                );
+
+                const groupHeading = (key) => {
+                  if (feedGroupBy === 'platform') return key === 'X' ? '𝕏 X / Twitter' : `${key.charAt(0)}${key.slice(1).toLowerCase()}`;
+                  if (feedGroupBy === 'sentiment') return `${key.charAt(0).toUpperCase()}${key.slice(1)}`;
+                  return null;
+                };
+
+                return (
+                  <div className={isCompact ? 'space-y-1.5' : 'space-y-3'}>
+                    {feedGroupBy === 'none'
+                      ? filteredFeed.map(renderHit)
+                      : orderedKeys.map((key) => (
+                          <div key={key} className="space-y-2">
+                            <div className="flex items-center gap-2 pt-2 first:pt-0">
+                              <h4 className="text-xs font-semibold uppercase tracking-wider text-content-muted">
+                                {groupHeading(key)}
+                              </h4>
+                              <span className="text-[10px] text-content-faint">{groups.get(key).length}</span>
+                              <div className="flex-1 h-px bg-border-secondary" />
+                            </div>
+                            <div className={isCompact ? 'space-y-1.5' : 'space-y-3'}>
+                              {groups.get(key).map(renderHit)}
+                            </div>
+                          </div>
+                        ))}
+                  </div>
+                );
+              })()
             )}
           </div>
 
@@ -744,31 +833,81 @@ export default function ListeningPage() {
 
               {/* Top hits */}
               <div className="bg-surface-card rounded-xl border border-border p-5">
-                <SectionTitle subtitle="Highest-scoring mentions that may require attention">
+                <SectionTitle subtitle="Highest-scoring mentions that may require attention — act on each hit below">
                   Top Actionable Hits
                 </SectionTitle>
                 <div className="space-y-3 mt-4">
                   {listeningFeed
                     .filter((h) => h.relevance === 'HIGH')
                     .slice(0, 5)
-                    .map((hit) => (
-                      <div key={hit.id} className="flex items-start gap-3 p-3 rounded-lg border border-border-secondary hover:bg-surface-hover transition-colors">
-                        <PlatformBadge platform={hit.platform} />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-semibold text-content-primary">
-                              {hit.platform === 'x' ? `@${hit.author}` : `u/${hit.author}`}
+                    .map((hit) => {
+                      const suggestedAction =
+                        hit.heuristic >= 0.7
+                          ? 'Reply — high engagement potential'
+                          : hit.heuristic >= 0.5
+                          ? 'Save to Report or add author to KOL watch'
+                          : 'Monitor — dismiss if irrelevant';
+                      const composerUrl = `/composer?reply=${encodeURIComponent(hit.sourceUrl || hit.content || '')}&platform=${hit.platform === 'x' ? 'X' : 'REDDIT'}`;
+                      const kolUrl = `/kol?add=${encodeURIComponent(hit.author || '')}&platform=${hit.platform === 'x' ? 'X' : 'REDDIT'}`;
+                      return (
+                        <div key={hit.id} className="p-3 rounded-lg border border-border-secondary hover:bg-surface-hover transition-colors">
+                          <div className="flex items-start gap-3">
+                            <PlatformBadge platform={hit.platform} />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-sm font-semibold text-content-primary">
+                                  {hit.platform === 'x' ? `@${hit.author}` : `u/${hit.author}`}
+                                </span>
+                                <span className="text-xs text-content-faint">{formatFollowers(hit.followers)}</span>
+                                <span className="text-xs text-content-faint">{timeAgo(hit.time)}</span>
+                              </div>
+                              <p className="text-xs text-content-secondary leading-relaxed line-clamp-2 mb-1">{hit.content}</p>
+                              <p className="text-[11px] text-blue-600 dark:text-blue-400 italic">💡 {suggestedAction}</p>
+                            </div>
+                            <span className="text-xs font-bold text-green-700 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded flex-shrink-0">
+                              {hit.heuristic}
                             </span>
-                            <span className="text-xs text-content-faint">{formatFollowers(hit.followers)}</span>
-                            <span className="text-xs text-content-faint">{timeAgo(hit.time)}</span>
                           </div>
-                          <p className="text-xs text-content-secondary leading-relaxed line-clamp-2">{hit.content}</p>
+                          {/* Action buttons */}
+                          <div className="flex items-center gap-1.5 mt-2 pl-9 flex-wrap">
+                            <Link
+                              href={composerUrl}
+                              className="px-2 py-1 text-[11px] font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                            >
+                              Reply
+                            </Link>
+                            <Link
+                              href={`/reports/adhoc?seed=${encodeURIComponent(hit.content || '')}`}
+                              className="px-2 py-1 text-[11px] font-medium bg-surface-secondary text-content-secondary rounded-md hover:bg-surface-tertiary"
+                            >
+                              Save to Report
+                            </Link>
+                            <Link
+                              href={kolUrl}
+                              className="px-2 py-1 text-[11px] font-medium bg-surface-secondary text-content-secondary rounded-md hover:bg-surface-tertiary"
+                            >
+                              + KOL Watch
+                            </Link>
+                            {hit.sourceUrl && (
+                              <a
+                                href={hit.sourceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-2 py-1 text-[11px] font-medium bg-surface-secondary text-content-secondary rounded-md hover:bg-surface-tertiary"
+                              >
+                                View post
+                              </a>
+                            )}
+                            <button
+                              onClick={() => dismissHitMutation.mutate({ id: hit.id })}
+                              className="ml-auto px-2 py-1 text-[11px] font-medium bg-transparent text-content-faint rounded-md hover:bg-surface-tertiary"
+                            >
+                              Dismiss
+                            </button>
+                          </div>
                         </div>
-                        <span className="text-xs font-bold text-green-700 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded">
-                          {hit.heuristic}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   {listeningFeed.filter((h) => h.relevance === 'HIGH').length === 0 && (
                     <p className="text-sm text-content-muted py-4 text-center">No high-relevance hits found yet.</p>
                   )}
@@ -1279,6 +1418,29 @@ export default function ListeningPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Diagnose sub-tab ─── */}
+      {/* Lives here instead of /admin so it's one click away from the feed. The
+          Fix actions hand off to /admin for entity editing via sessionStorage. */}
+      {subTab === 'diagnose' && (
+        <div className="max-w-3xl">
+          <DiagnosePanel
+            onFixGap={(gap) => {
+              try {
+                if (typeof window !== 'undefined') {
+                  window.sessionStorage.setItem(
+                    'pendingOntologyFix',
+                    JSON.stringify({ gap, at: Date.now() })
+                  );
+                }
+              } catch {
+                // private mode / quota — fall through; admin will show empty state.
+              }
+              router.push('/admin');
+            }}
+          />
         </div>
       )}
 

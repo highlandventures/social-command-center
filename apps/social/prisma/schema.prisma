@@ -42,6 +42,8 @@ model User {
   notionTaskInbox    NotionTaskInbox[]
   gtmProjects        GtmProject[] @relation("gtmProjectOwner")
   gtmTasks           GtmTask[]    @relation("gtmTaskOwner")
+  artifacts            Artifact[]             @relation("artifactOwner")
+  artifactRelationships ArtifactRelationship[] @relation("artifactEdgeAuthor")
 
   @@map("users")
 }
@@ -94,6 +96,12 @@ model Account {
   subscriptionTier String   @default("free") // free | basic | premium | premium_plus
   followerCount    Int?     // cached for quick access (synced from AccountMetrics)
   isVerified       Boolean  @default(false)
+
+  // High-water mark for poll-mentions: the newest platform mention id we've processed.
+  // Passed as sinceId to searchTweets on the next cron run so we only fetch genuinely
+  // new mentions instead of redundantly re-fetching the top-20 window each time.
+  lastMentionId      String?
+  lastMentionSyncAt  DateTime?
 
   // Relations
   posts          Post[]
@@ -149,6 +157,7 @@ model Post {
   flairId        String? // Reddit only
   articleTitle   String? // X Articles only
   notionPageId   String? // Notion page ID for L&C review integration
+  artifactId     String?     @unique
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
 
@@ -160,10 +169,12 @@ model Post {
   metrics      PostMetrics[]
   approvals    ApprovalRequest[]
   media        PostMedia[]
+  artifact     Artifact?         @relation("postArtifact", fields: [artifactId], references: [id], onDelete: SetNull)
 
   @@index([accountId, status])
   @@index([scheduledFor])
   @@index([platformPostId])
+  @@index([artifactId])
   @@map("posts")
 }
 
@@ -214,6 +225,7 @@ model PostMetrics {
   retweets      Int @default(0)
   replies       Int @default(0)
   bookmarks     Int @default(0)
+  quotes        Int @default(0) // quote-tweets — Phase 17-03; previously read from TwitterAPI.io but not persisted
   linkClicks    Int @default(0)
   profileClicks Int @default(0)
 
@@ -323,11 +335,131 @@ model ListeningTopic {
   pollingTier         PollingTier  @default(WARM)
   pollingTierOverride PollingTier?
 
+  // When true, the scanner applies the strict content gate (1 high-confidence term OR 2+
+  // ecosystem terms) that used to be triggered by topic names containing "kol". Explicit
+  // flag so "general ecosystem" topics don't accidentally opt into the stricter filter.
+  strictRelevance Boolean @default(false)
+
   queries    ListeningQuery[]
   hits       ListeningHit[]
   subreddits MonitoredSubreddit[]
+  entities   BrandEntity[]
 
   @@map("listening_topics")
+}
+
+// ============================================================
+// BRAND ONTOLOGY
+// ------------------------------------------------------------
+// Structured description of a brand/product/person the planner uses to generate
+// search queries. One row per entity (brand, product, subsidiary, token, person).
+// Editing an entity triggers a reconcile that rebuilds that entity's ListeningQuery
+// rows so queries stay in sync with the ontology.
+// ============================================================
+
+model BrandEntity {
+  id            String     @id @default(cuid())
+  topicId       String
+  kind          EntityKind
+  canonicalName String
+  aliases       String[]   @default([])
+  tickers       String[]   @default([])
+  xHandles      String[]   @default([])
+  redditUsers   String[]   @default([])
+  hashtags      String[]   @default([])
+
+  // Ambiguity & noise control.
+  // isAmbiguous=true → the canonical/alias terms are common English, so the planner
+  // emits qualified queries like `("OPEN network") (qualifiers...)` instead of bare.
+  isAmbiguous   Boolean    @default(false)
+  qualifiers    String[]   @default([])
+  negativeTerms String[]   @default([])
+
+  // Per-entity knobs.
+  minFaves  Int?
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  topic   ListeningTopic   @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  queries ListeningQuery[]
+
+  @@index([topicId])
+  @@map("brand_entities")
+}
+
+enum EntityKind {
+  BRAND
+  PRODUCT
+  PERSON
+  SUBSIDIARY
+  TOKEN
+}
+
+// ============================================================
+// DIAGNOSE LOG
+// ------------------------------------------------------------
+// Every call to listening.diagnose writes a row here. The log becomes the "things
+// we thought we should capture" dataset — the highest-signal input for refining
+// the ontology. NO_QUERY_MATCH rows are the gaps, BLOCKED_BY_NEGATIVE rows are
+// the false-positive excludes. Resolved rows link back to the entity that closed
+// the gap so we can measure how often the feedback loop actually fires.
+// ============================================================
+
+// ============================================================
+// GLOBAL ALGO TERMS
+// ------------------------------------------------------------
+// Previously hardcoded arrays in listening-scanner.js (HIGH_CONFIDENCE_TERMS,
+// ECOSYSTEM_TERMS). Moving to DB so operators can promote a token via the admin
+// UI and have it apply to the next scan without a code deploy. Hardcoded lists
+// remain as a resilience fallback when the DB is unreachable.
+// ============================================================
+
+model GlobalAlgoTerm {
+  id             String       @id @default(cuid())
+  term           String       // Lower-case, substring-matched against content
+  kind           AlgoTermKind
+  enabled        Boolean      @default(true)
+  note           String?      // Why this was promoted; helpful for audit
+  addedFromLogId String?      // DiagnoseLog.id that justified the addition (optional)
+  createdById    String?
+  createdAt      DateTime     @default(now())
+
+  @@unique([term, kind])
+  @@index([kind, enabled])
+  @@map("global_algo_terms")
+}
+
+enum AlgoTermKind {
+  HIGH_CONFIDENCE
+  ECOSYSTEM
+}
+
+model DiagnoseLog {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  createdById     String?
+
+  // Input — what the user pasted in
+  url             String?
+  tweetId         String?
+  content         String?
+  authorUsername  String?
+
+  // Output of the decision tree
+  outcome         String   // CAPTURED_AS_HIT | CAPTURED_AS_MENTION | WOULD_BE_CAPTURED | NO_QUERY_MATCH | BLOCKED_BY_NEGATIVE | INSUFFICIENT_INPUT
+  matchedCount    Int      @default(0)
+  blockedCount    Int      @default(0)
+  resultJson      Json?    // Full diagnose() result for forensic inspection
+
+  // Follow-up state — set when a user acts on the gap via the "Fix" buttons.
+  resolvedEntityId String?
+  resolvedAt       DateTime?
+  resolutionNote   String?
+
+  @@index([createdAt])
+  @@index([outcome, createdAt])
+  @@map("diagnose_logs")
 }
 
 enum PollingTier {
@@ -355,9 +487,22 @@ model ListeningQuery {
   avgHeuristic     Float?
   lastEvaluatedAt  DateTime?
 
+  // High-water mark for listening scans: the newest platform post id this query has seen.
+  // Passed as sinceId so we don't re-scan the same top window on every cron tick.
+  lastHitPlatformId String?
+  lastHitSyncAt     DateTime?
+
+  // Provenance: when this query was generated by the ontology planner, the entity it came
+  // from and the template key (e.g. 'mention_sweep', 'ticker_sweep'). Hand-authored queries
+  // leave both null. Lets us reconcile / replace planner queries safely.
+  sourceEntityId String?
+  sourceTemplate String?
+  sourceEntity   BrandEntity? @relation(fields: [sourceEntityId], references: [id], onDelete: SetNull)
+
   topic ListeningTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
   hits  ListeningHit[]
 
+  @@index([sourceEntityId])
   @@map("listening_queries")
 }
 
@@ -804,9 +949,12 @@ model Report {
   chartUrls       Json? // Array of { id, label, imageUrl } objects
   coveragePeriod  Json? // { start: string, end: string } ISO date range
   benchmarkPeriod Json? // { start: string, end: string } or null
+  artifactId      String?      @unique
 
   deliveries ReportDelivery[]
+  artifact   Artifact?        @relation("reportArtifact", fields: [artifactId], references: [id], onDelete: SetNull)
 
+  @@index([artifactId])
   @@map("reports")
 }
 
@@ -1102,14 +1250,17 @@ model HomeTask {
   completedAt DateTime?
   sortOrder   Int        @default(0)
   contactId   String?
+  artifactId  String?    @unique
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  contact Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contact  Contact?  @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  artifact Artifact? @relation("homeTaskArtifact", fields: [artifactId], references: [id], onDelete: SetNull)
 
   @@index([userId, status])
   @@index([userId, dueDate])
+  @@index([artifactId])
   @@map("home_tasks")
 }
 
@@ -1189,9 +1340,13 @@ model IntelligenceTask {
   briefingId      String?
   briefing        WeeklyBriefing? @relation(fields: [briefingId], references: [id])
 
+  artifactId      String?         @unique
+  artifact        Artifact?       @relation("intelligenceTaskArtifact", fields: [artifactId], references: [id], onDelete: SetNull)
+
   @@index([status, priorityScore])
   @@index([assignedRole, status])
   @@index([sourceType, sourceId])
+  @@index([artifactId])
   @@map("intelligence_tasks")
 }
 
@@ -1206,10 +1361,13 @@ model WeeklyBriefing {
   campaignStatus  Json?     // In-flight campaign summaries
   generatedAt     DateTime  @default(now())
   generatedBy     String    @default("system") // "system" or userId
+  artifactId      String?   @unique
 
-  tasks           IntelligenceTask[]
+  tasks    IntelligenceTask[]
+  artifact Artifact?          @relation("weeklyBriefingArtifact", fields: [artifactId], references: [id], onDelete: SetNull)
 
   @@unique([weekStart, role])
+  @@index([artifactId])
   @@map("weekly_briefings")
 }
 
@@ -1308,15 +1466,18 @@ model EmailCampaign {
   scheduledFor DateTime?
   sentAt       DateTime?
   createdById  String
+  artifactId   String?        @unique
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
 
   list     EmailList      @relation(fields: [listId], references: [id])
   template EmailTemplate? @relation(fields: [templateId], references: [id])
   sends    EmailSend[]
+  artifact Artifact?      @relation("emailCampaignArtifact", fields: [artifactId], references: [id], onDelete: SetNull)
 
   @@index([status])
   @@index([listId])
+  @@index([artifactId])
   @@map("email_campaigns")
 }
 
@@ -1390,14 +1551,17 @@ model NotionTaskInbox {
   filedBy                 String                               // Email of person who filed
   notionPageId     String?  // Set after synced to Notion
   syncedAt         DateTime? // Timestamp when synced to Notion
+  artifactId       String?  @unique
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  artifact Artifact? @relation("notionTaskArtifact", fields: [artifactId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([syncedAt])
   @@index([createdAt])
+  @@index([artifactId])
   @@map("notion_task_inbox")
 }
 
@@ -1417,6 +1581,7 @@ model GtmProject {
   startDate    DateTime
   endDate      DateTime
   googleDocUrl String?
+  artifactId   String?          @unique
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
@@ -1424,31 +1589,36 @@ model GtmProject {
   tasks               GtmTask[]
   moments             GtmMoment[]
   categoryCorrections GtmCategoryCorrection[]
+  artifact            Artifact?               @relation("gtmProjectArtifact", fields: [artifactId], references: [id], onDelete: SetNull)
 
   @@index([ownerId])
   @@index([status])
+  @@index([artifactId])
   @@map("gtm_projects")
 }
 
 model GtmTask {
-  id        String          @id @default(cuid())
-  projectId String
-  title     String
-  status    GtmTaskStatus   @default(TODO)
-  priority  GtmPriority     @default(MEDIUM)
-  ownerId   String?
-  contactId String?
-  dueDate   DateTime?
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+  id         String        @id @default(cuid())
+  projectId  String
+  title      String
+  status     GtmTaskStatus @default(TODO)
+  priority   GtmPriority   @default(MEDIUM)
+  ownerId    String?
+  contactId  String?
+  dueDate    DateTime?
+  artifactId String?       @unique
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
 
-  project GtmProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  owner   User?      @relation("gtmTaskOwner", fields: [ownerId], references: [id])
-  contact Contact?   @relation("gtmTaskContact", fields: [contactId], references: [id], onDelete: SetNull)
+  project  GtmProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  owner    User?      @relation("gtmTaskOwner", fields: [ownerId], references: [id])
+  contact  Contact?   @relation("gtmTaskContact", fields: [contactId], references: [id], onDelete: SetNull)
+  artifact Artifact?  @relation("gtmTaskArtifact", fields: [artifactId], references: [id], onDelete: SetNull)
 
   @@index([projectId])
   @@index([ownerId])
   @@index([dueDate])
+  @@index([artifactId])
   @@map("gtm_tasks")
 }
 
@@ -1462,16 +1632,19 @@ model GtmMoment {
   date            DateTime?
   startDate       DateTime?
   endDate         DateTime?
+  artifactId      String?        @unique
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  project       GtmProject? @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  parentMoment  GtmMoment?  @relation("momentChildren", fields: [parentMomentId], references: [id])
-  childMoments  GtmMoment[] @relation("momentChildren")
+  project      GtmProject?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  parentMoment GtmMoment?   @relation("momentChildren", fields: [parentMomentId], references: [id])
+  childMoments GtmMoment[]  @relation("momentChildren")
+  artifact     Artifact?    @relation("gtmMomentArtifact", fields: [artifactId], references: [id], onDelete: SetNull)
 
   @@index([projectId])
   @@index([parentMomentId])
   @@index([date])
+  @@index([artifactId])
   @@map("gtm_moments")
 }
 
@@ -1585,4 +1758,105 @@ model Contact {
   gtmTasks  GtmTask[]  @relation("gtmTaskContact")
 
   @@map("contacts")
+}
+
+// ============================================================
+// UNIFIED ARTIFACT GRAPH (v3.0)
+// Every tracked object (project, task, post, email, LC ticket, report,
+// briefing, etc.) has a corresponding Artifact row. Module tables remain
+// the source of truth for domain data; the graph is the cross-module spine.
+// See .planning/phases/17-artifact-graph-foundation/17-01-PLAN.md
+// ============================================================
+
+enum ArtifactType {
+  CAMPAIGN
+  PROJECT
+  SUB_PROJECT
+  TASK
+  SUBTASK
+  MILESTONE
+  POST
+  EMAIL
+  ASSET
+  LC_TICKET
+  REPORT
+}
+
+enum ArtifactModule {
+  SOCIAL
+  GTM
+  EMAIL
+  LC_REVIEW
+  HUB
+}
+
+enum ArtifactRelationshipType {
+  PARENT_OF
+  CHILD_OF
+  DEPENDS_ON
+  RELATES_TO
+  DERIVED_FROM
+  REVIEWED_BY
+  PUBLISHED_AS
+}
+
+model Artifact {
+  id         String         @id @default(cuid())
+  type       ArtifactType
+  title      String
+  parentId   String?
+  ownerId    String?
+  status     String?        // module-specific status (DRAFT, IN_PROGRESS, PUBLISHED, ...)
+  module     ArtifactModule
+  entityId   String         // FK into the module-specific table (cuid of the module row)
+  metadata   Json?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  archivedAt DateTime?
+
+  parent      Artifact?              @relation("ArtifactHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Artifact[]             @relation("ArtifactHierarchy")
+  owner       User?                  @relation("artifactOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  sourceEdges ArtifactRelationship[] @relation("ArtifactEdgeSource")
+  targetEdges ArtifactRelationship[] @relation("ArtifactEdgeTarget")
+
+  // back-relations to module tables (for Prisma type safety, not used for lookups)
+  post             Post?             @relation("postArtifact")
+  gtmProject       GtmProject?       @relation("gtmProjectArtifact")
+  gtmTask          GtmTask?          @relation("gtmTaskArtifact")
+  gtmMoment        GtmMoment?        @relation("gtmMomentArtifact")
+  emailCampaign    EmailCampaign?    @relation("emailCampaignArtifact")
+  notionTaskInbox  NotionTaskInbox?  @relation("notionTaskArtifact")
+  report           Report?           @relation("reportArtifact")
+  homeTask         HomeTask?         @relation("homeTaskArtifact")
+  intelligenceTask IntelligenceTask? @relation("intelligenceTaskArtifact")
+  weeklyBriefing   WeeklyBriefing?   @relation("weeklyBriefingArtifact")
+
+  @@unique([module, entityId]) // one artifact per module row
+  @@index([type])
+  @@index([module, type])
+  @@index([parentId])
+  @@index([ownerId])
+  @@index([archivedAt])
+  @@map("artifacts")
+}
+
+model ArtifactRelationship {
+  id               String                   @id @default(cuid())
+  sourceId         String
+  targetId         String
+  relationshipType ArtifactRelationshipType
+  createdById      String?
+  createdAt        DateTime                 @default(now())
+  archivedAt       DateTime?
+
+  source    Artifact @relation("ArtifactEdgeSource", fields: [sourceId], references: [id], onDelete: Cascade)
+  target    Artifact @relation("ArtifactEdgeTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  createdBy User?    @relation("artifactEdgeAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@unique([sourceId, targetId, relationshipType])
+  @@index([sourceId, relationshipType])
+  @@index([targetId, relationshipType])
+  @@index([archivedAt])
+  @@map("artifact_relationships")
 }

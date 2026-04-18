@@ -124,6 +124,9 @@ export default function KOLPage() {
   const [collapsedSections, setCollapsedSections] = useState({});
   const [editingKOL, setEditingKOL] = useState(null);
   const [editForm, setEditForm] = useState({});
+  // Recent Activations filters
+  const [activationSegments, setActivationSegments] = useState([]); // empty = all segments
+  const [activationRange, setActivationRange] = useState('30d'); // '7d' | '30d' | '90d' | 'all'
 
   // ── tRPC queries ──────────────────────────────────────────
   const kolsQ = trpc.kol.list.useQuery(undefined, { staleTime: 30_000, keepPreviousData: true });
@@ -851,17 +854,88 @@ export default function KOLPage() {
       {subTab === 'activations' && (
         <div>
           <SectionTitle subtitle="All KOL activations across platforms, most recent first">Recent Activations</SectionTitle>
-          {recentActivationsQ.isLoading ? (
-            <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}</div>
-          ) : !recentActivationsQ.data?.length ? (
-            <div className="bg-surface-card rounded-xl border border-border p-12 text-center">
-              <p className="text-3xl mb-3">{'\uD83D\uDCE1'}</p>
-              <h3 className="text-lg font-semibold text-content-primary mb-1">No activations yet</h3>
-              <p className="text-sm text-content-muted">The KOL activation scanner runs every 30 minutes, searching for brand mentions from tracked KOLs.</p>
+
+          {/* Filters — segment + date range */}
+          {recentActivationsQ.data?.length > 0 && (
+            <div className="bg-surface-card rounded-xl border border-border p-3 mb-4 flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-xs text-content-muted mr-1">Segment:</span>
+                <button
+                  onClick={() => setActivationSegments([])}
+                  className={`px-2.5 py-1 text-xs rounded-lg font-medium ${activationSegments.length === 0 ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900' : 'bg-surface-secondary text-content-secondary hover:bg-surface-tertiary'}`}
+                >
+                  All
+                </button>
+                {SECTION_ORDER.map((type) => {
+                  const selected = activationSegments.includes(type);
+                  return (
+                    <button
+                      key={type}
+                      onClick={() => setActivationSegments((prev) => prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type])}
+                      className={`px-2.5 py-1 text-xs rounded-lg font-medium ${selected ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900' : 'bg-surface-secondary text-content-secondary hover:bg-surface-tertiary'}`}
+                    >
+                      {TYPE_LABELS[type]}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex items-center gap-1.5 ml-auto">
+                <span className="text-xs text-content-muted mr-1">Range:</span>
+                {[
+                  { key: '7d', label: '7 days' },
+                  { key: '30d', label: '30 days' },
+                  { key: '90d', label: '90 days' },
+                  { key: 'all', label: 'All time' },
+                ].map((r) => (
+                  <button
+                    key={r.key}
+                    onClick={() => setActivationRange(r.key)}
+                    className={`px-2.5 py-1 text-xs rounded-lg font-medium ${activationRange === r.key ? 'bg-primary text-white' : 'bg-surface-secondary text-content-secondary hover:bg-surface-tertiary'}`}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {recentActivationsQ.data.map((act) => {
+          )}
+
+          {(() => {
+            const all = recentActivationsQ.data || [];
+            const rangeDays = activationRange === 'all' ? null : parseInt(activationRange, 10);
+            const cutoff = rangeDays ? Date.now() - rangeDays * 24 * 60 * 60 * 1000 : null;
+            const filtered = all.filter((act) => {
+              if (activationSegments.length > 0) {
+                const type = act.kol?.relationshipType;
+                if (!type || !activationSegments.includes(type)) return false;
+              }
+              if (cutoff) {
+                const ts = new Date(act.postedAt || act.detectedAt).getTime();
+                if (!Number.isFinite(ts) || ts < cutoff) return false;
+              }
+              return true;
+            });
+
+            return recentActivationsQ.isLoading ? (
+              <div className="space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}</div>
+            ) : !all.length ? (
+              <div className="bg-surface-card rounded-xl border border-border p-12 text-center">
+                <p className="text-3xl mb-3">{'\uD83D\uDCE1'}</p>
+                <h3 className="text-lg font-semibold text-content-primary mb-1">No activations yet</h3>
+                <p className="text-sm text-content-muted">The KOL activation scanner runs every 30 minutes, searching for brand mentions from tracked KOLs.</p>
+              </div>
+            ) : !filtered.length ? (
+              <div className="bg-surface-card rounded-xl border border-border p-12 text-center">
+                <p className="text-3xl mb-3">🔎</p>
+                <h3 className="text-lg font-semibold text-content-primary mb-1">No activations match these filters</h3>
+                <p className="text-sm text-content-muted">Try a wider date range or different segment.</p>
+              </div>
+            ) : (
+              <>
+                <div className="text-xs text-content-muted mb-2">
+                  Showing {filtered.length} of {all.length} activations
+                </div>
+              <div className="space-y-3">
+                {filtered.map((act) => {
                 const m = act.metricsAtDetection || {};
                 const engagements = (m.likes || 0) + (m.retweets || 0) + (m.replies || 0) + (m.upvotes || 0) + (m.comments || 0);
                 const impressions = m.impressions || ((m.upvotes || 0) + (m.comments || 0)) * 10;
@@ -887,8 +961,10 @@ export default function KOLPage() {
                   </div>
                 );
               })}
-            </div>
-          )}
+              </div>
+              </>
+            );
+          })()}
         </div>
       )}
 

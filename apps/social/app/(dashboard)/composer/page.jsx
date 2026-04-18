@@ -474,8 +474,13 @@ export default function ComposerPage() {
           </label>
           <button
             onClick={handleSchedule}
-            disabled={approvalCreateMutation.isLoading}
-            className={`px-4 py-1.5 text-white text-xs rounded-lg font-medium transition-colors ${
+            disabled={approvalCreateMutation.isLoading || (selectedPlatform === 'X' && tweets.some((t) => t.length > charLimit))}
+            title={
+              selectedPlatform === 'X' && tweets.some((t) => t.length > charLimit)
+                ? 'One or more tweets exceed the character limit'
+                : undefined
+            }
+            className={`px-4 py-1.5 text-white text-xs rounded-lg font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
               requestLcReview
                 ? 'bg-copilot/80 hover:bg-copilot'
                 : 'bg-accent hover:bg-accent/90'
@@ -485,8 +490,13 @@ export default function ComposerPage() {
           </button>
           <button
             onClick={handlePublishNow}
-            disabled={publishMutation.isLoading}
-            className="px-4 py-1.5 bg-composer-ink text-composer-canvas text-xs rounded-lg hover:opacity-90 font-medium transition-opacity"
+            disabled={publishMutation.isLoading || (selectedPlatform === 'X' && tweets.some((t) => t.length > charLimit))}
+            title={
+              selectedPlatform === 'X' && tweets.some((t) => t.length > charLimit)
+                ? 'One or more tweets exceed the character limit'
+                : undefined
+            }
+            className="px-4 py-1.5 bg-composer-ink text-composer-canvas text-xs rounded-lg hover:opacity-90 font-medium transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {publishMutation.isLoading ? 'Publishing...' : 'Publish Now'}
           </button>
@@ -593,8 +603,12 @@ export default function ComposerPage() {
                 {tweets.map((tweet, i) => (
                   <div
                     key={i}
-                    className={`bg-composer-s0 rounded-lg border transition-colors group ${
-                      activeTweetIndex === i ? 'border-white/[0.15]' : 'border-white/[0.09]'
+                    className={`bg-composer-s0 rounded-lg border-2 transition-colors group ${
+                      tweet.length > charLimit
+                        ? 'border-red-500/70'
+                        : activeTweetIndex === i
+                        ? 'border-white/[0.15]'
+                        : 'border-white/[0.09]'
                     }`}
                     onClick={() => setActiveTweetIndex(i)}
                   >

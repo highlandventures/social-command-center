@@ -232,8 +232,54 @@ class TwitterAPIioClient {
     return res.json();
   }
 
-  async searchTweets(query, maxResults = 20) {
-    return this.request('/tweet/advanced_search', { query, queryType: 'Latest', cursor: '' });
+  /**
+   * Paginated tweet search.
+   *   maxPages — max pages to fetch (~20 tweets/page); default 5 ⇒ up to ~100 tweets.
+   *   sinceId  — stop (and trim) once we encounter this tweet id; used as a
+   *              high-water mark so we only return genuinely new tweets on each run.
+   * Returns a single-page-shaped object `{ tweets: [...aggregated], pagesFetched, latestId }`
+   * so callers that read `response?.tweets` still work unchanged.
+   */
+  async searchTweets(query, maxResults, options = {}) {
+    const { maxPages = 5, sinceId } = options;
+    const allTweets = [];
+    let cursor = '';
+    let pagesFetched = 0;
+    let hitSinceId = false;
+
+    for (let page = 0; page < maxPages; page++) {
+      const params = { query, queryType: 'Latest' };
+      if (cursor) params.cursor = cursor;
+
+      const data = await this.request('/tweet/advanced_search', params);
+      pagesFetched++;
+
+      const pageTweets = data?.tweets || data?.data?.tweets || [];
+      if (!pageTweets.length) break;
+
+      if (sinceId) {
+        for (const t of pageTweets) {
+          const id = String(t.id ?? t.id_str ?? '');
+          if (id && id === String(sinceId)) {
+            hitSinceId = true;
+            break;
+          }
+          allTweets.push(t);
+        }
+        if (hitSinceId) break;
+      } else {
+        allTweets.push(...pageTweets);
+      }
+
+      if (!data?.next_cursor) break;
+      cursor = data.next_cursor;
+    }
+
+    const latestId = allTweets[0]
+      ? String(allTweets[0].id ?? allTweets[0].id_str ?? '')
+      : sinceId ?? null;
+
+    return { tweets: allTweets, pagesFetched, latestId };
   }
 
   async getUserTimeline(username, maxResults = 20) {
@@ -289,8 +335,8 @@ class TwitterAPIioClient {
     return this.request('/tweet/detail', { tweet_id: tweetId });
   }
 
-  async getMentions(username) {
-    return this.searchTweets(`@${username}`);
+  async getMentions(username, options = {}) {
+    return this.searchTweets(`@${username}`, undefined, options);
   }
 }
 
@@ -312,18 +358,30 @@ export class XPlatformAdapter {
   likeTweet(userId, tweetId) { return this.official.likeTweet(userId, tweetId); }
 
   // READS — third-party with fallback
-  async searchTweets(query, maxResults) {
-    return cachedFetch(`x:search:${query}`, CACHE_TTL.SEARCH_RESULTS, async () => {
-      if (READ_PROVIDER === 'third-party') {
-        try {
-          return await this.thirdParty.searchTweets(query, maxResults);
-        } catch (e) {
-          if (FALLBACK_TO_OFFICIAL) return this.official.request('GET', `/tweets/search/recent?query=${encodeURIComponent(query)}`);
-          throw e;
+  //  skipCache: bypass the Redis cache (used by on-demand scans so users see fresh results).
+  //  maxPages:  how many pages (~20 tweets each) to fetch; 5 ≈ 100 tweets (default).
+  //  sinceId:   high-water mark — stop fetching once we see this tweet id. Keeps breadth
+  //             from requiring brute-force deep pagination on every run.
+  // NOTE: when sinceId is set we also bypass the cache — caching per query+sinceId keys is
+  // not worth it since the value churns on every run anyway.
+  async searchTweets(query, maxResults, { skipCache = false, maxPages = 5, sinceId } = {}) {
+    const bypass = skipCache || Boolean(sinceId);
+    return cachedFetch(
+      `x:search:${query}`,
+      CACHE_TTL.SEARCH_RESULTS,
+      async () => {
+        if (READ_PROVIDER === 'third-party') {
+          try {
+            return await this.thirdParty.searchTweets(query, maxResults, { maxPages, sinceId });
+          } catch (e) {
+            if (FALLBACK_TO_OFFICIAL) return this.official.request('GET', `/tweets/search/recent?query=${encodeURIComponent(query)}`);
+            throw e;
+          }
         }
-      }
-      return this.official.request('GET', `/tweets/search/recent?query=${encodeURIComponent(query)}`);
-    });
+        return this.official.request('GET', `/tweets/search/recent?query=${encodeURIComponent(query)}`);
+      },
+      { skipCache: bypass }
+    );
   }
 
   async getUserTimeline(username) {
@@ -338,9 +396,16 @@ export class XPlatformAdapter {
     );
   }
 
-  async getMentions(username) {
-    return cachedFetch(`x:mentions:${username}`, CACHE_TTL.MENTIONS, () =>
-      READ_PROVIDER === 'third-party' ? this.thirdParty.getMentions(username) : this.official.request('GET', `/users/by/username/${username}/mentions`)
+  async getMentions(username, { skipCache = false, maxPages = 5, sinceId } = {}) {
+    const bypass = skipCache || Boolean(sinceId);
+    return cachedFetch(
+      `x:mentions:${username}`,
+      CACHE_TTL.MENTIONS,
+      () =>
+        READ_PROVIDER === 'third-party'
+          ? this.thirdParty.getMentions(username, { maxPages, sinceId })
+          : this.official.request('GET', `/users/by/username/${username}/mentions`),
+      { skipCache: bypass }
     );
   }
 

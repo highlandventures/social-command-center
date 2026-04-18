@@ -32,16 +32,22 @@ export async function GET(request) {
       try {
         const token = await getValidToken(account);
         let rawMentions = [];
+        let newHighWaterMark = null; // platform id of the newest mention seen this run
 
         if (account.platform === 'X') {
           const adapter = new XPlatformAdapter(token);
-          const response = await adapter.getMentions(account.username);
-          // TwitterAPI.io returns { tweets: [...] } or { data: [...] }
+          // sinceId = account.lastMentionId: search stops once we see the tweet we saw last
+          // run, so we only pull genuinely new mentions. Without this, we'd re-scan the top
+          // ~20 every 5 min and lose anything that bursts past the window between runs.
+          const response = await adapter.getMentions(account.username, {
+            sinceId: account.lastMentionId || undefined,
+            maxPages: 5,
+          });
           rawMentions = response?.tweets || response?.data || [];
+          newHighWaterMark = response?.latestId || null;
         } else if (account.platform === 'REDDIT') {
           const adapter = new RedditAdapter(token);
           const response = await adapter.getMentions();
-          // Reddit returns { data: { children: [...] } }
           rawMentions = response?.data?.children?.map((c) => c.data) || [];
         }
 
@@ -68,14 +74,24 @@ export async function GET(request) {
               mention.name ||
               null;
 
-            // Dedupe: check if mention already exists by author + content combo
-            const existing = await prisma.mention.findFirst({
-              where: {
-                accountId: account.id,
-                authorUsername: String(authorUsername),
-                content: String(content),
-              },
-            });
+            // Dedupe: prefer platformMentionId when present (one row per unique platform
+            // post id). Fall back to (author, content) which can collide when two people
+            // quote-tweet the same text, but better than nothing when the API doesn't
+            // surface an id (very rare).
+            const existing = platformMentionId
+              ? await prisma.mention.findFirst({
+                  where: {
+                    accountId: account.id,
+                    platformMentionId: String(platformMentionId),
+                  },
+                })
+              : await prisma.mention.findFirst({
+                  where: {
+                    accountId: account.id,
+                    authorUsername: String(authorUsername),
+                    content: String(content),
+                  },
+                });
 
             if (existing) continue;
 
@@ -121,6 +137,14 @@ export async function GET(request) {
               mentionError,
             );
           }
+        }
+
+        // Persist the new high-water mark so next run's search starts from here.
+        if (newHighWaterMark && newHighWaterMark !== account.lastMentionId) {
+          await prisma.account.update({
+            where: { id: account.id },
+            data: { lastMentionId: newHighWaterMark, lastMentionSyncAt: new Date() },
+          });
         }
 
         results.accountsProcessed++;

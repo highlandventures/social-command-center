@@ -10,6 +10,7 @@ import {
 import { trpc } from '@/lib/trpc-client';
 import { MetricCard, SectionTitle, TabButton, PlatformBadge, Skeleton, useChartColors } from '@/components/ui';
 import TicketsTab from '@/components/admin/TicketsTab';
+import ListeningOntologyTab from '@/components/admin/ListeningOntologyTab';
 
 // ── Static roadmap data (internal planning, not from API) ───
 // Last updated: Mar 30, 2026 — v1.2 Email Campaigns + Polish
@@ -308,6 +309,7 @@ function AdminContent() {
         {[
           { key: 'settings', label: 'Settings' },
           { key: 'tickets', label: 'Tickets' },
+          { key: 'listening', label: 'Listening Ontology' },
           { key: 'costs', label: 'Cost Tracker' },
           { key: 'roadmap', label: 'Roadmap' },
         ].map((t) => (
@@ -616,6 +618,11 @@ function AdminContent() {
           TICKETS TAB — bug reports & feature requests
          ══════════════════════════════════════════════════════════ */}
       {subTab === 'tickets' && <TicketsTab />}
+
+      {/* ══════════════════════════════════════════════════════════
+          LISTENING ONTOLOGY TAB — brand entities + diagnose tool
+         ══════════════════════════════════════════════════════════ */}
+      {subTab === 'listening' && <ListeningOntologyTab />}
 
       {/* ══════════════════════════════════════════════════════════
           COST TRACKER TAB — real data only

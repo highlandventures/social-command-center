@@ -19,13 +19,16 @@ export const CACHE_TTL = {
 
 // Helper: get-or-fetch with automatic TTL caching
 // Falls through to fetchFn if KV is unavailable (e.g. local dev without Upstash)
-export async function cachedFetch(key, ttlSeconds, fetchFn) {
-  try {
-    const cached = await kv.get(key);
-    if (cached) return cached;
-  } catch {
-    // KV unavailable — skip cache, call fetchFn directly
-    return fetchFn();
+// Pass { skipCache: true } to force a fresh fetch (still writes the fresh value).
+export async function cachedFetch(key, ttlSeconds, fetchFn, { skipCache = false } = {}) {
+  if (!skipCache) {
+    try {
+      const cached = await kv.get(key);
+      if (cached) return cached;
+    } catch {
+      // KV unavailable — skip cache, call fetchFn directly
+      return fetchFn();
+    }
   }
 
   const fresh = await fetchFn();

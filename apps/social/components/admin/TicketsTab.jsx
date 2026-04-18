@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { trpc } from '@/lib/trpc-client';
 import { MetricCard, SectionTitle } from '@/components/ui';
+import { markTicketSeen, isTicketUnread, useUnreadTicketCount } from '@/lib/ticket-notifications';
 
 // ── Badge helpers ──────────────────────────────────────────
 const typeBadge = {
@@ -33,16 +34,36 @@ const statusLabel = {
 
 export default function TicketsTab() {
   const [filter, setFilter] = useState(null); // null = all
+  const [bucket, setBucket] = useState('active'); // 'active' | 'archive'
   const [showNew, setShowNew] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
 
   const statsQ = trpc.tickets.stats.useQuery(undefined, { staleTime: 15_000 });
   const listQ = trpc.tickets.list.useQuery(
-    filter ? { type: filter } : {},
+    filter ? { type: filter, limit: 100 } : { limit: 100 },
     { staleTime: 10_000 }
   );
 
   const stats = statsQ.data;
+
+  // Subscribe to the shared seen-map so each row can show its unread indicator.
+  const { seenMap } = useUnreadTicketCount();
+  const hasUnreadActivity = useCallback((ticket) => isTicketUnread(ticket, seenMap), [seenMap]);
+
+  // Partition tickets into active vs archive:
+  //  - Archive: RESOLVED or WONT_FIX, and no outstanding caveat comment
+  //  - Active:  everything else (including resolved-with-caveat, which stays visible
+  //             because there's a follow-up noted against it)
+  const allTickets = listQ.data?.tickets ?? [];
+  const activeTickets = allTickets.filter((t) => {
+    if (t.status === 'RESOLVED' || t.status === 'WONT_FIX') return t.hasCaveat;
+    return true;
+  });
+  const archiveTickets = allTickets.filter((t) => {
+    if (t.status === 'RESOLVED' || t.status === 'WONT_FIX') return !t.hasCaveat;
+    return false;
+  });
+  const visibleTickets = bucket === 'active' ? activeTickets : archiveTickets;
 
   return (
     <div>
@@ -52,6 +73,27 @@ export default function TicketsTab() {
         <MetricCard label="Feature Requests" value={stats?.openFeatures ?? '—'} />
         <MetricCard label="AI Reviewed" value={stats?.aiReviewed ?? '—'} />
         <MetricCard label="Resolved (7d)" value={stats?.resolvedThisWeek ?? '—'} />
+      </div>
+
+      {/* Active / Archive tabs */}
+      <div className="flex items-center gap-2 mb-3 border-b border-border pb-2">
+        {[
+          { key: 'active', label: 'Active', count: activeTickets.length },
+          { key: 'archive', label: 'Archive', count: archiveTickets.length },
+        ].map((b) => (
+          <button
+            key={b.key}
+            onClick={() => setBucket(b.key)}
+            className={`px-3 py-1.5 text-sm font-medium rounded-t-md transition-colors ${
+              bucket === b.key
+                ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
+                : 'text-content-muted hover:text-content-secondary'
+            }`}
+          >
+            {b.label}
+            <span className="ml-1.5 text-xs text-content-faint">({b.count})</span>
+          </button>
+        ))}
       </div>
 
       {/* Filter bar + new button */}
@@ -91,25 +133,45 @@ export default function TicketsTab() {
               <div key={i} className="h-16 bg-surface-secondary rounded-xl" />
             ))}
           </div>
-        ) : !listQ.data?.tickets?.length ? (
+        ) : !visibleTickets.length ? (
           <div className="bg-surface-card rounded-xl border border-border p-8 text-center text-content-muted">
-            No tickets yet. Click &quot;+ New Ticket&quot; to report a bug or request a feature.
+            {bucket === 'active'
+              ? 'No active tickets. Click "+ New Ticket" to report a bug or request a feature.'
+              : 'No archived tickets yet. Resolved tickets without outstanding caveats appear here.'}
           </div>
         ) : (
-          listQ.data.tickets.map((ticket) => (
+          visibleTickets.map((ticket) => {
+            const isUnread = hasUnreadActivity(ticket);
+            return (
             <div
               key={ticket.id}
-              onClick={() => setSelectedId(ticket.id)}
-              className="bg-surface-card rounded-xl border border-border p-4 hover:bg-surface-hover cursor-pointer transition-colors"
+              onClick={() => {
+                setSelectedId(ticket.id);
+                markTicketSeen(ticket.id, ticket._count?.comments ?? 0);
+              }}
+              className={`bg-surface-card rounded-xl border p-4 hover:bg-surface-hover cursor-pointer transition-colors ${
+                isUnread ? 'border-blue-400 dark:border-blue-600 ring-1 ring-blue-200 dark:ring-blue-800' : 'border-border'
+              }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 min-w-0">
+                  {isUnread && (
+                    <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" title="New activity since you last viewed" />
+                  )}
                   <span className={`px-2 py-0.5 text-xs font-medium rounded border ${typeBadge[ticket.type]}`}>
                     {typeLabel[ticket.type]}
                   </span>
                   <span className="text-sm font-medium text-content-primary truncate">
                     {ticket.title}
                   </span>
+                  {ticket.hasCaveat && (
+                    <span
+                      className="px-2 py-0.5 text-[10px] font-semibold rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+                      title="Has a follow-up caveat from the Claude AI triage — see the comments"
+                    >
+                      FOLLOW-UP
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 shrink-0 ml-3">
                   <span className={`px-2 py-0.5 text-xs rounded ${priorityBadge[ticket.priority]}`}>
@@ -131,7 +193,8 @@ export default function TicketsTab() {
                 )}
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
 

@@ -52,16 +52,33 @@ export const ticketsRouter = router({
         include: {
           createdBy: { select: { id: true, name: true, email: true, avatarUrl: true } },
           _count: { select: { comments: true } },
+          // Derived: 1 matching comment means this ticket has an outstanding caveat /
+          // follow-up note, even though it's marked RESOLVED. Used by the UI to keep
+          // caveat'd tickets in the Active tab instead of Archive.
+          comments: {
+            where: { content: { startsWith: 'Caveat' } },
+            select: { id: true },
+            take: 1,
+          },
+          // Timestamp of the most recent comment — used by the notification badge so
+          // we can tell the user when new activity has appeared since they last viewed.
         },
       });
 
+      // Flatten: expose hasCaveat as a scalar and drop the raw comments array.
+      const shaped = tickets.map((t) => ({
+        ...t,
+        hasCaveat: Array.isArray(t.comments) && t.comments.length > 0,
+        comments: undefined,
+      }));
+
       let nextCursor = undefined;
-      if (tickets.length > limit) {
-        const next = tickets.pop();
+      if (shaped.length > limit) {
+        const next = shaped.pop();
         nextCursor = next.id;
       }
 
-      return { tickets, nextCursor };
+      return { tickets: shaped, nextCursor };
     }),
 
   get: protectedProcedure

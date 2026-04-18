@@ -9,6 +9,7 @@ import { Avatar } from '@/components/ui';
 import { AccountProvider } from '@/lib/account-context';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { getVisibleTabs, canAccessHub } from '@/lib/permissions';
+import { useUnreadTicketCount } from '@/lib/ticket-notifications';
 
 const tabs = [
   { key: "/intelligence", label: "Intelligence", icon: "🧠" },
@@ -48,6 +49,12 @@ export default function DashboardLayout({ children }) {
   const userRole = session?.user?.role || 'INTERNAL';
   const visibleTabs = getVisibleTabs(userRole, tabs);
   const showHubLink = canAccessHub(userRole);
+
+  // Count tickets authored by the current user that have new activity since
+  // they last opened them. Drives the red dot on the Admin nav link.
+  const { unreadCount: unreadTickets } = useUnreadTicketCount({
+    currentUserId: session?.user?.id,
+  });
 
   /** Check if this tab href matches the current route */
   const isActive = (href) => {
@@ -109,6 +116,7 @@ export default function DashboardLayout({ children }) {
           <div className="border-t border-border-secondary mb-1" />
           {visibleTabs.map((tab) => {
             const active = isActive(tab.key);
+            const showBadge = tab.key === '/admin' && unreadTickets > 0;
             return (
               <Link
                 key={tab.key}
@@ -120,7 +128,15 @@ export default function DashboardLayout({ children }) {
                 }`}
               >
                 <span className="text-base">{tab.icon}</span>
-                {tab.label}
+                <span className="flex-1">{tab.label}</span>
+                {showBadge && (
+                  <span
+                    className="min-w-[1.25rem] h-5 px-1.5 rounded-full bg-blue-600 text-white text-[10px] font-semibold flex items-center justify-center"
+                    title={`${unreadTickets} ticket${unreadTickets === 1 ? '' : 's'} with new activity`}
+                  >
+                    {unreadTickets}
+                  </span>
+                )}
               </Link>
             );
           })}
