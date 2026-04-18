@@ -185,6 +185,10 @@ export async function GET(request) {
     });
 
     // ── 3. Competitor Deep-Dive Audit ──
+    // maxTokens bumped from 3000 → 8000 because the prior limit was truncating the
+    // JSON response mid-object for 8-competitor audits. Sonnet's output stopped
+    // before the closing fence, parseAIJSON fell back to { raw } and the Intelligence
+    // card rendered empty (ticket cmo3k3mve). 8000 fits the full schema with headroom.
     const auditContent = await generateInsight(
       'cron/x-competitor-audit',
       buildCompetitorAuditPrompt({
@@ -197,7 +201,7 @@ export async function GET(request) {
       }),
       {
         model: 'claude-sonnet-4-20250514',
-        maxTokens: 3000,
+        maxTokens: 8000,
         systemPrompt: COMPETITOR_AUDIT_SYSTEM_PROMPT,
       },
     );

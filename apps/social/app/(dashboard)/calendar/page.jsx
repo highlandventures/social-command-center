@@ -76,6 +76,12 @@ export default function CalendarPage() {
         const st = (p.status || '').toLowerCase();
         if (st !== statusFilter) return false;
       }
+      // Drop X retweets — they're superfluous on the calendar (per ticket
+      // cmo3ktvde: "Do not need to include retweets"). X stores RTs with a
+      // leading "RT @" in the content field; the planner has no separate
+      // `isRetweet` column yet, so we detect by prefix. Quote-tweets are
+      // kept because their content doesn't start with "RT @".
+      if (p.platform === 'X' && /^RT @/i.test((p.content || '').trimStart())) return false;
       return true;
     });
   }, [allPosts, hideTestAccounts, testAccountIds, focusAccountId, contentTypeFilter, statusFilter]);

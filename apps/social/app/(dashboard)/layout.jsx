@@ -15,7 +15,10 @@ const tabs = [
   { key: "/intelligence", label: "Intelligence", icon: "🧠" },
   { key: "/dashboard", label: "Dashboard", icon: "\uD83D\uDCCA" },
   { key: "/composer", label: "Composer", icon: "\u270F\uFE0F" },
-  { key: "/reviews", label: "L&C Reviews", icon: "\uD83D\uDEE1\uFE0F" },
+  // L&C Reviews moved to the Marketing Hub as a standalone module — see ticket
+  // cmo3kd51l. The /reviews route stays reachable by URL (Composer still submits
+  // for review via the "Request L&C Review" checkbox) but is no longer
+  // surfaced in the Social Command sidebar.
   { key: "/calendar", label: "Calendar", icon: "\uD83D\uDCC5" },
   { key: "/listening", label: "Social Listening", icon: "\uD83D\uDC42" },
   { key: "/kol", label: "KOL Tracking", icon: "\uD83C\uDF1F" },

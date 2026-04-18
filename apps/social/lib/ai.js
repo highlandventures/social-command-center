@@ -107,6 +107,77 @@ function parseAIJSON(text) {
     }
   }
 
-  // 4. Fallback — return raw text so the caller can still display something
+  // 4. Salvage a truncated response. Common pattern: AI hit max_tokens mid-JSON,
+  //    so there's an unclosed fence and unbalanced braces. Strip the leading
+  //    fence, tally the unclosed brackets, and append closers in reverse order.
+  //    Lets the UI render whatever structured data made it through instead of
+  //    showing an empty card (see ticket cmo3k3mve).
+  try {
+    const salvage = salvageTruncatedJSON(text);
+    if (salvage) return salvage;
+  } catch {
+    // salvage is best-effort; fall through to raw.
+  }
+
+  // 5. Fallback — return raw text so the caller can still display something
   return { raw: text };
+}
+
+function salvageTruncatedJSON(text) {
+  // Strip leading ```json or ``` fence.
+  let body = text.trim();
+  const fenceStart = body.match(/^```(?:json)?\s*\n?/);
+  if (fenceStart) body = body.slice(fenceStart[0].length);
+  // If there's a trailing fence somewhere, truncate at it.
+  const trailingFence = body.lastIndexOf('```');
+  if (trailingFence !== -1) body = body.slice(0, trailingFence);
+
+  body = body.trim();
+  if (!body.startsWith('{') && !body.startsWith('[')) return null;
+
+  // Walk forward to find the last position where the JSON was structurally sound
+  // (depth > 0, not mid-string, last character was a `,`|`}`|`]`|`"`). Then
+  // drop trailing commas and balance open brackets so JSON.parse succeeds.
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  const stack = []; // track which bracket type was opened
+
+  for (let i = 0; i < body.length; i++) {
+    const ch = body[i];
+    if (escape) { escape = false; continue; }
+    if (ch === '\\' && inString) { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{' || ch === '[') { depth++; stack.push(ch); continue; }
+    if (ch === '}' || ch === ']') { depth--; stack.pop(); continue; }
+  }
+
+  // Cut off any incomplete key/value after the last well-formed element.
+  let trimmed = body.replace(/[\s,]*$/, '');
+  // If we're mid-string, drop the unterminated piece.
+  if (inString) {
+    const lastQuote = trimmed.lastIndexOf('"');
+    const prevQuote = trimmed.lastIndexOf('"', lastQuote - 1);
+    if (prevQuote !== -1) trimmed = trimmed.slice(0, prevQuote).replace(/[\s,:]*$/, '');
+  }
+  // Drop a dangling key with no value (e.g. `"foo":` at end).
+  trimmed = trimmed.replace(/,\s*"[^"]*"\s*:\s*$/, '');
+  trimmed = trimmed.replace(/\s*"[^"]*"\s*:\s*$/, '');
+
+  // Close remaining open brackets in LIFO order.
+  for (let i = stack.length - 1; i >= 0; i--) {
+    trimmed += stack[i] === '{' ? '}' : ']';
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    // Mark salvaged so the UI can annotate if it wants.
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      parsed._truncated = true;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
 }

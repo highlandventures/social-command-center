@@ -200,8 +200,10 @@ export default function GtmCalendarPage() {
                             {dateStr}
                           </span>
 
-                          {/* Type pill */}
-                          <span className={`text-[10px] uppercase font-medium border rounded-full px-1.5 py-0.5 w-[60px] text-center shrink-0 opacity-70 ${pill}`}>
+                          {/* Type pill — width fits the longest label (ACTIVATION) so
+                              none of the uppercase text spills past the pill border at
+                              narrow viewports (ticket cmo3kwtps). */}
+                          <span className={`text-[10px] uppercase font-medium border rounded-full px-2 py-0.5 w-[76px] text-center shrink-0 whitespace-nowrap opacity-70 ${pill}`}>
                             {typeLabels[m.type] || m.type}
                           </span>
 

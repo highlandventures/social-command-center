@@ -51,11 +51,24 @@ export const postsRouter = router({
         where.content = { not: { startsWith: '@' } };
       }
 
+      // Status-aware ordering. Previously everything sorted by createdAt (when the
+      // draft was first saved), which made "Recently Published" look frozen — a
+      // post drafted months ago but just published would sit far down the list.
+      // Now: published → order by publishedAt (actual go-live time), scheduled →
+      // by scheduledFor ascending (next upcoming first), everything else keeps the
+      // createdAt default.
+      const orderBy =
+        status === 'PUBLISHED'
+          ? [{ publishedAt: 'desc' }, { createdAt: 'desc' }]
+          : status === 'SCHEDULED'
+          ? [{ scheduledFor: 'asc' }, { createdAt: 'asc' }]
+          : { createdAt: 'desc' };
+
       const posts = await prisma.post.findMany({
         where,
         take: limit + 1,
         ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         include: {
           account: {
             select: { id: true, platform: true, username: true, displayName: true, avatarUrl: true },
