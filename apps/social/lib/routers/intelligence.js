@@ -12,6 +12,8 @@
 import { z } from 'zod';
 import { router, protectedProcedure } from '../trpc';
 import { generateWeeklyBriefing } from '../intelligence-engine';
+import { createWithArtifact, updateArtifactFromModule } from '../artifacts/create';
+import { ARTIFACT_MODULE, ARTIFACT_TYPE } from '../artifacts/types';
 
 function getMonday(date) {
   const d = new Date(date);
@@ -113,10 +115,16 @@ export const intelligenceRouter = router({
         data.status = 'SNOOZED';
         data.snoozedUntil = input.snoozedUntil;
       }
-      return prisma.intelligenceTask.update({
+      const updated = await prisma.intelligenceTask.update({
         where: { id: input.id },
         data,
       });
+      await updateArtifactFromModule(prisma, {
+        prismaModel: 'intelligenceTask',
+        entityId: input.id,
+        patch: data,
+      });
+      return updated;
     }),
 
   /**
@@ -172,15 +180,25 @@ export const intelligenceRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { prisma } = ctx;
-      return prisma.intelligenceTask.create({
-        data: {
-          title: input.title,
-          description: input.description,
-          sourceType: 'MANUAL',
-          priority: input.priority || 'MEDIUM',
-          priorityScore: input.priority === 'CRITICAL' ? 90 : input.priority === 'HIGH' ? 70 : input.priority === 'LOW' ? 20 : 50,
-          dueDate: input.dueDate,
-        },
+      const { moduleRow } = await createWithArtifact(prisma, {
+        module: ARTIFACT_MODULE.HUB,
+        type: ARTIFACT_TYPE.TASK,
+        prismaModel: 'intelligenceTask',
+        title: input.title,
+        ownerId: null, // IntelligenceTask has assignedRole, not assignedUserId
+        status: 'PENDING',
+        moduleCreate: (tx) =>
+          tx.intelligenceTask.create({
+            data: {
+              title: input.title,
+              description: input.description,
+              sourceType: 'MANUAL',
+              priority: input.priority || 'MEDIUM',
+              priorityScore: input.priority === 'CRITICAL' ? 90 : input.priority === 'HIGH' ? 70 : input.priority === 'LOW' ? 20 : 50,
+              dueDate: input.dueDate,
+            },
+          }),
       });
+      return moduleRow;
     }),
 });

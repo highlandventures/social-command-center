@@ -65,13 +65,14 @@ export async function computeBenchmarkDeltas(coveragePeriod, benchmarkPeriod) {
     fetchPeriodData(benchmarkPeriod.start, benchmarkPeriod.end),
   ]);
 
-  const currentKpis = calculateKPIs(
+  // calculateKPIs returns { kpis, channelBreakdown } — destructure to the flat array
+  const { kpis: currentKpis } = calculateKPIs(
     currentData.posts,
     currentData.accountMetrics,
     currentData.listeningHits
   );
 
-  const previousKpis = calculateKPIs(
+  const { kpis: previousKpis } = calculateKPIs(
     previousData.posts,
     previousData.accountMetrics,
     previousData.listeningHits

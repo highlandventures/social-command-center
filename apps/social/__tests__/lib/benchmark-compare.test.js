@@ -84,7 +84,9 @@ describe('computeBenchmarkDeltas', () => {
   let computeBenchmarkDeltas;
   let prisma;
 
-  // Sample posts with metrics for testing
+  // Sample posts with metrics for testing.
+  // Phase 17-03: weighted-avg formula uses `engagements`, so derive it from
+  // impressions * engRate/100 to keep the test stable.
   const mockPosts = (impressions, engRate) => [
     {
       id: 'p-1',
@@ -92,7 +94,14 @@ describe('computeBenchmarkDeltas', () => {
       contentType: 'POST',
       status: 'PUBLISHED',
       publishedAt: new Date('2026-03-10'),
-      metrics: [{ impressions, engagementRate: engRate, fetchedAt: new Date() }],
+      metrics: [
+        {
+          impressions,
+          engagements: Math.round((impressions * engRate) / 100),
+          engagementRate: engRate,
+          fetchedAt: new Date(),
+        },
+      ],
     },
   ];
 
@@ -127,7 +136,7 @@ describe('computeBenchmarkDeltas', () => {
     );
 
     expect(result.kpis).toBeDefined();
-    expect(result.kpis.length).toBe(5);
+    expect(result.kpis.length).toBe(6);
     expect(result.benchmarkPeriod).toBeDefined();
 
     // Impressions: 1000 vs 500 = 100% up

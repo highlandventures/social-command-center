@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { router, protectedProcedure } from '../trpc';
 import { extractReportParams } from '../adhoc/param-extractor';
 import { generateEnrichedReport } from '../report-engine';
+import { createWithArtifact } from '../artifacts/create';
+import { ARTIFACT_MODULE, ARTIFACT_TYPE } from '../artifacts/types';
 
 export const adhocReportsRouter = router({
   /**
@@ -130,23 +132,34 @@ export const adhocReportsRouter = router({
           benchmarkPeriod: null,
         });
 
-        // Create Report record
-        const savedReport = await ctx.prisma.report.create({
-          data: {
-            title: reportParams.title || `Ad Hoc Report - ${new Date().toLocaleDateString()}`,
-            reportType: reportParams.reportType === 'WEEKLY_PERFORMANCE' ||
-                        reportParams.reportType === 'MONTHLY_SUMMARY' ||
-                        reportParams.reportType === 'COMPETITIVE_ANALYSIS' ||
-                        reportParams.reportType === 'KOL_REPORT'
-              ? reportParams.reportType
-              : 'CUSTOM',
-            content: report.content || {},
-            chartUrls: report.chartUrls || [],
-            coveragePeriod: { start: reportParams.dateStart, end: reportParams.dateEnd },
-            aiPct: 100,
-            createdById: ctx.user.id,
-            status: 'READY',
-          },
+        // Create Report record + artifact row
+        const reportTitle = reportParams.title || `Ad Hoc Report - ${new Date().toLocaleDateString()}`;
+        const resolvedReportType = reportParams.reportType === 'WEEKLY_PERFORMANCE' ||
+                    reportParams.reportType === 'MONTHLY_SUMMARY' ||
+                    reportParams.reportType === 'COMPETITIVE_ANALYSIS' ||
+                    reportParams.reportType === 'KOL_REPORT'
+          ? reportParams.reportType
+          : 'CUSTOM';
+        const { moduleRow: savedReport } = await createWithArtifact(ctx.prisma, {
+          module: ARTIFACT_MODULE.SOCIAL,
+          type: ARTIFACT_TYPE.REPORT,
+          prismaModel: 'report',
+          title: reportTitle,
+          ownerId: ctx.user.id,
+          status: 'READY',
+          moduleCreate: (tx) =>
+            tx.report.create({
+              data: {
+                title: reportTitle,
+                reportType: resolvedReportType,
+                content: report.content || {},
+                chartUrls: report.chartUrls || [],
+                coveragePeriod: { start: reportParams.dateStart, end: reportParams.dateEnd },
+                aiPct: 100,
+                createdById: ctx.user.id,
+                status: 'READY',
+              },
+            }),
         });
 
         // Link report and set READY
@@ -200,22 +213,33 @@ export const adhocReportsRouter = router({
           benchmarkPeriod: null,
         });
 
-        const savedReport = await ctx.prisma.report.create({
-          data: {
-            title: params.title || `Ad Hoc Re-run - ${new Date().toLocaleDateString()}`,
-            reportType: params.reportType === 'WEEKLY_PERFORMANCE' ||
-                        params.reportType === 'MONTHLY_SUMMARY' ||
-                        params.reportType === 'COMPETITIVE_ANALYSIS' ||
-                        params.reportType === 'KOL_REPORT'
-              ? params.reportType
-              : 'CUSTOM',
-            content: report.content || {},
-            chartUrls: report.chartUrls || [],
-            coveragePeriod: { start: params.dateStart, end: params.dateEnd },
-            aiPct: 100,
-            createdById: ctx.user.id,
-            status: 'READY',
-          },
+        const rerunTitle = params.title || `Ad Hoc Re-run - ${new Date().toLocaleDateString()}`;
+        const rerunReportType = params.reportType === 'WEEKLY_PERFORMANCE' ||
+                    params.reportType === 'MONTHLY_SUMMARY' ||
+                    params.reportType === 'COMPETITIVE_ANALYSIS' ||
+                    params.reportType === 'KOL_REPORT'
+          ? params.reportType
+          : 'CUSTOM';
+        const { moduleRow: savedReport } = await createWithArtifact(ctx.prisma, {
+          module: ARTIFACT_MODULE.SOCIAL,
+          type: ARTIFACT_TYPE.REPORT,
+          prismaModel: 'report',
+          title: rerunTitle,
+          ownerId: ctx.user.id,
+          status: 'READY',
+          moduleCreate: (tx) =>
+            tx.report.create({
+              data: {
+                title: rerunTitle,
+                reportType: rerunReportType,
+                content: report.content || {},
+                chartUrls: report.chartUrls || [],
+                coveragePeriod: { start: params.dateStart, end: params.dateEnd },
+                aiPct: 100,
+                createdById: ctx.user.id,
+                status: 'READY',
+              },
+            }),
         });
 
         await ctx.prisma.adHocReport.update({

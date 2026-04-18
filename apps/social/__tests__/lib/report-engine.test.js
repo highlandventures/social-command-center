@@ -92,21 +92,28 @@ describe('report-engine', () => {
   });
 
   describe('calculateKPIs', () => {
-    it('returns 5 KPI objects with correct labels from sample data', () => {
-      const kpis = calculateKPIs(samplePosts, sampleAccountMetrics, sampleListeningHits);
+    it('returns 6 KPI objects with correct labels from sample data', () => {
+      const { kpis } = calculateKPIs(samplePosts, sampleAccountMetrics, sampleListeningHits);
 
-      expect(kpis).toHaveLength(5);
+      expect(kpis).toHaveLength(6);
       expect(kpis.map((k) => k.label)).toEqual([
         'Impressions',
         'Engagement Rate',
         'Follower Growth',
         'Top Post',
         'Sentiment',
+        'Profile Visits',
       ]);
     });
 
+    it('also returns a channelBreakdown alongside the flat KPIs', () => {
+      const result = calculateKPIs(samplePosts, sampleAccountMetrics, sampleListeningHits);
+      expect(result).toHaveProperty('kpis');
+      expect(result).toHaveProperty('channelBreakdown');
+    });
+
     it('correctly calculates total impressions', () => {
-      const kpis = calculateKPIs(samplePosts, sampleAccountMetrics, sampleListeningHits);
+      const { kpis } = calculateKPIs(samplePosts, sampleAccountMetrics, sampleListeningHits);
       const impressions = kpis.find((k) => k.label === 'Impressions');
 
       // 5000 + 3000 + 2000 = 10000
@@ -115,7 +122,7 @@ describe('report-engine', () => {
     });
 
     it('correctly calculates average engagement rate', () => {
-      const kpis = calculateKPIs(samplePosts, sampleAccountMetrics, sampleListeningHits);
+      const { kpis } = calculateKPIs(samplePosts, sampleAccountMetrics, sampleListeningHits);
       const engRate = kpis.find((k) => k.label === 'Engagement Rate');
 
       // (4.0 + 5.0 + 4.0) / 3 = 4.33
@@ -124,7 +131,7 @@ describe('report-engine', () => {
     });
 
     it('correctly calculates follower growth delta', () => {
-      const kpis = calculateKPIs(samplePosts, sampleAccountMetrics, sampleListeningHits);
+      const { kpis } = calculateKPIs(samplePosts, sampleAccountMetrics, sampleListeningHits);
       const followerGrowth = kpis.find((k) => k.label === 'Follower Growth');
 
       // 10250 - 10000 = 250
@@ -133,7 +140,7 @@ describe('report-engine', () => {
     });
 
     it('identifies the top post by engagement rate', () => {
-      const kpis = calculateKPIs(samplePosts, sampleAccountMetrics, sampleListeningHits);
+      const { kpis } = calculateKPIs(samplePosts, sampleAccountMetrics, sampleListeningHits);
       const topPost = kpis.find((k) => k.label === 'Top Post');
 
       // post-2 has 5.0% engagement rate (highest)
@@ -143,7 +150,7 @@ describe('report-engine', () => {
     });
 
     it('correctly calculates sentiment score', () => {
-      const kpis = calculateKPIs(samplePosts, sampleAccountMetrics, sampleListeningHits);
+      const { kpis } = calculateKPIs(samplePosts, sampleAccountMetrics, sampleListeningHits);
       const sentiment = kpis.find((k) => k.label === 'Sentiment');
 
       // 2 positive out of 5 total = 40%
@@ -152,9 +159,9 @@ describe('report-engine', () => {
     });
 
     it('returns graceful defaults when input arrays are empty', () => {
-      const kpis = calculateKPIs([], [], []);
+      const { kpis } = calculateKPIs([], [], []);
 
-      expect(kpis).toHaveLength(5);
+      expect(kpis).toHaveLength(6);
       const impressions = kpis.find((k) => k.label === 'Impressions');
       expect(impressions.value).toBe(0);
 
@@ -176,8 +183,8 @@ describe('report-engine', () => {
         { id: 'p1', content: 'Hello', contentType: 'POST', metrics: [] },
         { id: 'p2', content: 'World', contentType: 'POST', metrics: [null] },
       ];
-      const kpis = calculateKPIs(postsNoMetrics, [], []);
-      expect(kpis).toHaveLength(5);
+      const { kpis } = calculateKPIs(postsNoMetrics, [], []);
+      expect(kpis).toHaveLength(6);
       expect(kpis.find((k) => k.label === 'Impressions').value).toBe(0);
     });
   });
@@ -256,16 +263,22 @@ describe('report-engine', () => {
         findMany: vi.fn().mockResolvedValue(sampleListeningHits),
       };
 
-      // Setup AI mock to return enriched content
+      // Setup AI mock to return enriched content (matches new report-engine contract:
+      // executiveSummary is an array, sentimentDeepDives replaces sentimentThemes,
+      // opportunities replaces recommendations)
       generateInsight.mockResolvedValue({
-        executiveSummary: 'Strong week with 10K impressions and 4.3% engagement rate.',
-        sentimentThemes: {
-          positive: [{ theme: 'Product quality', detail: 'Users love the product', volume: 2 }],
-          negative: [{ theme: 'Service issues', detail: 'Some complaints about support', volume: 1 }],
-          emerging: [{ topic: 'New feature interest', signals: 'Growing mentions of upcoming launch' }],
+        executiveSummary: ['Strong week with 10K impressions and 4.3% engagement rate.'],
+        channelPerformance: {
+          owned: { impressions: 10000, engagementRate: 4.3, deltaWoW: null, topPost: 'Thread', narrative: 'Strong owned channel week.' },
+          partner: { impressions: 0, engagementRate: 0, deltaWoW: null, topPost: '', narrative: 'No partner activity.' },
+          external: { impressions: 0, engagementRate: 0, deltaWoW: null, narrative: 'No external signals.' },
         },
-        recommendations: [
-          { recommendation: 'Increase thread content', priority: 'HIGH', expectedImpact: 'Higher engagement' },
+        sentimentDeepDives: [
+          { thread: 'Product quality', sentiment: 'POSITIVE', keyTakeaways: ['Users love the product'], source: 'X' },
+          { thread: 'Service issues', sentiment: 'NEGATIVE', keyTakeaways: ['Some complaints about support'], source: 'Reddit' },
+        ],
+        opportunities: [
+          { opportunity: 'Increase thread content', priority: 'HIGH', expectedImpact: 'Higher engagement' },
         ],
         topContent: [
           { title: 'Thread about quarterly earnings', engagementRate: 5.0, impressions: 3000 },
@@ -285,7 +298,7 @@ describe('report-engine', () => {
       });
 
       // Should have KPIs
-      expect(result.kpis).toHaveLength(5);
+      expect(result.kpis).toHaveLength(6);
       expect(result.kpis[0].label).toBe('Impressions');
 
       // Should have executive summary from AI
@@ -310,7 +323,7 @@ describe('report-engine', () => {
 
       // KPIs should have delta and direction fields when benchmarkPeriod is provided
       // The specific values depend on mock data for both periods
-      expect(result.kpis).toHaveLength(5);
+      expect(result.kpis).toHaveLength(6);
       // At minimum, delta fields should be present on numeric KPIs
       const impressionsKPI = result.kpis.find((k) => k.label === 'Impressions');
       expect(impressionsKPI).toHaveProperty('delta');
@@ -340,11 +353,14 @@ describe('report-engine', () => {
       // The AI context should be limited -- check generateInsight was called with bounded data
       expect(generateInsight).toHaveBeenCalledOnce();
       const aiContext = generateInsight.mock.calls[0][1];
-      // Top posts should be capped at 5
-      expect(aiContext.topPosts.length).toBeLessThanOrEqual(5);
+      // Top posts are now segmented by channel (owned/partner/external); each channel is capped at 3
+      expect(aiContext.topPostsByChannel).toBeDefined();
+      expect(aiContext.topPostsByChannel.owned.length).toBeLessThanOrEqual(3);
+      expect(aiContext.topPostsByChannel.partner.length).toBeLessThanOrEqual(3);
+      expect(aiContext.topPostsByChannel.external.length).toBeLessThanOrEqual(3);
     });
 
-    it('includes sentiment themes from AI response', async () => {
+    it('includes sentiment deep-dives from AI response', async () => {
       const result = await generateEnrichedReport({
         reportType: 'WEEKLY_PERFORMANCE',
         dateStart: new Date('2026-03-08'),
@@ -352,10 +368,11 @@ describe('report-engine', () => {
         benchmarkPeriod: null,
       });
 
-      expect(result.sentimentThemes).toBeTruthy();
-      expect(result.sentimentThemes.positive).toHaveLength(1);
-      expect(result.sentimentThemes.negative).toHaveLength(1);
-      expect(result.sentimentThemes.emerging).toHaveLength(1);
+      expect(result.sentimentDeepDives).toBeDefined();
+      expect(Array.isArray(result.sentimentDeepDives)).toBe(true);
+      expect(result.sentimentDeepDives.length).toBe(2);
+      expect(result.sentimentDeepDives[0].sentiment).toBe('POSITIVE');
+      expect(result.sentimentDeepDives[1].sentiment).toBe('NEGATIVE');
     });
 
     it('accepts arbitrary date ranges for ad hoc reports (CUSTOM type)', async () => {
@@ -367,7 +384,7 @@ describe('report-engine', () => {
       });
 
       // Should still produce valid content
-      expect(result.kpis).toHaveLength(5);
+      expect(result.kpis).toHaveLength(6);
       expect(result.executiveSummary).toBeTruthy();
       expect(result.coveragePeriod.start).toBeTruthy();
     });

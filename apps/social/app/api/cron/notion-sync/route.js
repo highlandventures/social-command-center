@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { updateArtifactFromModule } from '@/lib/artifacts/create';
 
 /**
  * GET /api/cron/notion-sync
@@ -175,6 +176,13 @@ export async function PATCH(request) {
         await prisma.notionTaskInbox.update({
           where: { id: existing.id },
           data,
+        });
+        // Mirror status changes onto the artifact row so hub.* reads see the
+        // latest L&C-driven state. Silent no-op for rows without artifactId.
+        await updateArtifactFromModule(prisma, {
+          prismaModel: 'notionTaskInbox',
+          entityId: existing.id,
+          patch: data,
         });
         updated++;
       }

@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { router, protectedProcedure, internalProcedure } from '../trpc';
+import { createWithArtifact, updateArtifactFromModule } from '../artifacts/create';
+import { ARTIFACT_MODULE, ARTIFACT_TYPE } from '../artifacts/types';
 
 export const gtmProjectsRouter = router({
   /**
@@ -76,22 +78,36 @@ export const gtmProjectsRouter = router({
         startDate: z.string(),
         endDate: z.string(),
         googleDocUrl: z.string().url().optional(),
+        // Signal the artifact type to be CAMPAIGN instead of PROJECT.
+        // The GtmProject row itself is unchanged — only the artifact's `type`
+        // differs. Admins can also flip this later via hub.updateArtifact.
+        isCampaign: z.boolean().default(false),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return ctx.prisma.gtmProject.create({
-        data: {
-          name: input.name,
-          description: input.description ?? null,
-          category: input.category,
-          aiCategory: input.aiCategory ?? null,
-          status: input.status,
-          ownerId: ctx.user.id,
-          startDate: new Date(input.startDate),
-          endDate: new Date(input.endDate),
-          googleDocUrl: input.googleDocUrl ?? null,
-        },
+      const { moduleRow } = await createWithArtifact(ctx.prisma, {
+        module: ARTIFACT_MODULE.GTM,
+        type: input.isCampaign ? ARTIFACT_TYPE.CAMPAIGN : ARTIFACT_TYPE.PROJECT,
+        prismaModel: 'gtmProject',
+        title: input.name,
+        ownerId: ctx.user.id,
+        status: input.status,
+        moduleCreate: (tx) =>
+          tx.gtmProject.create({
+            data: {
+              name: input.name,
+              description: input.description ?? null,
+              category: input.category,
+              aiCategory: input.aiCategory ?? null,
+              status: input.status,
+              ownerId: ctx.user.id,
+              startDate: new Date(input.startDate),
+              endDate: new Date(input.endDate),
+              googleDocUrl: input.googleDocUrl ?? null,
+            },
+          }),
       });
+      return moduleRow;
     }),
 
   /**
@@ -144,7 +160,13 @@ export const gtmProjectsRouter = router({
         }
       }
 
-      return ctx.prisma.gtmProject.update({ where: { id }, data });
+      const updated = await ctx.prisma.gtmProject.update({ where: { id }, data });
+      await updateArtifactFromModule(ctx.prisma, {
+        prismaModel: 'gtmProject',
+        entityId: id,
+        patch: data,
+      });
+      return updated;
     }),
 
   /**

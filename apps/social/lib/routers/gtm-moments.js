@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { router, protectedProcedure, internalProcedure } from '../trpc';
+import { createWithArtifact, updateArtifactFromModule } from '../artifacts/create';
+import { ARTIFACT_MODULE, defaultTypeForModule } from '../artifacts/types';
 
 export const gtmMomentsRouter = router({
   /**
@@ -79,18 +81,45 @@ export const gtmMomentsRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return ctx.prisma.gtmMoment.create({
-        data: {
-          label: input.label,
-          type: input.type,
-          category: input.category ?? null,
-          projectId: input.projectId ?? null,
-          parentMomentId: input.parentMomentId ?? null,
-          date: input.date ? new Date(input.date) : null,
-          startDate: input.startDate ? new Date(input.startDate) : null,
-          endDate: input.endDate ? new Date(input.endDate) : null,
-        },
+      // Parent resolution: project wins when both projectId and parentMomentId are set.
+      let parentArtifactId = null;
+      if (input.projectId) {
+        const p = await ctx.prisma.gtmProject.findUnique({
+          where: { id: input.projectId },
+          select: { artifactId: true },
+        });
+        parentArtifactId = p?.artifactId ?? null;
+      } else if (input.parentMomentId) {
+        const pm = await ctx.prisma.gtmMoment.findUnique({
+          where: { id: input.parentMomentId },
+          select: { artifactId: true },
+        });
+        parentArtifactId = pm?.artifactId ?? null;
+      }
+
+      const { moduleRow } = await createWithArtifact(ctx.prisma, {
+        module: ARTIFACT_MODULE.GTM,
+        type: defaultTypeForModule({ prismaModel: 'gtmMoment', entity: { type: input.type } }),
+        prismaModel: 'gtmMoment',
+        title: input.label,
+        ownerId: null,
+        parentArtifactId,
+        status: null,
+        moduleCreate: (tx) =>
+          tx.gtmMoment.create({
+            data: {
+              label: input.label,
+              type: input.type,
+              category: input.category ?? null,
+              projectId: input.projectId ?? null,
+              parentMomentId: input.parentMomentId ?? null,
+              date: input.date ? new Date(input.date) : null,
+              startDate: input.startDate ? new Date(input.startDate) : null,
+              endDate: input.endDate ? new Date(input.endDate) : null,
+            },
+          }),
       });
+      return moduleRow;
     }),
 
   /**
@@ -123,7 +152,13 @@ export const gtmMomentsRouter = router({
       if (fields.startDate !== undefined) data.startDate = fields.startDate ? new Date(fields.startDate) : null;
       if (fields.endDate !== undefined) data.endDate = fields.endDate ? new Date(fields.endDate) : null;
 
-      return ctx.prisma.gtmMoment.update({ where: { id }, data });
+      const updated = await ctx.prisma.gtmMoment.update({ where: { id }, data });
+      await updateArtifactFromModule(ctx.prisma, {
+        prismaModel: 'gtmMoment',
+        entityId: id,
+        patch: data,
+      });
+      return updated;
     }),
 
   /**

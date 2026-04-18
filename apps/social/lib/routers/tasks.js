@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { router, protectedProcedure } from '../trpc';
+import { createWithArtifact, updateArtifactFromModule } from '../artifacts/create';
+import { ARTIFACT_MODULE, ARTIFACT_TYPE } from '../artifacts/types';
 
 export const tasksRouter = router({
   /**
@@ -81,16 +83,26 @@ export const tasksRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { prisma, user } = ctx;
-      return prisma.homeTask.create({
-        data: {
-          userId: user.id,
-          title: input.title,
-          description: input.description || null,
-          priority: input.priority,
-          dueDate: input.dueDate || null,
-          contactId: input.contactId || null,
-        },
+      const { moduleRow } = await createWithArtifact(prisma, {
+        module: ARTIFACT_MODULE.HUB,
+        type: ARTIFACT_TYPE.TASK,
+        prismaModel: 'homeTask',
+        title: input.title,
+        ownerId: user.id,
+        status: 'TODO',
+        moduleCreate: (tx) =>
+          tx.homeTask.create({
+            data: {
+              userId: user.id,
+              title: input.title,
+              description: input.description || null,
+              priority: input.priority,
+              dueDate: input.dueDate || null,
+              contactId: input.contactId || null,
+            },
+          }),
       });
+      return moduleRow;
     }),
 
   /**
@@ -128,7 +140,13 @@ export const tasksRouter = router({
         data.completedAt = null;
       }
 
-      return prisma.homeTask.update({ where: { id }, data });
+      const updated = await prisma.homeTask.update({ where: { id }, data });
+      await updateArtifactFromModule(prisma, {
+        prismaModel: 'homeTask',
+        entityId: id,
+        patch: data,
+      });
+      return updated;
     }),
 
   /**

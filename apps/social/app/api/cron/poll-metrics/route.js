@@ -21,13 +21,35 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { verifyCronAuth } from '@/lib/cron-auth';
 import { twitterApiIoRequest } from '@/lib/twitter-api';
+import { createWithArtifact } from '@/lib/artifacts/create';
+import { ARTIFACT_MODULE, ARTIFACT_TYPE } from '@/lib/artifacts/types';
 
 export const dynamic = 'force-dynamic';
 
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 const FORTY_EIGHT_HOURS_MS = 48 * 60 * 60 * 1000;
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
+// Phase 17-03 Task 3 — "Option D" threshold-gated 30d window.
+// Posts that went meaningfully viral keep accruing engagement past 7d, so we
+// continue polling them through 30d at a 24h cadence. Low-performers stop at
+// 7d to bound API cost. Threshold tunable here; revisit with production data.
+// See .planning/phases/17-artifact-graph-foundation/17-03-PLAN.md
+const HIGH_PERFORMER_IMPRESSIONS_THRESHOLD = 5000;
+
+function isHighPerformer(post) {
+  // `post.metrics` may arrive as the single most-recent snapshot OR the
+  // full series (when caller asks). Peak-of-impressions-seen is the signal.
+  if (!Array.isArray(post.metrics)) return false;
+  let peak = 0;
+  for (const m of post.metrics) {
+    if ((m?.impressions || 0) > peak) peak = m.impressions;
+  }
+  return peak >= HIGH_PERFORMER_IMPRESSIONS_THRESHOLD;
+}
 
 function shouldPollPost(post, now) {
   const postAgeMs = now.getTime() - new Date(post.publishedAt).getTime();
@@ -39,6 +61,9 @@ function shouldPollPost(post, now) {
   if (postAgeMs < TWO_HOURS_MS) return true;
   if (postAgeMs < FORTY_EIGHT_HOURS_MS) return true;
   if (postAgeMs < SEVEN_DAYS_MS) return timeSinceLastFetch > SIX_HOURS_MS;
+  if (postAgeMs < THIRTY_DAYS_MS) {
+    return isHighPerformer(post) && timeSinceLastFetch > TWENTY_FOUR_HOURS_MS;
+  }
   return false;
 }
 
@@ -52,11 +77,11 @@ export async function GET(request) {
     return NextResponse.json({ error: 'TWITTERAPI_IO_API_KEY not configured' }, { status: 500 });
   }
 
-  const results = { metricsFetched: 0, postsProcessed: 0, apiCalls: 0, followerSnapshots: 0, newPostsDiscovered: 0, errors: [] };
+  const results = { metricsFetched: 0, postsProcessed: 0, apiCalls: 0, followerSnapshots: 0, newPostsDiscovered: 0, fallbackFetches: 0, errors: [] };
 
   try {
     const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - SEVEN_DAYS_MS);
+    const thirtyDaysAgo = new Date(now.getTime() - THIRTY_DAYS_MS);
 
     // Get ALL active X accounts so we can snapshot followers for all of them,
     // not just accounts that happen to have recent posts.
@@ -64,17 +89,20 @@ export async function GET(request) {
       where: { isActive: true, platform: 'X' },
     });
 
+    // 30d window (was 7d). Posts 7–30d only poll via the high-performer gate
+    // inside shouldPollPost(). We pull the full metrics series so isHighPerformer
+    // can compute peak impressions without a second query.
     const publishedPosts = await prisma.post.findMany({
       where: {
         status: 'PUBLISHED',
         platformPostId: { not: null },
-        publishedAt: { gte: sevenDaysAgo },
+        publishedAt: { gte: thirtyDaysAgo },
       },
       include: {
         account: true,
         metrics: {
           orderBy: { fetchedAt: 'desc' },
-          take: 1,
+          take: 10,
         },
       },
     });
@@ -184,6 +212,7 @@ export async function GET(request) {
                 retweets,
                 replies,
                 bookmarks,
+                quotes,
                 engagementRate,
               },
             });
@@ -194,6 +223,28 @@ export async function GET(request) {
             console.error(`Error storing metrics for post ${post.id}:`, postError);
             results.errors.push({ postId: post.id, error: postError.message });
           }
+        }
+
+        // --- Per-tweet fallback fetch for 7–30d high-performers not in timeline ---
+        // The recent timeline (`last_tweets`) returns ~20 most recent tweets, so
+        // posts aged past ~1–2 weeks won't match. For high-performer posts still
+        // accruing impressions, fall back to a per-tweet lookup.
+        //
+        // TODO(phase-17-03): confirm the exact TwitterAPI.io per-tweet endpoint
+        // path (e.g. `/twitter/tweets?ids=...` or `/twitter/tweet/:id`) against
+        // https://twitterapi.io/docs or an existing call in the repo and
+        // implement the fetch below. Until then this is a logged no-op so the
+        // threshold-gated 7–30d window at least stops polling for cost control,
+        // even though the fallback update is deferred.
+        const needsFallback = posts.filter((p) => {
+          const ageMs = now.getTime() - new Date(p.publishedAt).getTime();
+          return ageMs > SEVEN_DAYS_MS && ageMs < THIRTY_DAYS_MS && !tweetMap[p.platformPostId] && isHighPerformer(p);
+        });
+        if (needsFallback.length > 0) {
+          console.log(
+            `[poll-metrics] ${needsFallback.length} high-performer post(s) aged 7–30d skipped pending per-tweet fallback endpoint (TODO phase-17-03)`,
+          );
+          results.fallbackFetches += 0; // bump to needsFallback.length once the fallback is wired.
         }
 
         // --- Discover new tweets not yet in the database ---
@@ -213,17 +264,26 @@ export async function GET(request) {
           if (!publishedAt || isNaN(publishedAt.getTime())) continue;
 
           try {
-            const newPost = await prisma.post.create({
-              data: {
-                accountId: account.id,
-                platform: 'X',
-                platformPostId: tweetId,
-                content: tweet.text,
-                contentType: 'POST',
-                status: 'PUBLISHED',
-                publishedAt,
-                createdById: systemUser.id,
-              },
+            const { moduleRow: newPost } = await createWithArtifact(prisma, {
+              module: ARTIFACT_MODULE.SOCIAL,
+              type: ARTIFACT_TYPE.POST,
+              prismaModel: 'post',
+              title: String(tweet.text).slice(0, 120),
+              ownerId: systemUser.id,
+              status: 'PUBLISHED',
+              moduleCreate: (tx) =>
+                tx.post.create({
+                  data: {
+                    accountId: account.id,
+                    platform: 'X',
+                    platformPostId: tweetId,
+                    content: tweet.text,
+                    contentType: 'POST',
+                    status: 'PUBLISHED',
+                    publishedAt,
+                    createdById: systemUser.id,
+                  },
+                }),
             });
 
             // Create initial metrics snapshot
@@ -246,6 +306,7 @@ export async function GET(request) {
                 retweets,
                 replies,
                 bookmarks,
+                quotes,
                 engagementRate,
               },
             });

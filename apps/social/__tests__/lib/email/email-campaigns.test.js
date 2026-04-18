@@ -20,6 +20,7 @@ const mockPrisma = {
     findMany: vi.fn(),
     findUniqueOrThrow: vi.fn(),
     create: vi.fn(),
+    update: vi.fn(),
     updateMany: vi.fn(),
     deleteMany: vi.fn(),
   },
@@ -29,6 +30,17 @@ const mockPrisma = {
   emailSend: {
     createMany: vi.fn(),
   },
+  artifact: {
+    create: vi.fn().mockResolvedValue({ id: 'art_mock' }),
+    findUnique: vi.fn(),
+    update: vi.fn(),
+  },
+  artifactRelationship: {
+    create: vi.fn(),
+  },
+  // createWithArtifact wraps writes in $transaction; the mock just invokes the
+  // callback with the same mock client so assertions still see all calls.
+  $transaction: vi.fn(async (fn) => fn(mockPrisma)),
 };
 
 describe('emailCampaignsRouter', () => {
@@ -98,7 +110,7 @@ describe('emailCampaignsRouter', () => {
   });
 
   describe('create', () => {
-    it('creates a DRAFT campaign with createdById', async () => {
+    it('creates a DRAFT campaign with createdById and an artifact row', async () => {
       const mockCampaign = { id: 'camp-new', name: 'New Campaign', status: 'DRAFT', createdById: 'user-1' };
       mockPrisma.emailCampaign.create.mockResolvedValue(mockCampaign);
 
@@ -108,7 +120,8 @@ describe('emailCampaignsRouter', () => {
         listId: 'list-1',
       });
 
-      expect(result).toEqual(mockCampaign);
+      // Router now returns moduleRow with artifactId appended by createWithArtifact
+      expect(result).toMatchObject({ ...mockCampaign, artifactId: 'art_mock' });
       expect(mockPrisma.emailCampaign.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           name: 'New Campaign',
@@ -116,6 +129,17 @@ describe('emailCampaignsRouter', () => {
           listId: 'list-1',
           status: 'DRAFT',
           createdById: 'user-1',
+        }),
+      });
+      // Artifact row written in the same transaction
+      expect(mockPrisma.artifact.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          module: 'EMAIL',
+          type: 'EMAIL',
+          entityId: 'camp-new',
+          ownerId: 'user-1',
+          title: 'New Campaign',
+          status: 'DRAFT',
         }),
       });
     });

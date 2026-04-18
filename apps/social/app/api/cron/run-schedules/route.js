@@ -9,6 +9,8 @@ import {
   computeDateRange,
   cadenceToReportType,
 } from '@/lib/scheduling/schedule-helpers';
+import { createWithArtifact } from '@/lib/artifacts/create';
+import { ARTIFACT_MODULE, ARTIFACT_TYPE } from '@/lib/artifacts/types';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 min for Pro plan
@@ -60,24 +62,34 @@ export async function GET(request) {
         benchmarkPeriod,
       });
 
-      // Save report record
-      const report = await prisma.report.create({
-        data: {
-          title: `${schedule.name} - ${now.toLocaleDateString()}`,
-          reportType,
-          content,
-          aiPct: 95,
-          createdById: schedule.createdById,
-          status: 'READY',
-          chartUrls:
-            content.charts?.map((c) => ({
-              id: c.id,
-              label: c.label,
-              imageUrl: c.imageUrl,
-            })) || [],
-          coveragePeriod: content.coveragePeriod,
-          benchmarkPeriod: content.benchmarkPeriod,
-        },
+      // Save report record + artifact row
+      const reportTitle = `${schedule.name} - ${now.toLocaleDateString()}`;
+      const { moduleRow: report } = await createWithArtifact(prisma, {
+        module: ARTIFACT_MODULE.SOCIAL,
+        type: ARTIFACT_TYPE.REPORT,
+        prismaModel: 'report',
+        title: reportTitle,
+        ownerId: schedule.createdById,
+        status: 'READY',
+        moduleCreate: (tx) =>
+          tx.report.create({
+            data: {
+              title: reportTitle,
+              reportType,
+              content,
+              aiPct: 95,
+              createdById: schedule.createdById,
+              status: 'READY',
+              chartUrls:
+                content.charts?.map((c) => ({
+                  id: c.id,
+                  label: c.label,
+                  imageUrl: c.imageUrl,
+                })) || [],
+              coveragePeriod: content.coveragePeriod,
+              benchmarkPeriod: content.benchmarkPeriod,
+            },
+          }),
       });
 
       // Email delivery if recipients configured
@@ -159,28 +171,39 @@ export async function GET(request) {
         benchmarkPeriod: null,
       });
 
-      const savedReport = await prisma.report.create({
-        data: {
-          title: `${params.title || 'Ad Hoc Snapshot'} - ${now.toLocaleDateString()}`,
-          reportType:
-            params.reportType === 'WEEKLY_PERFORMANCE' ||
-            params.reportType === 'MONTHLY_SUMMARY' ||
-            params.reportType === 'COMPETITIVE_ANALYSIS' ||
-            params.reportType === 'KOL_REPORT'
-              ? params.reportType
-              : 'CUSTOM',
-          content: report,
-          aiPct: 100,
-          createdById: adHoc.createdById,
-          status: 'READY',
-          chartUrls:
-            report.charts?.map((c) => ({
-              id: c.id,
-              label: c.label,
-              imageUrl: c.imageUrl,
-            })) || [],
-          coveragePeriod: { start: params.dateStart, end: params.dateEnd },
-        },
+      const snapshotTitle = `${params.title || 'Ad Hoc Snapshot'} - ${now.toLocaleDateString()}`;
+      const snapshotReportType =
+        params.reportType === 'WEEKLY_PERFORMANCE' ||
+        params.reportType === 'MONTHLY_SUMMARY' ||
+        params.reportType === 'COMPETITIVE_ANALYSIS' ||
+        params.reportType === 'KOL_REPORT'
+          ? params.reportType
+          : 'CUSTOM';
+      const { moduleRow: savedReport } = await createWithArtifact(prisma, {
+        module: ARTIFACT_MODULE.SOCIAL,
+        type: ARTIFACT_TYPE.REPORT,
+        prismaModel: 'report',
+        title: snapshotTitle,
+        ownerId: adHoc.createdById,
+        status: 'READY',
+        moduleCreate: (tx) =>
+          tx.report.create({
+            data: {
+              title: snapshotTitle,
+              reportType: snapshotReportType,
+              content: report,
+              aiPct: 100,
+              createdById: adHoc.createdById,
+              status: 'READY',
+              chartUrls:
+                report.charts?.map((c) => ({
+                  id: c.id,
+                  label: c.label,
+                  imageUrl: c.imageUrl,
+                })) || [],
+              coveragePeriod: { start: params.dateStart, end: params.dateEnd },
+            },
+          }),
       });
 
       // Compute next snapshot time

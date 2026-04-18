@@ -33,6 +33,7 @@ import { gtmOkrsRouter } from './gtm-okrs';
 import { gtmProductsRouter } from './gtm-products';
 import { teamRouter } from './team';
 import { contactsRouter } from './contacts';
+import { hubRouter } from './hub';
 
 export const appRouter = router({
   accounts: accountsRouter,
@@ -69,6 +70,7 @@ export const appRouter = router({
   gtmProducts: gtmProductsRouter,
   team: teamRouter,
   contacts: contactsRouter,
+  hub: hubRouter,
 });
 
 /** @typedef {typeof appRouter} AppRouter */

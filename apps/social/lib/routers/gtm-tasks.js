@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { router, protectedProcedure, internalProcedure } from '../trpc';
+import { createWithArtifact, updateArtifactFromModule } from '../artifacts/create';
+import { ARTIFACT_MODULE, ARTIFACT_TYPE } from '../artifacts/types';
 
 export const gtmTasksRouter = router({
   /**
@@ -71,16 +73,36 @@ export const gtmTasksRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return ctx.prisma.gtmTask.create({
-        data: {
-          projectId: input.projectId,
-          title: input.title,
-          priority: input.priority,
-          ownerId: input.ownerId ?? ctx.user.id,
-          contactId: input.contactId || null,
-          dueDate: input.dueDate ? new Date(input.dueDate) : null,
-        },
+      // Look up parent project's artifactId outside the tx so a missing parent
+      // doesn't abort the whole create.
+      const parent = await ctx.prisma.gtmProject.findUnique({
+        where: { id: input.projectId },
+        select: { artifactId: true },
       });
+      const parentArtifactId = parent?.artifactId ?? null;
+      const ownerId = input.ownerId ?? ctx.user.id;
+
+      const { moduleRow } = await createWithArtifact(ctx.prisma, {
+        module: ARTIFACT_MODULE.GTM,
+        type: ARTIFACT_TYPE.TASK,
+        prismaModel: 'gtmTask',
+        title: input.title,
+        ownerId,
+        parentArtifactId,
+        status: 'TODO',
+        moduleCreate: (tx) =>
+          tx.gtmTask.create({
+            data: {
+              projectId: input.projectId,
+              title: input.title,
+              priority: input.priority,
+              ownerId,
+              contactId: input.contactId || null,
+              dueDate: input.dueDate ? new Date(input.dueDate) : null,
+            },
+          }),
+      });
+      return moduleRow;
     }),
 
   /**
@@ -109,7 +131,13 @@ export const gtmTasksRouter = router({
       if (fields.contactId !== undefined) data.contactId = fields.contactId;
       if (fields.dueDate !== undefined) data.dueDate = fields.dueDate ? new Date(fields.dueDate) : null;
 
-      return ctx.prisma.gtmTask.update({ where: { id }, data });
+      const updated = await ctx.prisma.gtmTask.update({ where: { id }, data });
+      await updateArtifactFromModule(ctx.prisma, {
+        prismaModel: 'gtmTask',
+        entityId: id,
+        patch: data,
+      });
+      return updated;
     }),
 
   /**

@@ -9,6 +9,8 @@
  */
 
 import { prisma } from './db';
+import { createWithArtifact, updateArtifactFromModule } from './artifacts/create';
+import { ARTIFACT_MODULE, ARTIFACT_TYPE } from './artifacts/types';
 
 // ─── Schema (matches the Notion Task Inbox / Marketing Tasks databases) ─────
 
@@ -208,29 +210,38 @@ export async function createTask({
   shortcutTicketUrl,
   filedBy,
 }) {
-  const record = await prisma.notionTaskInbox.create({
-    data: {
-      userId,
-      title,
-      status: status || 'Not Started',
-      reviewPriority: reviewPriority || null,
-      due: due ? new Date(due) : null,
-      lcDueDate: lcDueDate ? new Date(lcDueDate) : null,
-      publishDate: publishDate ? new Date(publishDate) : null,
-      product: product || [],
-      channel: channel || [],
-      audience: audience || [],
-      socialChannel: socialChannel || [],
-      company: company || [],
-      geo: geo || [],
-      editorialReviewStage: editorialReviewStage || null,
-      needComplianceApproval: needComplianceApproval || false,
-      notes: notes || null,
-      summary: summary || null,
-      lexionUrl: lexionUrl || null,
-      shortcutTicketUrl: shortcutTicketUrl || null,
-      filedBy: filedBy || 'unknown',
-    },
+  const { moduleRow: record } = await createWithArtifact(prisma, {
+    module: ARTIFACT_MODULE.LC_REVIEW,
+    type: ARTIFACT_TYPE.LC_TICKET,
+    prismaModel: 'notionTaskInbox',
+    title,
+    ownerId: userId,
+    status: status || 'Not Started',
+    moduleCreate: (tx) =>
+      tx.notionTaskInbox.create({
+        data: {
+          userId,
+          title,
+          status: status || 'Not Started',
+          reviewPriority: reviewPriority || null,
+          due: due ? new Date(due) : null,
+          lcDueDate: lcDueDate ? new Date(lcDueDate) : null,
+          publishDate: publishDate ? new Date(publishDate) : null,
+          product: product || [],
+          channel: channel || [],
+          audience: audience || [],
+          socialChannel: socialChannel || [],
+          company: company || [],
+          geo: geo || [],
+          editorialReviewStage: editorialReviewStage || null,
+          needComplianceApproval: needComplianceApproval || false,
+          notes: notes || null,
+          summary: summary || null,
+          lexionUrl: lexionUrl || null,
+          shortcutTicketUrl: shortcutTicketUrl || null,
+          filedBy: filedBy || 'unknown',
+        },
+      }),
   });
 
   return normaliseTask(record);
@@ -253,6 +264,12 @@ export async function updateTask(taskId, updates) {
   const record = await prisma.notionTaskInbox.update({
     where: { id: taskId },
     data,
+  });
+
+  await updateArtifactFromModule(prisma, {
+    prismaModel: 'notionTaskInbox',
+    entityId: taskId,
+    patch: data,
   });
 
   return normaliseTask(record);

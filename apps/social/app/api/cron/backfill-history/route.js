@@ -16,6 +16,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { verifyCronAuth } from '@/lib/cron-auth';
+import { createWithArtifact } from '@/lib/artifacts/create';
+import { ARTIFACT_MODULE, ARTIFACT_TYPE } from '@/lib/artifacts/types';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 min for Vercel Pro
@@ -136,17 +138,26 @@ export async function GET(request) {
             postId = existing.id;
             results.existingPostsSkipped++;
           } else {
-            const newPost = await prisma.post.create({
-              data: {
-                accountId: account.id,
-                platform: 'X',
-                platformPostId: tweetId,
-                content: tweet.text,
-                contentType: 'POST',
-                status: 'PUBLISHED',
-                publishedAt,
-                createdById: systemUser.id,
-              },
+            const { moduleRow: newPost } = await createWithArtifact(prisma, {
+              module: ARTIFACT_MODULE.SOCIAL,
+              type: ARTIFACT_TYPE.POST,
+              prismaModel: 'post',
+              title: String(tweet.text).slice(0, 120),
+              ownerId: systemUser.id,
+              status: 'PUBLISHED',
+              moduleCreate: (tx) =>
+                tx.post.create({
+                  data: {
+                    accountId: account.id,
+                    platform: 'X',
+                    platformPostId: tweetId,
+                    content: tweet.text,
+                    contentType: 'POST',
+                    status: 'PUBLISHED',
+                    publishedAt,
+                    createdById: systemUser.id,
+                  },
+                }),
             });
             postId = newPost.id;
             results.tweetsImported++;
@@ -181,6 +192,7 @@ export async function GET(request) {
                 retweets,
                 replies,
                 bookmarks,
+                quotes,
                 engagementRate,
               },
             });

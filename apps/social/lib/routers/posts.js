@@ -4,6 +4,8 @@ import { router, protectedProcedure } from '../trpc';
 import { XPlatformAdapter } from '../x-adapter';
 import { getValidToken } from '../token-refresh';
 import { publishRedditPost, listLateAccounts } from '../late-reddit';
+import { createWithArtifact, updateArtifactFromModule } from '../artifacts/create';
+import { ARTIFACT_MODULE, ARTIFACT_TYPE } from '../artifacts/types';
 
 export const postsRouter = router({
   /**
@@ -65,6 +67,9 @@ export const postsRouter = router({
             orderBy: { fetchedAt: 'desc' },
             take: 1,
           },
+          media: {
+            orderBy: { sortOrder: 'asc' },
+          },
         },
       });
 
@@ -94,17 +99,56 @@ export const postsRouter = router({
         subreddit: z.string().nullish(),
         flairId: z.string().nullish(),
         articleTitle: z.string().nullish(),
+        mediaIds: z.array(z.string()).max(4).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       const { prisma, user } = ctx;
+      const { mediaIds, ...postData } = input;
 
-      return prisma.post.create({
-        data: {
-          ...input,
-          createdById: user.id,
-          status: input.scheduledFor ? 'SCHEDULED' : 'DRAFT',
-        },
+      // Look up thread-parent artifact (if any) before opening the transaction
+      // so a missing parent doesn't abort the whole create.
+      let parentArtifactId = null;
+      if (postData.threadId) {
+        const parent = await prisma.post.findUnique({
+          where: { id: postData.threadId },
+          select: { artifactId: true },
+        });
+        parentArtifactId = parent?.artifactId ?? null;
+      }
+
+      const status = postData.scheduledFor ? 'SCHEDULED' : 'DRAFT';
+
+      const { moduleRow: post } = await createWithArtifact(prisma, {
+        module: ARTIFACT_MODULE.SOCIAL,
+        type: ARTIFACT_TYPE.POST,
+        prismaModel: 'post',
+        title: String(postData.content).slice(0, 120),
+        ownerId: user.id,
+        parentArtifactId,
+        status,
+        moduleCreate: (tx) =>
+          tx.post.create({
+            data: {
+              ...postData,
+              createdById: user.id,
+              status,
+            },
+          }),
+      });
+
+      // Attach orphan media rows to this post (outside the artifact tx to keep
+      // the artifact write small; media rows are not part of the graph).
+      if (mediaIds?.length) {
+        await prisma.postMedia.updateMany({
+          where: { id: { in: mediaIds }, postId: null },
+          data: { postId: post.id },
+        });
+      }
+
+      return prisma.post.findUnique({
+        where: { id: post.id },
+        include: { media: { orderBy: { sortOrder: 'asc' } } },
       });
     }),
 
@@ -127,11 +171,12 @@ export const postsRouter = router({
           accountId: z.string().optional(),
           platform: z.enum(['X', 'REDDIT']).optional(),
         }),
+        mediaIds: z.array(z.string()).max(4).optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       const { prisma } = ctx;
-      const { id, data } = input;
+      const { id, data, mediaIds } = input;
 
       const existing = await prisma.post.findUnique({ where: { id } });
       if (!existing) {
@@ -144,7 +189,38 @@ export const postsRouter = router({
         });
       }
 
-      return prisma.post.update({ where: { id }, data });
+      // If mediaIds provided, replace all media for this post:
+      // 1. Detach existing media (set postId = null)
+      // 2. Attach the new set
+      if (mediaIds !== undefined) {
+        await prisma.postMedia.updateMany({
+          where: { postId: id },
+          data: { postId: null },
+        });
+        if (mediaIds.length) {
+          await Promise.all(
+            mediaIds.map((mediaId, idx) =>
+              prisma.postMedia.update({
+                where: { id: mediaId },
+                data: { postId: id, sortOrder: idx },
+              })
+            )
+          );
+        }
+      }
+
+      const updated = await prisma.post.update({
+        where: { id },
+        data,
+        include: { media: { orderBy: { sortOrder: 'asc' } } },
+      });
+      // Mirror content/status onto the artifact row so hub.* reads don't go stale.
+      await updateArtifactFromModule(prisma, {
+        prismaModel: 'post',
+        entityId: id,
+        patch: data,
+      });
+      return updated;
     }),
 
   /**
@@ -185,6 +261,7 @@ export const postsRouter = router({
         include: {
           account: true,
           threadPosts: { orderBy: { threadPosition: 'asc' } },
+          media: { orderBy: { sortOrder: 'asc' } },
         },
       });
       if (!post) {
@@ -212,12 +289,14 @@ export const postsRouter = router({
           }
 
           const title = post.articleTitle || post.content.substring(0, 100);
+          const mediaUrls = (post.media || []).map((m) => m.url);
           const result = await publishRedditPost({
             accountId: redditAccount._id || redditAccount.id,
             subreddit: post.subreddit || 'FigureTech',
             title,
             content: post.content,
             flairId: post.flairId || undefined,
+            mediaUrls: mediaUrls.length ? mediaUrls : undefined,
           });
 
           platformPostId = result?._id || result?.id || null;
@@ -225,6 +304,12 @@ export const postsRouter = router({
           // X/Twitter — use direct OAuth adapter
           const accessToken = await getValidToken(post.account);
           const adapter = new XPlatformAdapter(accessToken);
+
+          // Upload media to X if present (returns X media_id strings)
+          let xMediaIds = [];
+          if (post.media?.length) {
+            xMediaIds = await adapter.uploadMediaFromUrls(post.media.map((m) => ({ url: m.url, mimeType: m.mimeType })));
+          }
 
           if (post.contentType === 'THREAD') {
             // Thread tweets may be stored as child Post records (threadPosts)
@@ -239,7 +324,8 @@ export const postsRouter = router({
             }
 
             if (tweetTexts.length > 1) {
-              const results = await adapter.publishThread(tweetTexts);
+              // Attach media to the first tweet only
+              const results = await adapter.publishThread(tweetTexts, xMediaIds);
               platformPostId = results[0]?.data?.id;
 
               // Update child post records if they exist
@@ -258,14 +344,14 @@ export const postsRouter = router({
               }
             } else {
               // Single tweet, despite THREAD type
-              const result = await adapter.publishTweet(tweetTexts[0]);
+              const result = await adapter.publishTweet(tweetTexts[0], null, xMediaIds);
               platformPostId = result?.data?.id;
             }
           } else if (post.contentType === 'ARTICLE') {
             const result = await adapter.publishArticle(post.articleTitle || '', post.content);
             platformPostId = result?.data?.id;
           } else {
-            const result = await adapter.publishTweet(post.content);
+            const result = await adapter.publishTweet(post.content, null, xMediaIds);
             platformPostId = result?.data?.id;
           }
         }

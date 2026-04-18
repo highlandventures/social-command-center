@@ -9,6 +9,8 @@
  */
 
 import { generateInsight } from './ai';
+import { createWithArtifact, updateArtifactFromModule } from './artifacts/create';
+import { ARTIFACT_MODULE, ARTIFACT_TYPE, RELATIONSHIP_TYPE } from './artifacts/types';
 
 /**
  * Compute priority score (0-100) for a signal.
@@ -232,23 +234,43 @@ Return a JSON object with: { summary (string, 2-3 sentences), topPriorities (arr
     };
   }
 
-  // 6. Store briefing
+  // 6. Store briefing. Split create vs update so the artifact row is written
+  // alongside the briefing row on first creation.
   const mondayOfWeek = getMonday(now);
-  const briefing = await prisma.weeklyBriefing.upsert({
+  const existing = await prisma.weeklyBriefing.findUnique({
     where: { weekStart_role: { weekStart: mondayOfWeek, role } },
-    update: {
-      summary: briefingData.summary,
-      topPriorities: briefingData.topPriorities,
-      signalsSummary: signalCounts,
-      generatedAt: now,
-    },
-    create: {
-      weekStart: mondayOfWeek,
-      role,
-      summary: briefingData.summary,
-      topPriorities: briefingData.topPriorities,
-      signalsSummary: signalCounts,
-    },
+  });
+
+  if (existing) {
+    return prisma.weeklyBriefing.update({
+      where: { id: existing.id },
+      data: {
+        summary: briefingData.summary,
+        topPriorities: briefingData.topPriorities,
+        signalsSummary: signalCounts,
+        generatedAt: now,
+      },
+    });
+  }
+
+  const briefingTitle = `${role} Briefing ${mondayOfWeek.toISOString().slice(0, 10)}`;
+  const { moduleRow: briefing } = await createWithArtifact(prisma, {
+    module: ARTIFACT_MODULE.HUB,
+    type: ARTIFACT_TYPE.REPORT,
+    prismaModel: 'weeklyBriefing',
+    title: briefingTitle,
+    ownerId: null, // system-generated
+    status: null,
+    moduleCreate: (tx) =>
+      tx.weeklyBriefing.create({
+        data: {
+          weekStart: mondayOfWeek,
+          role,
+          summary: briefingData.summary,
+          topPriorities: briefingData.topPriorities,
+          signalsSummary: signalCounts,
+        },
+      }),
   });
 
   return briefing;
@@ -272,7 +294,26 @@ export async function processNewSignalsToTasks(prisma, newHits, topics) {
     });
     if (existing) continue;
 
-    const task = await prisma.intelligenceTask.create({ data: taskData });
+    // Look up briefing parent artifact if the task is tied to one
+    let parentArtifactId = null;
+    if (taskData.briefingId) {
+      const briefing = await prisma.weeklyBriefing.findUnique({
+        where: { id: taskData.briefingId },
+        select: { artifactId: true },
+      });
+      parentArtifactId = briefing?.artifactId ?? null;
+    }
+
+    const { moduleRow: task } = await createWithArtifact(prisma, {
+      module: ARTIFACT_MODULE.HUB,
+      type: ARTIFACT_TYPE.TASK,
+      prismaModel: 'intelligenceTask',
+      title: taskData.title,
+      ownerId: null,
+      parentArtifactId,
+      status: taskData.status ?? 'PENDING',
+      moduleCreate: (tx) => tx.intelligenceTask.create({ data: taskData }),
+    });
     tasksCreated.push(task);
   }
 

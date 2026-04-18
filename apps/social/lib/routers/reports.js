@@ -6,6 +6,8 @@ import { generateEnrichedReport, getPreviousPeriod } from '../report-engine';
 import { renderReportPDF } from '../pdf-renderer.jsx';
 import { sendReportEmail } from '../email-sender';
 import { computeBenchmarkDeltas, resolveComparisonPeriod } from '../benchmark-compare';
+import { createWithArtifact } from '../artifacts/create';
+import { ARTIFACT_MODULE, ARTIFACT_TYPE } from '../artifacts/types';
 
 export const reportsRouter = router({
   /**
@@ -72,18 +74,28 @@ export const reportsRouter = router({
 
       let report;
       try {
-        // Create initial report record with GENERATING status
-        report = await prisma.report.create({
-          data: {
-            title,
-            reportType,
-            prompt: prompt ?? null,
-            content: {},
-            aiPct: 0,
-            createdById: user.id,
-            status: 'GENERATING',
-          },
+        // Create initial report record with GENERATING status + artifact row
+        const createResult = await createWithArtifact(prisma, {
+          module: ARTIFACT_MODULE.SOCIAL,
+          type: ARTIFACT_TYPE.REPORT,
+          prismaModel: 'report',
+          title,
+          ownerId: user.id,
+          status: 'GENERATING',
+          moduleCreate: (tx) =>
+            tx.report.create({
+              data: {
+                title,
+                reportType,
+                prompt: prompt ?? null,
+                content: {},
+                aiPct: 0,
+                createdById: user.id,
+                status: 'GENERATING',
+              },
+            }),
         });
+        report = createResult.moduleRow;
         // Enriched path: WEEKLY_PERFORMANCE, MONTHLY_SUMMARY, CUSTOM
         if (reportType === 'WEEKLY_PERFORMANCE' || reportType === 'MONTHLY_SUMMARY' || reportType === 'CUSTOM') {
           let dateStart, dateEnd;

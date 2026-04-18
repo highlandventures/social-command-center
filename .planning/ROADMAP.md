@@ -5,6 +5,8 @@
 - ✅ **v1.0 Content Intelligence System** - Phases 1-4 (shipped 2026-03-15)
 - ✅ **v1.1 Report Center** - Phases 5-8 (shipped 2026-03-17)
 - 🚧 **v1.2 Email Campaigns + Polish** - Phases 9-14 (in progress)
+- 📋 **v2.0 Intelligence Layer** - Phases 15-16 (planned)
+- 📋 **v3.0 MCP + Unified Artifact Graph** - Phases 17-21 (planned; see `docs/specs/MCP-Artifact-Graph-PRD.md`)
 
 ## Phases
 
@@ -140,10 +142,176 @@ Plans:
 - [ ] 14-01: TBD
 - [ ] 14-02: TBD
 
+### v2.0 Intelligence Layer (Planned)
+
+**Milestone Goal:** Transform the hub from a data display into an intelligence system. Signals from all sources (listening, email, calendar, campaigns) are scored, classified, and surfaced as prioritized tasks. Users open the hub and see what matters — not what's new.
+
+**Two tracks (can run in parallel):**
+- **Track A (Phase 15):** Signal Intelligence — semantic relevance, author trust, actionability classification, role routing, platform expansion
+- **Track B (Phase 16):** Weekly Intelligence → Task Engine — Monday briefing, auto-task generation, email intelligence, meeting prep, priority scoring, feedback loop
+
+**Execution order (PM-recommended):**
+- **Week 1:** Phase 15-01 + Phase 16-01 in parallel (signal quality + briefing/task model)
+- **Week 2:** Phase 16-02 + Phase 15-02 in parallel (email intel + cross-source linking + role routing)
+- **Week 3:** Phase 16-03 + Phase 16-04 in parallel (meeting intel + feedback loop)
+- **Week 4+:** Phase 15-03 (platform expansion — LinkedIn + news)
+- **v1.2 paused:** Phases 10-12 (email campaigns) resume after v2.0 core ships
+
+**Rationale:** Intelligence layer transforms value of existing signals before expanding sources. Phase 16-01 can start with current signal data and improve when Phase 15-01 adds actionability tags.
+
+- [ ] **Phase 15: Signal Intelligence** — Semantic content relevance, author trust scoring, actionability classification, cross-source linking, role-based routing, LinkedIn + news expansion
+- [ ] **Phase 16: Weekly Intelligence → Task Engine** — Monday briefing, auto-task generation, email intelligence, meeting prep/follow-up, priority scoring, feedback loop
+
+### Phase 15: Signal Intelligence
+**Goal**: Every signal is scored for semantic relevance (not just keywords), classified by actionability (RESPOND/INTEL/OPPORTUNITY/CRISIS/FYI), and routed to the right user based on role
+**Depends on**: Phase 13 (listening algorithm — complete)
+**Requirements**: SGNL-01 through SGNL-06
+**Success Criteria** (what must be TRUE):
+  1. Semantically relevant hits surface even without keyword overlap
+  2. Spam/bot accounts with bought followers score LOW
+  3. Every MEDIUM+ hit has an actionability classification (RESPOND/INTEL/OPPORTUNITY/CRISIS/FYI)
+  4. Related signals from different sources are linked into clusters
+  5. Different roles see different priority orderings for the same signals
+**Plans**: 3 plans
+
+Plans:
+- [ ] 15-01-PLAN.md — Semantic relevance (expand AI validation to all hits) + author trust scoring + actionability classification
+- [ ] 15-02-PLAN.md — Cross-source signal linking + role-based routing
+- [ ] 15-03-PLAN.md — Platform expansion (LinkedIn + news aggregators)
+
+### Phase 16: Weekly Intelligence → Task Engine
+**Goal**: Users open the hub on Monday morning and see a prioritized briefing that converts into tasks. Signals, emails, meetings, and campaigns all feed into one intelligent task inbox.
+**Depends on**: Phase 15 Plan 1 (actionability classification)
+**Requirements**: WTSK-01 through WTSK-06
+**Success Criteria** (what must be TRUE):
+  1. Monday morning briefing shows top 3-5 priorities with linked context
+  2. High-priority signals auto-generate tasks without manual creation
+  3. Emails needing reply surface as tasks; CC/FYI emails don't
+  4. Meetings have prep context (30min before) and follow-up prompts (after)
+  5. Task priority reflects time-sensitivity, impact, effort, and role relevance
+  6. After 2 weeks of use, priority ordering improves based on user behavior
+**Plans**: 4 plans
+
+Plans:
+- [ ] 16-01-PLAN.md — Monday briefing + task auto-generation from signals
+- [ ] 16-02-PLAN.md — Email intelligence + priority scoring engine
+- [ ] 16-03-PLAN.md — Meeting intelligence (prep + follow-up)
+- [ ] 16-04-PLAN.md — Feedback loop / learning from user behavior
+
+### v3.0 MCP + Unified Artifact Graph (Planned)
+
+**Milestone Goal:** Collapse the transfer friction between Claude and figure.marketing. Ship a unified artifact graph (cross-module hierarchy + typed relationships) inside the hub and an internal, SSO-gated MCP server that lets Claude create, read, update, and link artifacts across Social, GTM, Email, and LC Review. Team-only, audit-logged, not a public MCP.
+
+**Full spec:** `docs/specs/MCP-Artifact-Graph-PRD.md`
+
+**Two tracks (Phase 17 must precede everything else):**
+- **Track A (Phase 17):** Artifact Graph Foundation — schema, migration, `/api/artifacts/*`, RLS
+- **Track B (Phases 18-21):** MCP rollout by module — Social → GTM + LC Review → Email + Graph UI → Hardening
+
+**Execution order:**
+- **Weeks 1-3:** Phase 17 (invisible groundwork — schema + migration + artifact API)
+- **Weeks 4-6:** Phase 18 (Social Command MCP + pilot with 3 users + metrics-gap fixes bundled)
+- **Weeks 7-9:** Phase 19 (GTM + LC Review MCP + meta-project / expand flows)
+- **Weeks 10-11:** Phase 20 (Email MCP + web UI relationship panes)
+- **Week 12:** Phase 21 (audit dashboards + token admin + team rollout)
+
+**Rationale:** Every current and future module benefits from unified artifacts. The MCP is the team productivity wrapper on top; composite workflows (plan event in Claude → push project + tasks + owners in one click) are the north-star value.
+
+- [ ] **Phase 17: Artifact Graph Foundation** — `artifacts` + `artifact_relationships` tables, module table FK backfill, `/api/artifacts/*` endpoints, RLS policies
+- [ ] **Phase 18: Social Command MCP + Pilot** — MCP server scaffold, SSO/token flow, Social tools (read + write + composite), v1 prompt library, metrics-gap bug fixes, 3-user pilot
+- [ ] **Phase 19: GTM + LC Review MCP** — GTM tools including `update_project`, `expand_project`, `publish_event_plan`, `build_meta_project`; LC Review file-from-draft; preview-before-write UX
+- [ ] **Phase 20: Email MCP + Graph UI** — Email tool set; web UI Related / Children / Lineage panes on artifact detail views; cross-module prompts
+- [ ] **Phase 21: Hardening + Team Rollout** — Audit log dashboards, token revocation UI, setup docs, team-wide rollout + training
+
+### Phase 17: Artifact Graph Foundation
+**Goal**: Every existing and new tracked object (project, task, post, email, LC ticket, asset) has an artifact row and queryable relationships; no user-visible change yet.
+**Depends on**: Nothing (pure groundwork)
+**Requirements**: ARTF-01 through ARTF-06
+**Success Criteria** (what must be TRUE):
+  1. `artifacts` and `artifact_relationships` tables live in Prisma schema
+  2. Every existing Post, GtmProject, GtmTask, EmailCampaign, LcReviewTicket has a backfilled artifact row
+  3. Module row creation + artifact row creation happen in the same transaction (no orphans possible)
+  4. `/api/artifacts/*` endpoints serve get_tree, get_related, trace_lineage, link, unlink, update, reparent
+  5. Authorization rules enforce module-level permissions on graph queries (application-layer today; portable to Postgres RLS via the declarative policy file in 17-02)
+  6. Metrics-gap bugs (PRD §12) fixed before Phase 18 exposes `social.get_post_metrics` over MCP
+**Plans**: 3 plans
+
+Plans:
+- [ ] 17-01-PLAN.md — Schema (`Artifact` + `ArtifactRelationship` + FKs on 7 module tables) + transactional `createWithArtifact` helper + idempotent backfill (`--dry-run`) + `@figure.com` domain lock on NextAuth
+- [ ] 17-02-PLAN.md — `/api/artifacts/*` endpoints + `hub.*` tRPC router + declarative policy file (tRPC middleware today, Supabase RLS-portable)
+- [ ] 17-03-PLAN.md — Metrics-gap fixes (PostMetrics.quotes, weighted-avg in report-engine, extended poll-metrics window) — moved up from Phase 18 per PRD §12
+
+### Phase 18: Social Command MCP + Pilot
+**Goal**: Three pilot users can draft, schedule, search, and report on social content via Claude, with metrics-gap bugs fixed before numbers are exposed.
+**Depends on**: Phase 17
+**Requirements**: MCPS-01 through MCPS-08
+**Success Criteria** (what must be TRUE):
+  1. MCP server deployed at `mcp.figure.marketing` with SSO-gated token issuance
+  2. Social Command tool set live (draft_post, schedule_post, submit_for_review, publish_content_calendar, get_calendar, get_post_metrics, get_competitor_activity, search_listening, get_kols, get_report)
+  3. v1 prompt library shipped (voice_check, draft_launch_thread, weekly_social_report, competitor_brief)
+  4. Metrics-gap bugs fixed in Phase 17-03 (weighted avg, extended poll-metrics window, `quotes` on PostMetrics) — verified before `social.get_post_metrics` is enabled
+  5. 3-user pilot runs for 2 weeks with feedback captured
+  6. Every tool call audit-logged with user + args + affected artifacts
+**Plans**: TBD
+
+Plans:
+- [ ] 18-01-PLAN.md — MCP server scaffold + SSO/token flow + admin token UI
+- [ ] 18-02-PLAN.md — Social Command read tools + metrics-gap fixes
+- [ ] 18-03-PLAN.md — Social Command write + composite tools + prompt library v1
+
+### Phase 19: GTM + LC Review MCP
+**Goal**: Team can plan events, kick off GTM projects, file LC review tickets, and build meta-projects spanning existing work — all from Claude, with preview-before-write on composite mutations.
+**Depends on**: Phase 18 (MCP server + auth patterns established)
+**Requirements**: MCPG-01 through MCPG-07
+**Success Criteria** (what must be TRUE):
+  1. GTM tool set live including update_project, create_sub_project, expand_project, publish_event_plan, generate_tasks_from_brief, build_meta_project, push_asset
+  2. LC Review tool set live (file_ticket, file_from_draft, get_ticket_status, list_my_tickets)
+  3. Preview UX: composite tools return a structured preview; user confirms before execution
+  4. Prompts shipped: gtm_project_kickoff, expand_project, build_meta_project, compliance_file, post_from_news
+  5. Publish and approval actions remain UI-only (enforced at MCP layer)
+**Plans**: TBD
+
+Plans:
+- [ ] 19-01-PLAN.md — GTM tools + preview-before-write framework
+- [ ] 19-02-PLAN.md — LC Review tools + hub.* graph tools (link, reparent, create_meta_project)
+- [ ] 19-03-PLAN.md — Prompt library expansion + UI-only enforcement layer
+
+### Phase 20: Email MCP + Graph UI
+**Goal**: Email workflows reach parity with Social and GTM on the MCP; web UI gains relationship panes so the graph is visible, not just queryable.
+**Depends on**: Phase 19
+**Requirements**: MCPE-01 through MCPE-04
+**Success Criteria** (what must be TRUE):
+  1. Email tool set live (draft_campaign, build_campaign_from_draft, list_campaigns, get_campaign_metrics, search_templates, get_lists)
+  2. Artifact detail views (project, task, post, email, LC ticket) show a Related / Children / Lineage pane
+  3. Cross-module prompt `/figure.leadership_update` works end-to-end
+  4. Search in web UI is graph-aware (filter by artifact type + relationship depth)
+**Plans**: TBD
+
+Plans:
+- [ ] 20-01-PLAN.md — Email tools + composite build_campaign_from_draft
+- [ ] 20-02-PLAN.md — Web UI relationship panes + graph-aware search
+
+### Phase 21: Hardening + Team Rollout
+**Goal**: The MCP is safe to expose to the full team — audit visibility, token hygiene, and enablement materials are in place.
+**Depends on**: Phase 20
+**Requirements**: MCPH-01 through MCPH-04
+**Success Criteria** (what must be TRUE):
+  1. Admin audit log dashboard live (filter by user, tool, artifact, time range)
+  2. Admin token management UI live (list active tokens, one-click revoke)
+  3. Setup doc published in Hub ("Connecting Claude to figure.marketing — 2 minutes")
+  4. Team-wide rollout announcement + live training session run
+  5. Success metrics baseline captured (transfer friction time, tool call volume, preview acceptance rate)
+**Plans**: TBD
+
+Plans:
+- [ ] 21-01-PLAN.md — Audit log dashboard + token management UI
+- [ ] 21-02-PLAN.md — Setup docs + rollout + metrics baseline
+
 ## Progress
 
 **Execution Order:**
-Phases 9+13 parallel → 10 → 11 → 12+14 parallel
+v1.2: Phases 9+13 parallel → 10 → 11 → 12+14 parallel
+v2.0: Wk1 (15-01 + 16-01) → Wk2 (16-02 + 15-02) → Wk3 (16-03 + 16-04) → Wk4+ (15-03)
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -156,8 +324,15 @@ Phases 9+13 parallel → 10 → 11 → 12+14 parallel
 | 7. Scheduling + Ad Hoc Reports | v1.1 | 3/3 | Complete | 2026-03-16 |
 | 8. Benchmarking | v1.1 | 3/3 | Complete | 2026-03-17 |
 | 9. Email Data Layer + Lists | v1.2 | 2/2 | Complete | 2026-03-16 |
-| 10. Template Builder + Campaigns | v1.2 | 1/2 | In progress | - |
-| 11. Send Pipeline + Tracking | v1.2 | 0/? | Not started | - |
-| 12. Analytics + Hub Integration | v1.2 | 0/? | Not started | - |
+| 10. Template Builder + Campaigns | v1.2 | 1/2 | **Paused** (v2.0 priority) | - |
+| 11. Send Pipeline + Tracking | v1.2 | 0/? | **Paused** | - |
+| 12. Analytics + Hub Integration | v1.2 | 0/? | **Paused** | - |
 | 13. Listening Algorithm | v1.2 | 2/2 | Complete | 2026-03-17 |
-| 14. Mobile/Responsive + UX | v1.2 | 0/? | Not started | - |
+| 14. Mobile/Responsive + UX | v1.2 | 0/? | **Paused** | - |
+| 15. Signal Intelligence | v2.0 | 0/3 | **Starting** — Week 1 | - |
+| 16. Weekly Intelligence → Tasks | v2.0 | 0/4 | **Starting** — Week 1 | - |
+| 17. Artifact Graph Foundation | v3.0 | 0/3 | Planned | - |
+| 18. Social Command MCP + Pilot | v3.0 | 0/3 | Planned | - |
+| 19. GTM + LC Review MCP | v3.0 | 0/3 | Planned | - |
+| 20. Email MCP + Graph UI | v3.0 | 0/2 | Planned | - |
+| 21. Hardening + Team Rollout | v3.0 | 0/2 | Planned | - |

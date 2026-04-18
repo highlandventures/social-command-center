@@ -12,48 +12,116 @@ import { validateReportContent, EMPTY_REPORT_CONTENT } from './report-content-sc
 // Enriched report system prompt
 // -------------------------------------------------------
 
-const ENRICHED_REPORT_PROMPT = `You are a social media analyst. Analyze the provided KPI data, top posts, and listening insights. Respond with valid JSON matching this schema:
+const ENRICHED_REPORT_PROMPT = `You are a social media analyst for Figure Technology Solutions (Nasdaq: FIGR), a blockchain-native capital marketplace. Analyze the provided channel-segmented KPI data, top posts, and listening insights. Respond with valid JSON matching this schema:
 {
-  "executiveSummary": "2-3 paragraph summary covering: what happened this period, what is notable, and what to do next",
-  "sentimentThemes": {
-    "positive": [{ "theme": "string", "detail": "string", "volume": number }],
-    "negative": [{ "theme": "string", "detail": "string", "volume": number }],
-    "emerging": [{ "topic": "string", "signals": "string" }]
+  "executiveSummary": ["bullet1 with specific number", "bullet2", "bullet3", "bullet4"],
+  "channelPerformance": {
+    "owned": { "impressions": number, "engagementRate": number, "deltaWoW": number|null, "topPost": "string", "narrative": "1-2 sentence so-what" },
+    "partner": { "impressions": number, "engagementRate": number, "deltaWoW": number|null, "topPost": "string", "narrative": "1-2 sentence so-what" },
+    "external": { "impressions": number, "engagementRate": number, "deltaWoW": number|null, "narrative": "1-2 sentence so-what" }
   },
-  "recommendations": [{ "recommendation": "string", "priority": "HIGH|MEDIUM|LOW", "expectedImpact": "string" }],
+  "sentimentDeepDives": [{ "thread": "string", "sentiment": "POSITIVE|NEGATIVE|MIXED", "keyTakeaways": ["string"], "source": "string" }],
+  "opportunities": [{ "opportunity": "string", "priority": "HIGH|MEDIUM|LOW", "expectedImpact": "string" }],
   "topContent": [{ "title": "string", "engagementRate": number, "impressions": number, "whyItWorked": "string" }]
 }
-Focus on actionable insights. Keep sentimentThemes arrays to 3-5 items max each.`;
+
+STYLE RULES:
+- Executive summary: 3-5 bullet points. Each bullet = one key insight with a specific metric. Never paragraphs.
+- Frame recommendations as "Opportunities" — forward-looking, not corrective.
+- When owned channel impressions decline WoW, frame as partner-first strategy working (impressions shifting to Hastra/external is intentional).
+- For WoW swings >50%, add contextual note (e.g., "prior week included viral @FabianoSolana RT").
+- Channel narratives: explain the story, not just the numbers.
+- sentimentDeepDives: extract specific criticisms or praise from notable threads. Max 2-3 threads.
+- $YLDS is an SEC-registered yield-bearing stablecoin, never a "cryptocurrency".
+- OPEN = On-Chain Public Equity Network (all caps). Democratized Prime (capitalize both).
+Focus on actionable insights for a leadership audience.`;
 
 // -------------------------------------------------------
 // KPI Calculation
 // -------------------------------------------------------
 
 /**
- * Calculate 5 topline KPIs from posts, account metrics, and listening hits.
+ * Segment posts by channel type based on the account's accountType field.
+ * Owned = Figure's own accounts, Partner = Hastra and partner accounts,
+ * External = KOL mentions and earned media.
+ */
+function segmentPostsByChannel(posts) {
+  const owned = [];
+  const partner = [];
+  const external = [];
+
+  for (const p of posts) {
+    const type = p.account?.accountType || p.accountType;
+    if (type === 'PARTNER') partner.push(p);
+    else if (type === 'EXTERNAL' || type === 'KOL') external.push(p);
+    else owned.push(p); // default to owned
+  }
+
+  return { owned, partner, external };
+}
+
+/**
+ * Calculate impressions and engagement rate for a set of posts.
+ */
+function calcChannelMetrics(posts) {
+  const withMetrics = posts.filter((p) => p.metrics?.[0]);
+  const impressions = withMetrics.reduce((sum, p) => sum + (p.metrics[0]?.impressions || 0), 0);
+  const engRate =
+    withMetrics.length > 0
+      ? withMetrics.reduce((sum, p) => sum + (p.metrics[0]?.engagementRate || 0), 0) /
+        withMetrics.length
+      : 0;
+
+  // Top post by engagement rate
+  const sorted = [...withMetrics].sort(
+    (a, b) => (b.metrics[0]?.engagementRate || 0) - (a.metrics[0]?.engagementRate || 0)
+  );
+  const topPost = sorted[0] || null;
+
+  return {
+    impressions,
+    engagementRate: parseFloat(engRate.toFixed(2)),
+    postCount: posts.length,
+    topPost: topPost?.content?.substring(0, 80) || 'N/A',
+    topPostEngRate: topPost ? topPost.metrics[0]?.engagementRate : null,
+  };
+}
+
+/**
+ * Calculate channel-segmented KPIs from posts, account metrics, and listening hits.
  *
- * @param {Array} posts - Posts with nested metrics[0]
+ * Returns both the flat topline KPIs (for backward compat) and a channelBreakdown
+ * object with owned/partner/external metrics.
+ *
+ * @param {Array} posts - Posts with nested metrics[0] and account info
  * @param {Array} accountMetrics - AccountMetrics records sorted by date
  * @param {Array} listeningHits - ListeningHit records with sentiment
- * @returns {Array<{ label, value, format, subValue? }>}
+ * @returns {{ kpis: Array<{ label, value, format, subValue? }>, channelBreakdown: object }}
  */
 export function calculateKPIs(posts, accountMetrics, listeningHits) {
   const postsWithMetrics = posts.filter((p) => p.metrics?.[0]);
 
-  // Impressions
-  const totalImpressions = postsWithMetrics.reduce(
-    (sum, p) => sum + (p.metrics[0]?.impressions || 0),
-    0
+  // --- Channel Segmentation ---
+  const channels = segmentPostsByChannel(posts);
+  const ownedMetrics = calcChannelMetrics(channels.owned);
+  const partnerMetrics = calcChannelMetrics(channels.partner);
+  const externalMetrics = calcChannelMetrics(channels.external);
+
+  // --- Aggregate Impressions ---
+  const totalImpressions = ownedMetrics.impressions + partnerMetrics.impressions + externalMetrics.impressions;
+
+  // --- Aggregate Engagement Rate (impression-weighted) ---
+  // Phase 17-03 fix: previously a simple mean of per-post rates, which gave
+  // a zero-impression post equal weight to a 10K-impression post. Now we
+  // use sum(engagements) / sum(impressions) * 100 — the only honest aggregate.
+  const totalEngagements = postsWithMetrics.reduce(
+    (sum, p) => sum + (p.metrics[0]?.engagements || 0),
+    0,
   );
-
-  // Average Engagement Rate
   const avgEngRate =
-    postsWithMetrics.length > 0
-      ? postsWithMetrics.reduce((sum, p) => sum + (p.metrics[0]?.engagementRate || 0), 0) /
-        postsWithMetrics.length
-      : 0;
+    totalImpressions > 0 ? (totalEngagements / totalImpressions) * 100 : 0;
 
-  // Follower Growth (sum of per-account deltas to avoid cross-account comparison)
+  // --- Follower Growth (sum of per-account deltas) ---
   const byAccount = {};
   for (const am of accountMetrics) {
     const aid = am.accountId;
@@ -68,13 +136,13 @@ export function calculateKPIs(posts, accountMetrics, listeningHits) {
     }
   }
 
-  // Top Post by engagement rate
+  // --- Top Post by engagement rate (across all channels) ---
   const sortedByEng = [...postsWithMetrics].sort(
     (a, b) => (b.metrics[0]?.engagementRate || 0) - (a.metrics[0]?.engagementRate || 0)
   );
   const topPost = sortedByEng[0] || null;
 
-  // Sentiment score (% positive of total listening hits)
+  // --- Sentiment score ---
   const sentimentCounts = { positive: 0, negative: 0, neutral: 0 };
   listeningHits.forEach((h) => {
     const key = h.sentiment?.toLowerCase();
@@ -86,7 +154,13 @@ export function calculateKPIs(posts, accountMetrics, listeningHits) {
   const sentimentScore =
     totalSentiment > 0 ? Math.round((sentimentCounts.positive / totalSentiment) * 100) : null;
 
-  return [
+  // --- Profile Visits (from account metrics, if available) ---
+  const profileVisits = accountMetrics.reduce(
+    (sum, am) => sum + (am.profileVisits || 0),
+    0
+  );
+
+  const kpis = [
     { label: 'Impressions', value: totalImpressions, format: 'number' },
     { label: 'Engagement Rate', value: parseFloat(avgEngRate.toFixed(2)), format: 'percent' },
     { label: 'Follower Growth', value: followerDelta, format: 'delta' },
@@ -97,7 +171,16 @@ export function calculateKPIs(posts, accountMetrics, listeningHits) {
       subValue: topPost ? `${topPost.metrics[0]?.engagementRate?.toFixed(1)}% eng` : null,
     },
     { label: 'Sentiment', value: sentimentScore, format: 'percent' },
+    { label: 'Profile Visits', value: profileVisits, format: 'number' },
   ];
+
+  const channelBreakdown = {
+    owned: ownedMetrics,
+    partner: partnerMetrics,
+    external: externalMetrics,
+  };
+
+  return { kpis, channelBreakdown };
 }
 
 // -------------------------------------------------------
@@ -153,19 +236,23 @@ export function getPreviousPeriod(dateStart, dateEnd) {
  * Limits data to prevent token bloat: top 5 posts, summarized metrics,
  * bounded listening hits, and content strings truncated to 200 chars.
  */
-function buildAIContext(kpis, posts, listeningHits) {
-  // Sort posts by engagement rate, take top 5
-  const postsWithMetrics = posts.filter((p) => p.metrics?.[0]);
-  const topPosts = [...postsWithMetrics]
-    .sort((a, b) => (b.metrics[0]?.engagementRate || 0) - (a.metrics[0]?.engagementRate || 0))
-    .slice(0, 5)
-    .map((p) => ({
-      content: p.content?.substring(0, 200),
-      contentType: p.contentType,
-      platform: p.platform,
-      engagementRate: p.metrics[0]?.engagementRate,
-      impressions: p.metrics[0]?.impressions,
-    }));
+function buildAIContext(kpis, channelBreakdown, posts, listeningHits) {
+  // Channel-segmented top posts (top 3 per channel)
+  const channels = segmentPostsByChannel(posts);
+
+  function topPostsForChannel(channelPosts, limit = 3) {
+    return channelPosts
+      .filter((p) => p.metrics?.[0])
+      .sort((a, b) => (b.metrics[0]?.engagementRate || 0) - (a.metrics[0]?.engagementRate || 0))
+      .slice(0, limit)
+      .map((p) => ({
+        content: p.content?.substring(0, 200),
+        contentType: p.contentType,
+        platform: p.platform,
+        engagementRate: p.metrics[0]?.engagementRate,
+        impressions: p.metrics[0]?.impressions,
+      }));
+  }
 
   // Aggregate listening hit sentiment counts
   const sentimentCounts = { positive: 0, negative: 0, neutral: 0 };
@@ -176,7 +263,7 @@ function buildAIContext(kpis, posts, listeningHits) {
     }
   });
 
-  // Take limited listening hits for theme extraction (top 20 by engagement)
+  // Take top 20 listening hits for theme extraction, include thread context
   const topHits = [...listeningHits]
     .sort((a, b) => (b.engagementCount || 0) - (a.engagementCount || 0))
     .slice(0, 20)
@@ -184,11 +271,19 @@ function buildAIContext(kpis, posts, listeningHits) {
       content: h.content?.substring(0, 200),
       sentiment: h.sentiment,
       platform: h.platform,
+      threadId: h.threadId || null,
+      authorHandle: h.authorHandle || null,
+      engagementCount: h.engagementCount || 0,
     }));
 
   const context = {
     kpiSummary: kpis,
-    topPosts,
+    channelBreakdown,
+    topPostsByChannel: {
+      owned: topPostsForChannel(channels.owned),
+      partner: topPostsForChannel(channels.partner),
+      external: topPostsForChannel(channels.external),
+    },
     sentimentCounts,
     listeningHits: topHits,
     totalListeningHits: listeningHits.length,
@@ -197,7 +292,9 @@ function buildAIContext(kpis, posts, listeningHits) {
   // Guard: if context is too large, reduce further
   const contextStr = JSON.stringify(context);
   if (contextStr.length > 50000) {
-    context.topPosts = context.topPosts.slice(0, 3);
+    context.topPostsByChannel.owned = context.topPostsByChannel.owned.slice(0, 2);
+    context.topPostsByChannel.partner = context.topPostsByChannel.partner.slice(0, 2);
+    context.topPostsByChannel.external = context.topPostsByChannel.external.slice(0, 2);
     context.listeningHits = context.listeningHits.slice(0, 10);
   }
 
@@ -272,14 +369,17 @@ function buildSentimentCounts(listeningHits) {
  * @returns {Promise<object>} Canonical enriched report content
  */
 export async function generateEnrichedReport({ reportType, dateStart, dateEnd, benchmarkPeriod }) {
-  // 1. Fetch data for the coverage period
+  // 1. Fetch data for the coverage period (include account for channel segmentation)
   const [posts, accountMetrics, listeningHits] = await Promise.all([
     prisma.post.findMany({
       where: {
         status: 'PUBLISHED',
         publishedAt: { gte: dateStart, lte: dateEnd },
       },
-      include: { metrics: { orderBy: { fetchedAt: 'desc' }, take: 1 } },
+      include: {
+        metrics: { orderBy: { fetchedAt: 'desc' }, take: 1 },
+        account: { select: { accountType: true, displayName: true } },
+      },
     }),
     prisma.accountMetrics.findMany({
       where: { date: { gte: dateStart, lte: dateEnd } },
@@ -290,10 +390,11 @@ export async function generateEnrichedReport({ reportType, dateStart, dateEnd, b
     }),
   ]);
 
-  // 2. Calculate KPIs
-  const kpis = calculateKPIs(posts, accountMetrics, listeningHits);
+  // 2. Calculate KPIs (now returns { kpis, channelBreakdown })
+  const { kpis, channelBreakdown } = calculateKPIs(posts, accountMetrics, listeningHits);
 
-  // 3. Calculate deltas if benchmark period provided
+  // 3. Calculate deltas if benchmark period provided (topline + per-channel)
+  let prevChannelBreakdown = null;
   if (benchmarkPeriod) {
     const [prevPosts, prevAccountMetrics, prevListeningHits] = await Promise.all([
       prisma.post.findMany({
@@ -301,7 +402,10 @@ export async function generateEnrichedReport({ reportType, dateStart, dateEnd, b
           status: 'PUBLISHED',
           publishedAt: { gte: benchmarkPeriod.start, lte: benchmarkPeriod.end },
         },
-        include: { metrics: { orderBy: { fetchedAt: 'desc' }, take: 1 } },
+        include: {
+          metrics: { orderBy: { fetchedAt: 'desc' }, take: 1 },
+          account: { select: { accountType: true } },
+        },
       }),
       prisma.accountMetrics.findMany({
         where: { date: { gte: benchmarkPeriod.start, lte: benchmarkPeriod.end } },
@@ -312,24 +416,37 @@ export async function generateEnrichedReport({ reportType, dateStart, dateEnd, b
       }),
     ]);
 
-    const prevKpis = calculateKPIs(prevPosts, prevAccountMetrics, prevListeningHits);
+    const prev = calculateKPIs(prevPosts, prevAccountMetrics, prevListeningHits);
+    prevChannelBreakdown = prev.channelBreakdown;
 
-    // Merge deltas into KPIs (only for numeric KPIs)
+    // Merge deltas into topline KPIs (only for numeric KPIs)
     for (let i = 0; i < kpis.length; i++) {
       if (kpis[i].format === 'number' || kpis[i].format === 'percent' || kpis[i].format === 'delta') {
         const delta = calculateDelta(
           typeof kpis[i].value === 'number' ? kpis[i].value : 0,
-          typeof prevKpis[i].value === 'number' ? prevKpis[i].value : 0
+          typeof prev.kpis[i]?.value === 'number' ? prev.kpis[i].value : 0
         );
         kpis[i].delta = delta.value;
         kpis[i].direction = delta.direction;
         kpis[i].period = reportType === 'WEEKLY_PERFORMANCE' ? 'WoW' : 'MoM';
       }
     }
+
+    // Merge deltas into channel breakdown
+    for (const channel of ['owned', 'partner', 'external']) {
+      if (channelBreakdown[channel] && prevChannelBreakdown[channel]) {
+        const impDelta = calculateDelta(
+          channelBreakdown[channel].impressions,
+          prevChannelBreakdown[channel].impressions
+        );
+        channelBreakdown[channel].deltaWoW = impDelta.value;
+        channelBreakdown[channel].deltaDirection = impDelta.direction;
+      }
+    }
   }
 
-  // 4. Generate AI executive summary with pre-aggregated context
-  const aiContext = buildAIContext(kpis, posts, listeningHits);
+  // 4. Generate AI executive summary with channel-segmented context
+  const aiContext = buildAIContext(kpis, channelBreakdown, posts, listeningHits);
   const aiContent = await generateInsight('reports/enriched', aiContext, {
     systemPrompt: ENRICHED_REPORT_PROMPT,
     maxTokens: 3000,
@@ -357,13 +474,15 @@ export async function generateEnrichedReport({ reportType, dateStart, dateEnd, b
     imageUrl: chartResults[i]?.imageUrl || null,
   }));
 
-  // 6. Assemble canonical content
+  // 6. Assemble canonical content (new format with channel segmentation)
   const content = {
     kpis,
-    executiveSummary: aiContent?.executiveSummary || 'Report generation completed.',
-    sentimentThemes: aiContent?.sentimentThemes || null,
+    channelBreakdown,
+    executiveSummary: aiContent?.executiveSummary || ['Report generation completed.'],
+    channelPerformance: aiContent?.channelPerformance || null,
+    sentimentDeepDives: aiContent?.sentimentDeepDives || [],
     charts,
-    recommendations: aiContent?.recommendations || [],
+    opportunities: aiContent?.opportunities || [],
     topContent: aiContent?.topContent || [],
     coveragePeriod: {
       start: dateStart instanceof Date ? dateStart.toISOString() : String(dateStart),

@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { router, protectedProcedure } from '../trpc';
 import { generateInsight } from '../ai';
 import { TRPCError } from '@trpc/server';
+import { createWithArtifact, updateArtifactFromModule } from '../artifacts/create';
+import { ARTIFACT_MODULE, ARTIFACT_TYPE } from '../artifacts/types';
 
 export const emailCampaignsRouter = router({
   /**
@@ -62,20 +64,30 @@ export const emailCampaignsRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      return ctx.prisma.emailCampaign.create({
-        data: {
-          name: input.name,
-          subject: input.subject,
-          fromName: input.fromName,
-          fromEmail: input.fromEmail,
-          replyTo: input.replyTo,
-          listId: input.listId,
-          templateId: input.templateId,
-          htmlContent: input.htmlContent,
-          status: 'DRAFT',
-          createdById: ctx.user.id,
-        },
+      const { moduleRow } = await createWithArtifact(ctx.prisma, {
+        module: ARTIFACT_MODULE.EMAIL,
+        type: ARTIFACT_TYPE.EMAIL,
+        prismaModel: 'emailCampaign',
+        title: input.name,
+        ownerId: ctx.user.id,
+        status: 'DRAFT',
+        moduleCreate: (tx) =>
+          tx.emailCampaign.create({
+            data: {
+              name: input.name,
+              subject: input.subject,
+              fromName: input.fromName,
+              fromEmail: input.fromEmail,
+              replyTo: input.replyTo,
+              listId: input.listId,
+              templateId: input.templateId,
+              htmlContent: input.htmlContent,
+              status: 'DRAFT',
+              createdById: ctx.user.id,
+            },
+          }),
       });
+      return moduleRow;
     }),
 
   /**
@@ -109,6 +121,12 @@ export const emailCampaignsRouter = router({
           message: 'Campaign can only be updated while in DRAFT status',
         });
       }
+
+      await updateArtifactFromModule(ctx.prisma, {
+        prismaModel: 'emailCampaign',
+        entityId: id,
+        patch: data,
+      });
 
       return result;
     }),
