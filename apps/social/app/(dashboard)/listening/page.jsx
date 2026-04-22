@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -62,6 +62,14 @@ function formatFollowers(n) {
 // ── Page Component ────────────────────────────────────────────
 
 export default function ListeningPage() {
+  return (
+    <Suspense fallback={<div className="animate-pulse p-8 text-content-muted">Loading...</div>}>
+      <ListeningPageContent />
+    </Suspense>
+  );
+}
+
+function ListeningPageContent() {
   const chartColors = useChartColors();
   const router = useRouter();
   const searchParams = useSearchParams();
