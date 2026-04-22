@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RWA House — Figure at Consensus Miami 2026</title>
+<meta name="description" content="Figure's home for real-world asset builders, investors, and operators during Consensus Miami, May 5–7, 2026.">
+
+<!-- Canonical -->
+<link rel="canonical" href="https://figure.marketing/rwahouse">
+
+<!-- Favicon (TODO: confirm asset path on figure.marketing) -->
+<link rel="icon" type="image/png" href="/favicon.png">
+
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://figure.marketing/rwahouse">
+<meta property="og:title" content="RWA House — Figure at Consensus Miami 2026">
+<meta property="og:description" content="Figure's home for real-world asset builders, investors, and operators during Consensus Miami, May 5–7, 2026.">
+<!-- TODO: confirm OG image asset path and dimensions (1200×630) -->
+<meta property="og:image" content="https://figure.marketing/rwahouse/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:site_name" content="Figure">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@figure">
+<meta name="twitter:title" content="RWA House — Figure at Consensus Miami 2026">
+<meta name="twitter:description" content="Figure's home for real-world asset builders, investors, and operators during Consensus Miami, May 5–7, 2026.">
+<meta name="twitter:image" content="https://figure.marketing/rwahouse/og.png">
+
+<!-- Structured data: Event -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Event",
+  "name": "RWA House at Consensus Miami 2026",
+  "description": "Figure's home for real-world asset builders, investors, and operators during Consensus Miami.",
+  "startDate": "2026-05-05T18:00:00-04:00",
+  "endDate": "2026-05-07T21:00:00-04:00",
+  "eventStatus": "https://schema.org/EventScheduled",
+  "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+  "location": {
+    "@type": "Place",
+    "name": "Miami",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Miami",
+      "addressRegion": "FL",
+      "addressCountry": "US"
+    }
+  },
+  "organizer": {
+    "@type": "Organization",
+    "name": "Figure Technology Solutions, Inc.",
+    "url": "https://figure.com"
+  },
+  "url": "https://figure.marketing/rwahouse"
+}
+</script>
+
+<style>
+:root {
+  --bg-page: #F1EFEA;
+  --bg-light: #F1EFEA;
+  --bg-card-light: #FFFFFF;
+  --bg-dark: #17171C;
+  --bg-dark-soft: #1F1F26;
+  --text-dark: #17171C;
+  --text-dark-muted: #4A4A4A; /* bumped from #555 for WCAG AA body contrast on #F1EFEA */
+  --text-light: #FFFFFF;
+  --text-light-muted: rgba(255,255,255,0.72); /* bumped slightly for dark-bg contrast */
+  --accent: #6B5FEA;
+  --accent-hover: #5A4FDC;
+  --border-light: rgba(0,0,0,0.12);
+  --border-dark: rgba(255,255,255,0.12);
+  --focus-ring: 0 0 0 3px rgba(107,95,234,0.4);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text-dark);
+  background: var(--bg-page);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+a:focus-visible, button:focus-visible, .persona-chip:focus-visible, .companion-card:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: 8px;
+}
+
+/* Top nav — stays light always */
+.nav {
+  background: #FFFFFF;
+  padding: 20px 56px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 15px;
+}
+.nav-left { display: flex; align-items: center; gap: 48px; }
+.nav-logo {
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-size: 17px;
+  color: var(--text-dark);
+}
+.nav-links { display: flex; gap: 36px; color: var(--text-dark); }
+.nav-links a { color: inherit; text-decoration: none; }
+.nav-right { display: flex; align-items: center; gap: 24px; }
+.nav-right a { color: var(--text-dark); text-decoration: none; }
+.nav-event-btn {
+  background: var(--accent);
+  color: #FFFFFF !important;
+  padding: 12px 24px;
+  border-radius: 999px;
+  font-weight: 500;
+  font-size: 14px;
+  text-decoration: none;
+}
+.nav-event-btn:hover { background: var(--accent-hover); }
+
+/* Page container */
+.page-outer { padding: 32px 56px 56px; }
+
+/* Section cards — rounded, alternating dark/light */
+.section-card {
+  border-radius: 20px;
+  padding: 80px 64px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+.section-card.dark {
+  background: var(--bg-dark);
+  color: var(--text-light);
+}
+.section-card.light {
+  background: var(--bg-card-light);
+  color: var(--text-dark);
+}
+
+/* Hero */
+.hero.section-card {
+  padding: 100px 64px;
+  text-align: center;
+}
+.hero-glow {
+  position: absolute;
+  top: -40px;
+  right: -80px;
+  width: 320px;
+  height: 520px;
+  background: var(--accent);
+  opacity: 0.55;
+  transform: skewX(-20deg);
+  border-radius: 40px;
+  filter: blur(2px);
+  pointer-events: none;
+}
+.hero-glow-2 {
+  position: absolute;
+  bottom: -120px;
+  left: -120px;
+  width: 240px;
+  height: 400px;
+  background: var(--accent);
+  opacity: 0.15;
+  transform: skewX(-20deg);
+  border-radius: 40px;
+  filter: blur(8px);
+  pointer-events: none;
+}
+.hero-content { position: relative; z-index: 1; }
+.hero-eyebrow {
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  color: var(--text-light-muted);
+  margin-bottom: 32px;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+.hero-wordmark {
+  font-size: 80px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  margin: 0 0 28px;
+}
+.hero-headline {
+  font-size: 22px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0;
+  margin: 0 auto 48px;
+  max-width: 560px;
+  color: var(--text-light-muted);
+}
+.hero-ctas {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Pill buttons — Figure style */
+.btn-pill {
+  padding: 16px 36px;
+  background: var(--accent);
+  color: #FFFFFF;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  text-decoration: none;
+  display: inline-block;
+  transition: background 0.15s ease;
+}
+.btn-pill:hover { background: var(--accent-hover); }
+.btn-pill-dark {
+  background: var(--text-dark);
+  color: #FFFFFF;
+}
+.btn-pill-dark:hover { background: #000; }
+.btn-pill-outline {
+  background: transparent;
+  color: var(--text-light);
+  border: 1px solid rgba(255,255,255,0.3);
+}
+.btn-pill-outline:hover { background: rgba(255,255,255,0.08); }
+.btn-pill-outline-dark {
+  background: transparent;
+  color: var(--text-dark);
+  border: 1px solid rgba(0,0,0,0.2);
+}
+.btn-pill-outline-dark:hover { background: rgba(0,0,0,0.04); }
+
+/* Section headlines */
+.section-headline {
+  font-size: 44px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+  text-align: center;
+  margin: 0 auto 48px;
+  max-width: 760px;
+}
+.section-headline.dark { color: var(--text-light); }
+.section-headline.light { color: var(--text-dark); }
+
+/* Narrative section */
+.narrative-section {
+  max-width: 780px;
+  margin: 0 auto;
+  text-align: left;
+}
+.narrative-section p {
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--text-dark);
+  margin: 0 0 20px;
+}
+.narrative-section p:last-child {
+  color: var(--text-dark-muted);
+  font-size: 18px;
+  margin-top: 32px;
+}
+
+/* Whitepaper feature */
+.whitepaper-feature {
+  background: #1F1F26;
+  border: 1px solid var(--border-dark);
+  border-radius: 20px;
+  padding: 48px;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 48px;
+  align-items: center;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.wp-cover {
+  aspect-ratio: 3/4;
+  background: linear-gradient(145deg, #2A2A35 0%, #17171C 100%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: var(--text-light);
+  position: relative;
+  overflow: hidden;
+}
+.wp-cover::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100px;
+  height: 160px;
+  background: var(--accent);
+  opacity: 0.4;
+  transform: skewX(-20deg) translateX(40px);
+  filter: blur(2px);
+}
+.wp-cover-label {
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--text-light-muted);
+  position: relative;
+  z-index: 1;
+}
+.wp-cover-title-wrap { position: relative; z-index: 1; }
+.wp-cover-title { font-size: 20px; font-weight: 500; line-height: 1.15; letter-spacing: -0.01em; color: var(--text-light); }
+.wp-cover-sub { font-size: 11px; color: var(--text-light-muted); line-height: 1.4; margin-top: 10px; }
+.wp-cover-kind { font-size: 11px; color: var(--text-light-muted); position: relative; z-index: 1; }
+
+.wp-meta { font-size: 12px; letter-spacing: 0.14em; color: var(--accent); margin-bottom: 14px; font-weight: 500; text-transform: uppercase; }
+.wp-title { font-size: 32px; font-weight: 500; line-height: 1.2; letter-spacing: -0.015em; margin: 0 0 14px; color: var(--text-light); }
+.wp-sub { font-size: 16px; color: var(--text-light-muted); line-height: 1.5; margin: 0 0 28px; }
+.wp-stats {
+  display: flex;
+  gap: 36px;
+  margin-bottom: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-dark);
+}
+.wp-stat-num { font-size: 24px; font-weight: 500; letter-spacing: -0.01em; color: var(--text-light); }
+.wp-stat-label { font-size: 11px; color: var(--text-light-muted); line-height: 1.3; margin-top: 6px; }
+
+.companion-label {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-light-muted);
+  letter-spacing: 0.14em;
+  margin: 64px 0 28px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+.companion-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.companion-card {
+  border: 1px solid var(--border-dark);
+  border-radius: 12px;
+  padding: 24px 28px;
+  background: rgba(255,255,255,0.02);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  font-family: inherit;
+}
+.companion-card:hover {
+  background: rgba(107,95,234,0.08);
+  border-color: rgba(107,95,234,0.3);
+}
+.companion-title { font-size: 17px; font-weight: 500; margin-bottom: 6px; line-height: 1.3; color: var(--text-light); }
+.companion-desc { font-size: 13px; color: var(--text-light-muted); line-height: 1.4; }
+.companion-arrow { font-size: 14px; color: var(--accent); flex-shrink: 0; font-weight: 500; }
+
+/* Programming / events */
+.event-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.event-card {
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  overflow: hidden;
+  background: #FFFFFF;
+}
+.event-img {
+  height: 180px;
+  display: flex;
+  align-items: flex-end;
+  padding: 24px;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  font-weight: 500;
+  text-transform: uppercase;
+  position: relative;
+}
+.event-body { padding: 24px 28px 28px; }
+.event-date {
+  font-size: 12px;
+  color: var(--text-dark-muted);
+  letter-spacing: 0.12em;
+  margin-bottom: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+.event-title { font-size: 22px; font-weight: 500; margin-bottom: 10px; line-height: 1.25; letter-spacing: -0.01em; }
+.event-desc { font-size: 14px; color: var(--text-dark-muted); line-height: 1.55; margin-bottom: 20px; }
+.event-cta {
+  font-size: 14px;
+  color: var(--accent);
+  font-weight: 500;
+  text-decoration: none;
+}
+.calendar-link {
+  margin-top: 32px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--text-dark-muted);
+}
+.calendar-link a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+/* Hosts (on dark) */
+.hosts-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 32px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.host { text-align: center; }
+.host-photo {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  margin: 0 auto 16px;
+}
+.host-name { font-size: 17px; font-weight: 500; margin-bottom: 4px; color: var(--text-light); }
+.host-role { font-size: 13px; color: var(--text-light-muted); line-height: 1.3; }
+
+/* Partners */
+.partners-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+.partner-tile {
+  height: 80px;
+  background: var(--bg-page);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--text-dark);
+  font-weight: 500;
+}
+
+/* Contact (on light card) */
+.contact-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+}
+.contact-sub {
+  text-align: center;
+  font-size: 16px;
+  color: var(--text-dark-muted);
+  margin-bottom: 48px;
+  margin-top: -32px;
+}
+.contact-form-card {
+  background: #FFFFFF;
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  padding: 48px;
+}
+.field-label {
+  font-size: 15px;
+  font-weight: 500;
+  margin-bottom: 10px;
+  color: var(--text-dark);
+  display: block;
+}
+.field-label .req { color: var(--text-dark); }
+.field {
+  width: 100%;
+  padding: 14px 18px;
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  font-size: 15px;
+  font-family: inherit;
+  background: #FFFFFF;
+  color: var(--text-dark);
+  margin-bottom: 24px;
+}
+.field:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(107,95,234,0.15); }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.persona-label { font-size: 15px; font-weight: 500; margin: 8px 0 14px; color: var(--text-dark); }
+.persona-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 28px; }
+.persona-chip {
+  padding: 10px 18px;
+  border: 1px solid var(--border-light);
+  border-radius: 999px;
+  font-size: 14px;
+  cursor: pointer;
+  background: #FFFFFF;
+  color: var(--text-dark);
+  user-select: none;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+.persona-chip:hover { border-color: var(--accent); }
+.persona-chip[aria-pressed="true"] {
+  background: var(--accent);
+  color: #FFFFFF;
+  border-color: var(--accent);
+}
+.submit-row { display: flex; justify-content: center; margin-top: 16px; }
+.consent { font-size: 12px; color: var(--text-dark-muted); line-height: 1.5; text-align: center; margin-top: 20px; }
+.consent a { color: var(--text-dark-muted); text-decoration: underline; }
+
+/* Footer */
+.footer {
+  padding: 32px 56px 48px;
+  font-size: 12px;
+  color: var(--text-dark-muted);
+  line-height: 1.7;
+  text-align: center;
+}
+.footer-legal { margin-bottom: 12px; max-width: 900px; margin-left: auto; margin-right: auto; }
+.footer-legal p { margin: 0 0 10px; }
+.footer-links a { color: var(--text-dark-muted); text-decoration: none; margin: 0 8px; }
+.footer-links a:hover { text-decoration: underline; }
+
+/* Modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(23,23,28,0.7);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+.modal-backdrop.open { display: flex; }
+.modal {
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 40px;
+  max-width: 480px;
+  width: 100%;
+}
+.modal-title {
+  font-size: 26px;
+  font-weight: 500;
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+.modal-subhead {
+  font-size: 14px;
+  color: var(--text-dark-muted);
+  line-height: 1.5;
+  margin: 0 0 28px;
+}
+.modal-close {
+  float: right;
+  font-size: 24px;
+  color: var(--text-dark-muted);
+  cursor: pointer;
+  line-height: 1;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+/* Screen-reader-only utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .page-outer { padding: 16px 16px 32px; }
+  .nav { padding: 16px 24px; font-size: 13px; }
+  .nav-left { gap: 20px; }
+  .nav-links { display: none; }
+  .section-card { padding: 56px 28px; border-radius: 16px; margin-bottom: 16px; }
+  .hero.section-card { padding: 64px 28px; }
+  .hero-wordmark { font-size: 56px; }
+  .hero-headline { font-size: 20px; margin-bottom: 40px; }
+  .section-headline { font-size: 32px; margin-bottom: 36px; }
+  .whitepaper-feature { grid-template-columns: 1fr; gap: 32px; padding: 32px; }
+  .wp-cover { max-width: 200px; margin: 0 auto; }
+  .wp-title { font-size: 26px; }
+  .wp-stats { flex-wrap: wrap; gap: 20px; }
+  .companion-grid { grid-template-columns: 1fr; }
+  .event-grid { grid-template-columns: 1fr; }
+  .hosts-grid { grid-template-columns: repeat(2, 1fr); }
+  .partners-grid { grid-template-columns: repeat(3, 1fr); }
+  .contact-form-card { padding: 28px; }
+  .field-row { grid-template-columns: 1fr; gap: 0; }
+  .footer { padding: 24px; }
+}
+</style>
+</head>
+<body>
+
+<a class="sr-only" href="#main">Skip to main content</a>
+
+<nav class="nav" aria-label="Primary">
+  <div class="nav-left">
+    <a href="https://figure.com" class="nav-logo" aria-label="Figure — home">FIGURE</a>
+    <div class="nav-links">
+      <a href="https://figure.com/lending">Lending</a>
+      <a href="https://figure.com/markets">Markets</a>
+      <a href="https://figure.com/partnerships">Partnerships</a>
+      <a href="https://figure.com/about">About</a>
+    </div>
+  </div>
+  <div class="nav-right">
+    <a href="https://figure.com/login">Login</a>
+    <a href="https://luma.com/hellofigure" class="nav-event-btn" rel="noopener noreferrer">RSVP to RWA House</a>
+  </div>
+</nav>
+
+<main id="main">
+<div class="page-outer">
+
+<!-- HERO -->
+<section class="hero section-card dark" aria-labelledby="hero-title">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="hero-glow-2" aria-hidden="true"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">Miami · May 5–7, 2026</div>
+    <h1 class="hero-wordmark" id="hero-title">RWA House</h1>
+    <p class="hero-headline">Figure's home for real-world asset builders, investors, and operators during Consensus Miami.</p>
+
+    <div class="hero-ctas">
+      <button class="btn-pill" type="button" data-open-modal data-modal-title="Read Capital Markets, Rebuilt" data-modal-subhead="The full whitepaper plus every companion briefing. One email, one-time.">Read the Whitepaper</button>
+      <a href="https://luma.com/hellofigure" class="btn-pill btn-pill-outline" rel="noopener noreferrer">RSVP to Our Events</a>
+    </div>
+  </div>
+</section>
+
+<!-- NARRATIVE -->
+<section class="section-card light" aria-labelledby="narrative-title">
+  <h2 class="section-headline light" id="narrative-title">What's Happening Inside RWA House</h2>
+  <div class="narrative-section">
+    <!-- TODO: confirm RWA market size source and date (e.g. rwa.xyz, April 2026) -->
+    <p>Real-world assets are moving on-chain faster than any other category in crypto — the RWA market crossed $382 billion as of April 2026, a $362 billion increase in a single year. Figure is where a lot of that movement is happening. YLDS, the first SEC-registered yield-bearing stablecoin, brings compliant yield on-chain. Hastra's PRIME token crossed $350M in TVL on Solana in under four months, without market makers or liquidity incentives. OPEN launched with FGRS as the first blockchain-native equity traded solely on blockchain rails.</p>
+    <p>RWA House is where we bring those conversations together. Over three days, Figure hosts founders, allocators, protocol builders, and the press to talk about what's working, what's next, and where the real institutional capital is headed.</p>
+    <p>Just the people actually building the thing.</p>
+  </div>
+</section>
+
+<!-- READING ROOM -->
+<section class="section-card dark" aria-labelledby="reading-title">
+  <h2 class="section-headline dark" id="reading-title">The Reading Room</h2>
+  <p style="text-align: center; color: var(--text-light-muted); font-size: 16px; margin: -32px 0 48px;">Everything you need before you walk in.</p>
+
+  <div class="whitepaper-feature">
+    <div class="wp-cover" role="img" aria-label="Whitepaper cover: Capital Markets, Rebuilt">
+      <div class="wp-cover-label">FIGURE · APRIL 2026</div>
+      <div class="wp-cover-title-wrap">
+        <div class="wp-cover-title">Capital Markets, Rebuilt</div>
+        <div class="wp-cover-sub">The Case for the On-Chain Value Layer</div>
+      </div>
+      <div class="wp-cover-kind">Whitepaper</div>
+    </div>
+    <div>
+      <div class="wp-meta">Flagship Whitepaper</div>
+      <h3 class="wp-title">Capital Markets, Rebuilt</h3>
+      <p class="wp-sub">Figure's thesis on the on-chain value layer — why tokenized wrappers aren't enough, and how the full credit lifecycle now lives on-chain.</p>
+      <div class="wp-stats">
+        <div>
+          <div class="wp-stat-num">$382B+</div>
+          <div class="wp-stat-label">RWA market<br>on-chain</div>
+        </div>
+        <div>
+          <div class="wp-stat-num">$22B+</div>
+          <div class="wp-stat-label">HELOCs originated<br>to date</div>
+        </div>
+        <div>
+          <div class="wp-stat-num">$350M+</div>
+          <div class="wp-stat-label">PRIME TVL<br>in 4 months</div>
+        </div>
+      </div>
+      <button class="btn-pill" type="button" data-open-modal data-modal-title="Read Capital Markets, Rebuilt" data-modal-subhead="The full whitepaper plus every companion briefing. One email, one-time.">Read the Whitepaper</button>
+    </div>
+  </div>
+
+  <div class="companion-label">Companion Briefings</div>
+
+  <div class="companion-grid">
+    <button class="companion-card" type="button" data-open-modal data-modal-title="Read Capital Markets, Rebuilt" data-modal-subhead="Unlocks the whitepaper plus the Democratized Prime briefing.">
+      <div>
+        <div class="companion-title">Democratized Prime</div>
+        <div class="companion-desc">On-chain lending marketplace · 745 avg FICO · hourly yield</div>
+      </div>
+      <div class="companion-arrow" aria-hidden="true">Read →</div>
+    </button>
+    <button class="companion-card" type="button" data-open-modal data-modal-title="Read Capital Markets, Rebuilt" data-modal-subhead="Unlocks the whitepaper plus the Forge originator guide.">
+      <div>
+        <div class="companion-title">Forge</div>
+        <div class="companion-desc">Standardized $1 participation tokens for private credit</div>
+      </div>
+      <div class="companion-arrow" aria-hidden="true">Read →</div>
+    </button>
+    <button class="companion-card" type="button" data-open-modal data-modal-title="Read Capital Markets, Rebuilt" data-modal-subhead="Unlocks the whitepaper plus the YLDS integration guide.">
+      <div>
+        <div class="companion-title">YLDS</div>
+        <div class="companion-desc">The first SEC-registered yield-bearing stablecoin</div>
+      </div>
+      <div class="companion-arrow" aria-hidden="true">Read →</div>
+    </button>
+    <button class="companion-card" type="button" data-open-modal data-modal-title="Read Capital Markets, Rebuilt" data-modal-subhead="Unlocks the whitepaper plus the OPEN / FGRS briefing.">
+      <div>
+        <div class="companion-title">OPEN</div>
+        <div class="companion-desc">Blockchain-native public equity · T+0 settlement</div>
+      </div>
+      <div class="companion-arrow" aria-hidden="true">Read →</div>
+    </button>
+    <button class="companion-card" type="button" data-open-modal data-modal-title="Read Capital Markets, Rebuilt" data-modal-subhead="Unlocks the whitepaper plus the Hastra / PRIME paper.">
+      <div>
+        <div class="companion-title">Hastra / PRIME</div>
+        <div class="companion-desc">Liquid staking on Solana · real yield from HELOCs</div>
+      </div>
+      <div class="companion-arrow" aria-hidden="true">Read →</div>
+    </button>
+  </div>
+</section>
+
+<!-- PROGRAMMING -->
+<section class="section-card light" id="programming" aria-labelledby="programming-title">
+  <h2 class="section-headline light" id="programming-title">Programming</h2>
+
+  <div class="event-grid">
+    <div class="event-card">
+      <div class="event-img" style="background: linear-gradient(135deg, #F5C4B3 0%, #E89B80 100%); color: #5C1E0D;" aria-hidden="true">First Sip</div>
+      <div class="event-body">
+        <div class="event-date">May 5 · 6:00 PM</div>
+        <div class="event-title">First Sip at RWA House</div>
+        <div class="event-desc">Opening reception. Cocktails, conversation, and the people shaping real-world assets.</div>
+        <a href="https://luma.com/hellofigure" class="event-cta" rel="noopener noreferrer">RSVP on Luma →</a>
+      </div>
+    </div>
+    <div class="event-card">
+      <div class="event-img" style="background: linear-gradient(135deg, #FAC775 0%, #E8A240 100%); color: #4D2A04;" aria-hidden="true">Real Yield</div>
+      <div class="event-body">
+        <div class="event-date">May 6 · 12:00 PM</div>
+        <div class="event-title">The Real Yield Summit</div>
+        <div class="event-desc">Fireside chats and a working lunch with founders, allocators, and operators building yield on-chain.</div>
+        <a href="https://luma.com/hellofigure" class="event-cta" rel="noopener noreferrer">RSVP on Luma →</a>
+      </div>
+    </div>
+    <div class="event-card">
+      <div class="event-img" style="background: linear-gradient(135deg, #9FE1CB 0%, #6DC5A6 100%); color: #063D2F;" aria-hidden="true">Liquid Assets</div>
+      <div class="event-body">
+        <div class="event-date">May 7 · 5:00 PM</div>
+        <div class="event-title">Liquid Assets Happy Hour</div>
+        <div class="event-desc">Closing the week with the RWA community — partners, protocols, and press.</div>
+        <a href="https://luma.com/hellofigure" class="event-cta" rel="noopener noreferrer">RSVP on Luma →</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="calendar-link">+ additional events · <a href="https://luma.com/hellofigure" rel="noopener noreferrer">see the full calendar on Luma →</a></div>
+</section>
+
+<!-- HOSTS -->
+<section class="section-card dark" aria-labelledby="hosts-title">
+  <h2 class="section-headline dark" id="hosts-title">Hosts and Speakers</h2>
+  <div class="hosts-grid">
+    <div class="host">
+      <div class="host-photo" aria-hidden="true"></div>
+      <div class="host-name">Victoria Mariscal</div>
+      <div class="host-role">Figure</div>
+    </div>
+    <div class="host">
+      <div class="host-photo" aria-hidden="true"></div>
+      <!-- TODO: confirm full name and title for Drew before publish -->
+      <div class="host-name">Drew</div>
+      <div class="host-role">Figure</div>
+    </div>
+    <div class="host">
+      <div class="host-photo" aria-hidden="true"></div>
+      <div class="host-name">Mike Cagney</div>
+      <div class="host-role">Executive Chairman, Figure</div>
+    </div>
+    <div class="host">
+      <div class="host-photo" aria-hidden="true"></div>
+      <div class="host-name">+ 12 More</div>
+      <div class="host-role">Full speaker list announced soon</div>
+    </div>
+  </div>
+</section>
+
+<!-- PARTNERS -->
+<section class="section-card light" aria-labelledby="partners-title">
+  <h2 class="section-headline light" id="partners-title">Built With Our Ecosystem</h2>
+  <!-- TODO: confirm partner list with BD before publish -->
+  <div class="partners-grid">
+    <div class="partner-tile">Solana</div>
+    <div class="partner-tile">Phantom</div>
+    <div class="partner-tile">Kamino</div>
+    <div class="partner-tile">Raydium</div>
+    <div class="partner-tile">Chainlink</div>
+    <div class="partner-tile">Gauntlet</div>
+    <div class="partner-tile">Provenance</div>
+    <div class="partner-tile">Stellar</div>
+    <div class="partner-tile">BitGo</div>
+    <div class="partner-tile">+ more</div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section class="section-card light" aria-labelledby="contact-title">
+  <h2 class="section-headline light" id="contact-title">Come Find Us in Miami</h2>
+  <p class="contact-sub">Tell us who you are and what you're working on. We'll route you to the right person at Figure.</p>
+
+  <div class="contact-wrap">
+    <!-- TODO: replace action with HubSpot/Formspree/Marketo endpoint and wire persona routing -->
+    <form class="contact-form-card" method="post" action="#TODO-form-endpoint" novalidate>
+      <div class="field-row">
+        <div>
+          <label class="field-label" for="contact-name">Name<span class="req" aria-hidden="true">*</span><span class="sr-only"> required</span></label>
+          <input class="field" id="contact-name" name="name" required autocomplete="name">
+        </div>
+        <div>
+          <label class="field-label" for="contact-email">Email<span class="req" aria-hidden="true">*</span><span class="sr-only"> required</span></label>
+          <input class="field" id="contact-email" name="email" type="email" required autocomplete="email">
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div>
+          <label class="field-label" for="contact-company">Company<span class="req" aria-hidden="true">*</span><span class="sr-only"> required</span></label>
+          <input class="field" id="contact-company" name="company" required autocomplete="organization">
+        </div>
+        <div>
+          <label class="field-label" for="contact-role">Job / Role</label>
+          <input class="field" id="contact-role" name="role" autocomplete="organization-title">
+        </div>
+      </div>
+
+      <label class="field-label" for="contact-notes">What Should We Know?</label>
+      <textarea class="field" id="contact-notes" name="notes" placeholder="A project, a question, or what you're hoping to talk about." rows="3" style="resize: vertical;"></textarea>
+
+      <fieldset style="border: 0; padding: 0; margin: 0;">
+        <legend class="persona-label">I am a…</legend>
+        <div class="persona-row" role="radiogroup" aria-label="Select one persona">
+          <button type="button" class="persona-chip" role="radio" aria-pressed="false" data-persona>Allocator</button>
+          <button type="button" class="persona-chip" role="radio" aria-pressed="false" data-persona>Originator</button>
+          <button type="button" class="persona-chip" role="radio" aria-pressed="false" data-persona>Exchange or Treasury</button>
+          <button type="button" class="persona-chip" role="radio" aria-pressed="false" data-persona>Press or Media</button>
+          <button type="button" class="persona-chip" role="radio" aria-pressed="false" data-persona>Developer or Ecosystem</button>
+        </div>
+        <input type="hidden" name="persona" id="contact-persona" value="">
+      </fieldset>
+
+      <div class="submit-row">
+        <button class="btn-pill btn-pill-dark" type="submit">Submit</button>
+      </div>
+
+      <div class="consent">By submitting, you agree to Figure's <a href="https://figure.com/privacy">privacy policy</a>. We'll only use your info to follow up about RWA House and related Figure updates.</div>
+    </form>
+  </div>
+</section>
+
+</div>
+</main>
+
+<footer class="footer">
+  <div class="footer-legal">
+    <p>RWA House is a private event hosted by Figure Technology Solutions, Inc. (NASDAQ: FIGR) during Consensus Miami 2026. Attendance is by invitation or RSVP. Nothing on this page constitutes an offer to sell or a solicitation of an offer to buy any securities. YLDS is registered with the SEC. FGRS is a publicly traded share class of Figure Technology Solutions, Inc.</p>
+    <p>This page contains forward-looking statements based on current expectations that are subject to risks and uncertainties. Actual results may differ materially. Figure undertakes no obligation to update any forward-looking statements except as required by law.</p>
+  </div>
+  <div>© Figure Technology Solutions</div>
+  <div class="footer-links">
+    <a href="https://figure.com/privacy">Privacy</a> ·
+    <a href="https://figure.com/terms">Terms</a>
+  </div>
+</footer>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-subhead">
+  <div class="modal">
+    <button class="modal-close" type="button" aria-label="Close dialog" onclick="closeModal()">×</button>
+    <h3 class="modal-title" id="modal-title">Read Capital Markets, Rebuilt</h3>
+    <p class="modal-subhead" id="modal-subhead">The full whitepaper plus every companion briefing. One email, one-time.</p>
+    <!-- TODO: replace action with HubSpot/Formspree/Marketo endpoint -->
+    <form method="post" action="#TODO-whitepaper-endpoint" novalidate>
+      <div class="field-row">
+        <div>
+          <label class="field-label" for="modal-name">Name<span class="req" aria-hidden="true">*</span><span class="sr-only"> required</span></label>
+          <input class="field" id="modal-name" name="name" required autocomplete="name">
+        </div>
+        <div>
+          <label class="field-label" for="modal-email">Email<span class="req" aria-hidden="true">*</span><span class="sr-only"> required</span></label>
+          <input class="field" id="modal-email" name="email" type="email" required autocomplete="email">
+        </div>
+      </div>
+      <label class="field-label" for="modal-company">Company<span class="req" aria-hidden="true">*</span><span class="sr-only"> required</span></label>
+      <input class="field" id="modal-company" name="company" required autocomplete="organization">
+      <fieldset style="border: 0; padding: 0; margin: 0;">
+        <legend class="persona-label">I am a…</legend>
+        <div class="persona-row" role="radiogroup" aria-label="Select one persona">
+          <button type="button" class="persona-chip" role="radio" aria-pressed="false" data-persona>Allocator</button>
+          <button type="button" class="persona-chip" role="radio" aria-pressed="false" data-persona>Originator</button>
+          <button type="button" class="persona-chip" role="radio" aria-pressed="false" data-persona>Exchange or Treasury</button>
+          <button type="button" class="persona-chip" role="radio" aria-pressed="false" data-persona>Press or Media</button>
+          <button type="button" class="persona-chip" role="radio" aria-pressed="false" data-persona>Developer or Ecosystem</button>
+        </div>
+        <input type="hidden" name="persona" id="modal-persona" value="">
+      </fieldset>
+      <div class="submit-row">
+        <button class="btn-pill" style="width: 100%;" type="submit">Get Access</button>
+      </div>
+      <div class="consent">By downloading, you agree to receive occasional research updates from Figure. You can unsubscribe at any time. See our <a href="https://figure.com/privacy">privacy policy</a>.</div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function() {
+  var modal = document.getElementById('modal');
+  var modalTitle = document.getElementById('modal-title');
+  var modalSubhead = document.getElementById('modal-subhead');
+  var lastFocused = null;
+
+  function openModal(title, subhead) {
+    if (title) modalTitle.textContent = title;
+    if (subhead) modalSubhead.textContent = subhead;
+    lastFocused = document.activeElement;
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    // Focus first focusable element inside modal
+    var firstFocusable = modal.querySelector('button, input, select, textarea, a[href]');
+    if (firstFocusable) firstFocusable.focus();
+  }
+
+  function closeModal() {
+    modal.classList.remove('open');
+    document.body.style.overflow = '';
+    if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+  }
+
+  // Expose for inline onclick on close button
+  window.closeModal = closeModal;
+
+  // Wire all data-open-modal triggers
+  document.querySelectorAll('[data-open-modal]').forEach(function(el) {
+    el.addEventListener('click', function() {
+      openModal(el.dataset.modalTitle, el.dataset.modalSubhead);
+    });
+  });
+
+  // Click-outside to close
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) closeModal();
+  });
+
+  // Keyboard: Escape to close + basic focus trap
+  document.addEventListener('keydown', function(e) {
+    if (!modal.classList.contains('open')) return;
+    if (e.key === 'Escape') { closeModal(); return; }
+    if (e.key === 'Tab') {
+      var focusables = modal.querySelectorAll('button, input, select, textarea, a[href]');
+      if (!focusables.length) return;
+      var first = focusables[0];
+      var last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  });
+
+  // Persona chips: radiogroup behavior + hidden-input sync
+  document.querySelectorAll('.persona-row').forEach(function(group) {
+    var chips = group.querySelectorAll('[data-persona]');
+    var hidden = group.parentElement.querySelector('input[type="hidden"][name="persona"]');
+    chips.forEach(function(chip) {
+      chip.addEventListener('click', function() {
+        chips.forEach(function(c) { c.setAttribute('aria-pressed', 'false'); });
+        chip.setAttribute('aria-pressed', 'true');
+        if (hidden) hidden.value = chip.textContent.trim();
+      });
+      // Keyboard: arrow keys for radiogroup
+      chip.addEventListener('keydown', function(e) {
+        var idx = Array.prototype.indexOf.call(chips, chip);
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          chips[(idx + 1) % chips.length].focus();
+        } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          chips[(idx - 1 + chips.length) % chips.length].focus();
+        }
+      });
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
