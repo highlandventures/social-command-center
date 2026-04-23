@@ -12,6 +12,7 @@ const publicPaths = [
   '/ylds',          // Public YLDS wireframe
   '/mocks',         // Public YLDS mocks & strategy docs
   '/rwahouse',      // Public RWA House event page (Consensus Miami, May 5–7 2026)
+  '/api/rwahouse-contact', // Public contact-form submission endpoint for RWA House
 ];
 
 const bypassAuth = (process.env.BYPASS_AUTH === 'true' || process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true') && process.env.NODE_ENV === 'development';

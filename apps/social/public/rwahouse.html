@@ -851,8 +851,8 @@ a:focus-visible, button:focus-visible, .persona-chip:focus-visible, .companion-c
   <p class="contact-sub">Tell us who you are and what you're working on. We'll route you to the right person at Figure.</p>
 
   <div class="contact-wrap">
-    <!-- TODO: replace action with HubSpot/Formspree/Marketo endpoint and wire persona routing -->
-    <form class="contact-form-card" method="post" action="#TODO-form-endpoint" novalidate>
+    <div id="contact-banner" hidden></div>
+    <form class="contact-form-card" method="post" action="/api/rwahouse-contact" novalidate>
       <div class="field-row">
         <div>
           <label class="field-label" for="contact-name">Name<span class="req" aria-hidden="true">*</span><span class="sr-only"> required</span></label>
@@ -1029,6 +1029,34 @@ a:focus-visible, button:focus-visible, .persona-chip:focus-visible, .companion-c
       });
     });
   });
+
+  // Contact-form submit banner
+  (function () {
+    var params = new URLSearchParams(window.location.search);
+    var state = params.get('submitted');
+    if (!state) return;
+    var banner = document.getElementById('contact-banner');
+    if (!banner) return;
+    var ok = state === '1';
+    banner.hidden = false;
+    banner.setAttribute('role', 'status');
+    banner.style.cssText =
+      'padding:14px 18px;border-radius:12px;margin-bottom:16px;font-size:14px;line-height:1.5;' +
+      (ok
+        ? 'background:#E9F4EC;color:#1A6335;border:1px solid #BCDCC5;'
+        : 'background:#FBEDEC;color:#7A2A22;border:1px solid #EBC3BE;');
+    banner.textContent = ok
+      ? 'Thanks — we got it. Someone from Figure will be in touch shortly.'
+      : "Something went wrong sending that. Please email marketing@figure.com directly.";
+    // Scroll to the banner so users see the outcome
+    document.getElementById('contact-title')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Clean the URL so a reload doesn't re-show the banner
+    if (window.history?.replaceState) {
+      params.delete('submitted');
+      var qs = params.toString();
+      window.history.replaceState({}, '', window.location.pathname + (qs ? '?' + qs : ''));
+    }
+  })();
 })();
 </script>
 
