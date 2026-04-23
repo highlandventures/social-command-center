@@ -467,9 +467,17 @@ a:focus-visible, button:focus-visible, .persona-chip:focus-visible, .companion-c
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0 16px;
   font-size: 14px;
   color: var(--text-dark);
   font-weight: 500;
+}
+.partner-tile img {
+  max-height: 40px;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  display: block;
 }
 
 /* Contact (on light card) */
@@ -824,15 +832,15 @@ a:focus-visible, button:focus-visible, .persona-chip:focus-visible, .companion-c
   <h3 style="text-align: center; color: var(--text-dark-muted); font-size: 13px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; margin: -28px 0 36px;">RWA Consortium Partners</h3>
   <!-- TODO: confirm partner list with BD before publish -->
   <div class="partners-grid">
-    <div class="partner-tile">Solana</div>
-    <div class="partner-tile">Phantom</div>
-    <div class="partner-tile">Kamino</div>
-    <div class="partner-tile">Raydium</div>
-    <div class="partner-tile">Chainlink</div>
-    <div class="partner-tile">Gauntlet</div>
-    <div class="partner-tile">Provenance</div>
-    <div class="partner-tile">Stellar</div>
-    <div class="partner-tile">BitGo</div>
+    <div class="partner-tile"><img src="/partner-logos/solana.svg" alt="Solana" loading="lazy"></div>
+    <div class="partner-tile"><img src="/partner-logos/phantom.svg" alt="Phantom" loading="lazy"></div>
+    <div class="partner-tile"><img src="/partner-logos/kamino.svg" alt="Kamino" loading="lazy"></div>
+    <div class="partner-tile"><img src="/partner-logos/raydium.svg" alt="Raydium" loading="lazy"></div>
+    <div class="partner-tile"><img src="/partner-logos/chainlink.svg" alt="Chainlink" loading="lazy"></div>
+    <div class="partner-tile"><img src="/partner-logos/gauntlet.svg" alt="Gauntlet" loading="lazy"></div>
+    <div class="partner-tile"><img src="/partner-logos/provenance.svg" alt="Provenance" loading="lazy"></div>
+    <div class="partner-tile"><img src="/partner-logos/stellar.png" alt="Stellar" loading="lazy"></div>
+    <div class="partner-tile"><img src="/partner-logos/bitgo.svg" alt="BitGo" loading="lazy"></div>
     <div class="partner-tile">+ more</div>
   </div>
 </section>
