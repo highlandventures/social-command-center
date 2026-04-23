@@ -446,6 +446,8 @@ a:focus-visible, button:focus-visible, .persona-chip:focus-visible, .companion-c
   height: 96px;
   border-radius: 50%;
   background: rgba(255,255,255,0.06);
+  background-size: cover;
+  background-position: center;
   border: 1px solid rgba(255,255,255,0.1);
   margin: 0 auto 16px;
 }
@@ -803,13 +805,13 @@ a:focus-visible, button:focus-visible, .persona-chip:focus-visible, .companion-c
   <h2 class="section-headline dark" id="hosts-title">Who You'll Meet from Figure</h2>
   <div class="hosts-grid">
     <div class="host">
-      <div class="host-photo" aria-hidden="true"></div>
-      <!-- TODO: confirm Todd's last name before publish -->
+      <div class="host-photo" style="background-image: url('/team-photos/todd.jpg');" aria-hidden="true"></div>
+      <!-- TODO: confirm Todd's last name (public: Stevens) and title (figure.com lists "Chief Capital Officer") -->
       <div class="host-name">Todd</div>
       <div class="host-role">Chief Capital Markets Officer</div>
     </div>
     <div class="host">
-      <div class="host-photo" aria-hidden="true"></div>
+      <div class="host-photo" style="background-image: url('/team-photos/reid-simon.jpg');" aria-hidden="true"></div>
       <div class="host-name">Reid Simon</div>
       <div class="host-role">President of Digital Assets</div>
     </div>
