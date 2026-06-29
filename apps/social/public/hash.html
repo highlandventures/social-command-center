@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Hastra Strategy Vaults — The Z-Axis</title>
+<title>Hastra Strategy Vaults — Strategy, System &amp; Flow</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-  :root {
+
+  :root{
     --hero-top:#1B0F3B; --hero-bottom:#0C0E18;
     --accent:#6C5CE7; --accent-light:#A29BFE;
     --ink:#14121C; --ink-soft:#43404F; --ink-faint:#6E6B7B;
@@ -18,7 +19,165 @@
   *{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:smooth}
   body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--ink);background:var(--surface);line-height:1.55;-webkit-font-smoothing:antialiased}
-  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 32px}
+  [id]{scroll-margin-top:70px}
+  .mw{max-width:1180px;margin:0 auto;padding:0 32px}
+
+  /* ---- master hero ---- */
+  .masthead{background:linear-gradient(155deg,var(--hero-top) 0%,var(--hero-bottom) 100%);color:#fff;padding:82px 0 66px;position:relative;overflow:hidden}
+  .masthead::after{content:"";position:absolute;right:-120px;top:-120px;width:440px;height:440px;background:radial-gradient(circle,rgba(108,92,231,0.42) 0%,rgba(108,92,231,0) 70%);pointer-events:none}
+  .kicker{font-size:12px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent-light);margin-bottom:24px}
+  .masthead h1{font-size:clamp(40px,6.4vw,80px);font-weight:800;line-height:0.98;letter-spacing:-0.03em}
+  .masthead h1 .z{display:block;color:var(--accent-light);font-weight:600;font-size:clamp(17px,2.4vw,26px);letter-spacing:0.01em;margin-top:18px;max-width:680px}
+  .masthead .lede{font-size:clamp(16px,1.9vw,21px);color:rgba(255,255,255,0.82);max-width:680px;margin-top:24px;font-weight:400}
+  .masthead .axes{display:flex;gap:14px;margin-top:40px;flex-wrap:wrap}
+  .masthead .axis{border:1px solid rgba(162,155,254,0.4);border-radius:10px;padding:14px 18px;min-width:188px;background:rgba(255,255,255,0.03)}
+  .masthead .axis .k{font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:var(--accent-light);font-weight:700}
+  .masthead .axis .v{font-size:15px;color:rgba(255,255,255,0.9);margin-top:5px;font-weight:500}
+  .masthead .axis.now{border-color:var(--accent);background:rgba(108,92,231,0.16)}
+
+  /* ---- sticky section nav ---- */
+  .docnav{position:sticky;top:0;z-index:50;background:rgba(12,14,24,0.86);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(162,155,254,0.18)}
+  .docnav .mw{display:flex;gap:6px;align-items:center;height:56px}
+  .docnav .brand{font-weight:700;color:#fff;font-size:14px;margin-right:auto;letter-spacing:-0.01em}
+  .docnav a{font-size:13px;font-weight:600;color:rgba(255,255,255,0.68);text-decoration:none;padding:8px 14px;border-radius:8px;transition:background .15s,color .15s}
+  .docnav a:hover{color:#fff;background:rgba(108,92,231,0.22)}
+
+  /* ---- section band headers ---- */
+  .band{padding:66px 0 10px;border-top:1px solid var(--line)}
+  .band .k{font-size:12px;font-weight:700;letter-spacing:0.16em;text-transform:uppercase;color:var(--accent)}
+  .band h2{font-size:clamp(28px,3.8vw,42px);font-weight:800;letter-spacing:-0.02em;margin-top:12px;line-height:1.04}
+  .band p{font-size:18px;color:var(--ink-soft);max-width:800px;margin-top:14px}
+
+  /* ---- shared footer ---- */
+  .sitefoot{background:var(--hero-bottom);color:rgba(255,255,255,0.7);padding:48px 0;font-size:13px}
+  .sitefoot .mw{display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px}
+  .sitefoot b{color:#fff;font-weight:600}
+
+  /* ---- per-scope tokens / line-height (file body{} rules) ---- */
+  .strategy{--maxw:1080px;line-height:1.55}
+  .sysflow{--maxw:1180px;line-height:1.5}
+  .sysmap{background:#0C0E18;padding:26px 0 10px}
+
+  @media (max-width:760px){.docnav .brand{display:none}.docnav .mw{justify-content:space-between}}
+
+
+/* ===== System map (SVG) ===== */
+@scope (.sysmap){
+  .frame{max-width:1600px;margin:0 auto;padding:18px}
+  svg{width:100%;height:auto;display:block;font-family:'Inter',-apple-system,sans-serif}
+  .zlabel{fill:#A29BFE;font-weight:700;font-size:13px;letter-spacing:1.6px}
+        .node{fill:#fff;stroke:#6C5CE7;stroke-width:2}
+        .node3{fill:#fff;stroke:#6C5CE7;stroke-width:2;stroke-dasharray:6 4}
+        .innerb{fill:#F6F5FB;stroke:#CFC9E8;stroke-width:1}
+        .innerb3{fill:#fff;stroke:#6C5CE7;stroke-width:1.5;stroke-dasharray:5 4}
+        .panel{fill:rgba(255,255,255,0.025);stroke:rgba(162,155,254,0.35);stroke-width:1.5}
+        .gchip{fill:rgba(255,255,255,0.05);stroke:#6C5CE7;stroke-width:1.5}
+        .ca{fill:rgba(108,92,231,0.10);stroke:#6C5CE7;stroke-width:1.5}
+        .ttl{fill:#14121C;font-weight:700;font-size:15px}
+        .ttlw{fill:#fff;font-weight:700;font-size:15px}
+        .sub{fill:#6E6B7B;font-weight:400;font-size:11px}
+        .subw{fill:rgba(255,255,255,0.72);font-weight:400;font-size:11.5px}
+        .mid{fill:#43404F;font-weight:500;font-size:11.5px}
+        .bd{font-weight:700;font-size:9px;letter-spacing:0.6px}
+        .gov{fill:#6C5CE7}.atom{fill:#0C7A52}.yld{fill:#9A6B00}
+        .arrow{stroke:#A29BFE;stroke-width:2.5;fill:none;marker-end:url(#ah)}
+        .arrowd{stroke:#7A74A8;stroke-width:2;stroke-dasharray:6 5;fill:none;marker-end:url(#ahd)}
+        .ncirc{fill:#6C5CE7}
+        .nnum{fill:#fff;font-weight:800;font-size:13px}
+        .rail{fill:rgba(108,92,231,0.10);stroke:#6C5CE7;stroke-width:1.5;stroke-dasharray:6 4}
+        .raillbl{fill:#A29BFE;font-weight:700;font-size:11px;letter-spacing:0.8px}
+}
+
+/* ===== System & transaction flow ===== */
+@scope (.sysflow){
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px}
+
+  .hero{background:linear-gradient(155deg,var(--hero-top),var(--hero-bottom));color:#fff;padding:56px 0 50px}
+  .eyebrow{font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--accent-light);margin-bottom:16px}
+  .hero h1{font-size:clamp(30px,4.4vw,46px);font-weight:800;letter-spacing:-.02em;line-height:1.02}
+  .hero p{font-size:16px;color:rgba(255,255,255,.8);max-width:680px;margin-top:14px}
+
+  .legend{display:flex;flex-wrap:wrap;gap:10px 22px;padding:18px 0;border-bottom:1px solid var(--line);margin-bottom:8px}
+  .lg{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--ink-soft);font-weight:500}
+  .sw{width:26px;height:16px;border-radius:5px;display:inline-block;flex:none}
+  .sw.native{border:2px solid var(--accent);background:#fff}
+  .sw.third{border:2px dashed var(--accent);background:#fff}
+  .tagk{display:inline-flex;align-items:center;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;border-radius:999px;padding:3px 9px}
+  .tagk.gov{color:#fff;background:var(--accent)}
+  .tagk.auto{color:var(--accent);background:rgba(108,92,231,.12)}
+  .tagk.atom{color:#0C7A52;background:rgba(16,170,115,.12)}
+  .tagk.yld{color:#9A6B00;background:rgba(214,158,46,.16)}
+
+  section{padding:42px 0}
+  .shead{display:flex;align-items:baseline;gap:14px;margin-bottom:8px}
+  .snum{font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.08em;min-width:26px}
+  .shead h2{font-size:clamp(22px,2.8vw,30px);font-weight:700;letter-spacing:-.015em}
+  .sub{font-size:15px;color:var(--ink-soft);max-width:780px;margin:0 0 26px 40px}
+  .mini-h{font-size:18px;font-weight:700;letter-spacing:-.01em;margin:34px 0 4px}
+
+  .gov-lane{display:flex;align-items:stretch;gap:0;background:linear-gradient(150deg,var(--hero-top),var(--hero-bottom));border-radius:14px;padding:18px 20px;color:#fff;flex-wrap:wrap}
+  .gov-node{flex:1;min-width:150px;padding:6px 14px}
+  .gov-node .h{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-light);font-weight:700;margin-bottom:6px}
+  .gov-node .b{font-size:14px;color:rgba(255,255,255,.92);font-weight:500}
+  .gov-node .b small{display:block;color:rgba(255,255,255,.6);font-size:12px;margin-top:4px;font-weight:400}
+  .gov-arrow{display:flex;align-items:center;color:var(--accent-light);font-size:20px;font-weight:700;padding:0 2px}
+
+  .zones{display:flex;align-items:stretch;gap:0;flex-wrap:wrap}
+  .zone{flex:1;min-width:250px;background:var(--surface-alt);border:1px solid var(--line);border-radius:14px;padding:20px 18px}
+  .zone-h{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+  .zone-s{font-size:12px;color:var(--ink-faint);margin-bottom:16px;font-weight:500}
+  .zarrow{display:flex;align-items:center;justify-content:center;width:44px;color:var(--accent);font-size:24px;font-weight:700;flex:none}
+
+  .cols3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:20px}
+  .cols2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px}
+
+  .node{background:#fff;border:2px solid var(--accent);border-radius:11px;padding:13px 15px;margin-bottom:11px;position:relative}
+  .node:last-child{margin-bottom:0}
+  .node.third{border-style:dashed}
+  .node.plain{border-color:var(--line-strong);border-style:solid}
+  .node .nm{font-size:14.5px;font-weight:700;letter-spacing:-.01em}
+  .node .ds{font-size:12.5px;color:var(--ink-soft);margin-top:4px}
+  .node .pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+  .or{font-size:11px;font-weight:700;color:var(--ink-faint);text-align:center;letter-spacing:.1em;margin:2px 0 9px}
+
+  .rail{margin-top:18px;border:2px dashed var(--accent);border-radius:12px;background:rgba(108,92,231,.05);padding:16px 22px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+  .rail .ic{font-size:22px;color:var(--accent)}
+  .rail .tx{font-size:14px;color:var(--ink)}
+  .rail .tx b{font-weight:700}
+  .rail .tx small{display:block;color:var(--ink-faint);font-size:12.5px;margin-top:3px}
+
+  .callout{margin-top:16px;background:linear-gradient(150deg,var(--hero-top),var(--hero-bottom));color:#fff;border-radius:12px;padding:20px 24px}
+  .callout .lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-light);font-weight:700;margin-bottom:8px}
+  .callout p{font-size:14px;color:rgba(255,255,255,.9)}
+  .callout p b{color:#fff}
+
+  .seq{background:var(--surface-alt);border:1px solid var(--line);border-radius:14px;padding:20px 22px;margin-bottom:18px}
+  .seq.feature{border-left:4px solid var(--accent)}
+  .seq-h{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+  .seq-h .t{font-size:17px;font-weight:700}
+  .flow{display:flex;align-items:stretch;flex-wrap:wrap;gap:0}
+  .step{background:#fff;border:1px solid var(--line-strong);border-radius:10px;padding:11px 14px;min-width:140px;flex:1;position:relative}
+  .step .k{font-size:10px;font-weight:700;color:var(--accent);letter-spacing:.08em}
+  .step .v{font-size:13px;color:var(--ink);font-weight:600;margin-top:3px;line-height:1.35}
+  .step .v small{display:block;font-weight:400;color:var(--ink-faint);font-size:11.5px;margin-top:3px}
+  .sarrow{display:flex;align-items:center;justify-content:center;width:30px;color:var(--accent);font-size:18px;font-weight:700;flex:none}
+  .note{font-size:13px;color:var(--ink-faint);margin-top:14px;border-left:3px solid var(--line-strong);padding-left:14px}
+
+  footer{background:var(--hero-bottom);color:rgba(255,255,255,.65);padding:34px 0;font-size:12.5px;margin-top:20px}
+  footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px}
+  footer b{color:#fff}
+
+  @media(max-width:820px){
+    .zarrow,.gov-arrow{width:100%;height:30px;transform:rotate(90deg)}
+    .sarrow{width:100%;height:24px}
+    .zones,.gov-lane,.flow{flex-direction:column}
+    .cols3,.cols2{grid-template-columns:1fr}
+  }
+}
+
+/* ===== Strategy ===== */
+@scope (.strategy){
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 32px}
 
   .hero{background:linear-gradient(155deg,var(--hero-top) 0%,var(--hero-bottom) 100%);color:#fff;padding:96px 0 88px;position:relative;overflow:hidden}
   .hero::after{content:"";position:absolute;right:-120px;top:-120px;width:420px;height:420px;background:radial-gradient(circle,rgba(108,92,231,0.45) 0%,rgba(108,92,231,0) 70%);pointer-events:none}
@@ -32,7 +191,7 @@
   .axis .v{font-size:15px;color:rgba(255,255,255,0.9);margin-top:5px;font-weight:500}
   .axis.now{border-color:var(--accent);background:rgba(108,92,231,0.16)}
 
-  section.body{padding:72px 0;border-bottom:1px solid var(--line)}
+  section.
   section.body:nth-of-type(even){background:var(--surface-alt)}
   .sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:32px}
   .sec-num{font-size:13px;font-weight:700;color:var(--accent);letter-spacing:0.08em;padding-top:6px;min-width:28px}
@@ -90,15 +249,16 @@
   footer b{color:#fff;font-weight:600}
 
   @media (max-width:760px){.grid2,.flow{grid-template-columns:1fr}.cons-list li{flex-direction:column;gap:4px}.cons-list li .name{min-width:0}}
+}
 </style>
 </head>
 <body>
 
-<header class="hero">
-  <div class="wrap">
-    <div class="eyebrow">Hastra · Strategy</div>
-    <h1>Strategy Vaults<span class="z">The Z-Axis</span></h1>
-    <p class="lede">One deposit. Diversified credit. Allocated and levered programmatically across chains, inside a governed constraint box, with no manager.</p>
+<header class="masthead">
+  <div class="mw">
+    <div class="kicker">Hastra · Strategy Vaults</div>
+    <h1>Strategy Vaults<span class="z">One deposit. Diversified credit. Allocated and levered programmatically across chains, inside a governed constraint box, with no manager.</span></h1>
+    <p class="lede">The full picture on one page: the system map, how value moves and where authority sits, and the strategy that governs it.</p>
     <div class="axes">
       <div class="axis"><div class="k">X — Asset classes</div><div class="v">Which token</div></div>
       <div class="axis"><div class="k">Y — Chains</div><div class="v">Where the token lives</div></div>
@@ -107,7 +267,416 @@
   </div>
 </header>
 
-<section class="body">
+<nav class="docnav">
+  <div class="mw">
+    <span class="brand">Hastra Strategy Vaults</span>
+    <a href="#map">System Map</a>
+    <a href="#flow">System &amp; Flow</a>
+    <a href="#strategy">Strategy</a>
+  </div>
+</nav>
+
+<div class="band" id="map">
+  <div class="mw">
+    <div class="k">Single-page system map</div>
+    <h2>The whole system, one diagram</h2>
+    <p>Governance, entry, the Solana control plane, and per-chain execution — with the deposit-and-allocate path traced 1 through 6.</p>
+  </div>
+</div>
+<section class="sysmap">
+  <div class="frame">
+<svg viewBox="0 0 1600 845" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1B0F3B"/>
+      <stop offset="1" stop-color="#0C0E18"/>
+    </linearGradient>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 Z" fill="#A29BFE"/>
+    </marker>
+    <marker id="ahd" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 Z" fill="#7A74A8"/>
+    </marker>
+    
+  </defs>
+
+  <rect x="0" y="0" width="1600" height="845" fill="url(#bg)"/>
+
+  <!-- TITLE -->
+  <text x="55" y="50" class="ttlw" font-size="29" font-weight="800">Hastra Strategy Vaults</text>
+  <text x="55" y="76" fill="#A29BFE" font-size="14" font-weight="500">Single-page system flow</text>
+  <text x="1545" y="50" text-anchor="end" fill="rgba(255,255,255,0.5)" font-size="11">Solana home base · wYLDS over CCIP · HASH-governed</text>
+
+  <!-- GOVERNANCE -->
+  <text x="55" y="120" class="zlabel">GOVERNANCE</text>
+  <rect x="55" y="132" width="360" height="60" rx="10" class="gchip"/>
+  <text x="74" y="160" class="ttlw">HASH holders</text>
+  <text x="74" y="179" class="subw">vote the envelope · steward · fee · burn</text>
+  <path d="M415,162 L452,162" class="arrow"/>
+  <rect x="455" y="132" width="360" height="60" rx="10" class="gchip"/>
+  <text x="474" y="160" class="ttlw">Steward proposes</text>
+  <text x="474" y="179" class="subw">values inside the envelope</text>
+  <path d="M815,162 L852,162" class="arrow"/>
+  <rect x="855" y="132" width="360" height="60" rx="10" class="gchip"/>
+  <text x="874" y="160" class="ttlw">Ratify by exception</text>
+  <text x="874" y="179" class="subw">timelock + veto</text>
+  <text x="1245" y="156" class="subw">Figure operates nothing.</text>
+  <text x="1245" y="174" class="subw">Holders govern the service agreement.</text>
+
+  <!-- gov down into constraint box -->
+  <path d="M735,194 L735,266" class="arrow"/>
+  <text x="745" y="228" fill="#A29BFE" font-size="11" font-weight="600">sets the envelope</text>
+
+  <!-- ZONE LABELS -->
+  <text x="55" y="246" class="zlabel">ENTRY</text>
+  <text x="480" y="246" class="zlabel">CONTROL PLANE · SOLANA</text>
+  <text x="1095" y="246" class="zlabel">EXECUTION · PER CHAIN</text>
+
+  <!-- CONTROL PLANE PANEL -->
+  <rect x="450" y="258" width="560" height="346" rx="16" class="panel"/>
+  <!-- CP1 constraint box -->
+  <rect x="480" y="270" width="500" height="52" rx="10" class="node"/>
+  <text x="498" y="293" class="ttl">Constraint box</text>
+  <text x="498" y="311" class="sub">caps · bands · footprint · health floor · budget</text>
+  <text x="966" y="287" text-anchor="end" class="bd gov">GOVERNED</text>
+  <!-- CP2 share token -->
+  <rect x="480" y="330" width="500" height="52" rx="10" class="node"/>
+  <text x="498" y="353" class="ttl">Share token + NAV</text>
+  <text x="498" y="371" class="sub">mint Base or Enhanced shares · accounting</text>
+  <!-- CP3 proposers -->
+  <rect x="480" y="390" width="500" height="52" rx="10" class="node"/>
+  <text x="498" y="413" class="ttl">Proposers</text>
+  <text x="498" y="431" class="sub">keeper continuous · anyone deployed may propose · stake-gated</text>
+  <text x="966" y="407" text-anchor="end" class="bd gov">AUTO</text>
+  <!-- CP4 verifier -->
+  <rect x="480" y="450" width="500" height="52" rx="10" class="node"/>
+  <text x="498" y="473" class="ttl">Onchain verifier</text>
+  <text x="498" y="491" class="sub">checks box + score-beats-cost · accept / reject</text>
+  <text x="966" y="467" text-anchor="end" class="bd gov">GOVERNED</text>
+  <circle cx="466" cy="476" r="13" class="ncirc"/><text x="466" y="481" text-anchor="middle" class="nnum">4</text>
+  <!-- CP5 reserve -->
+  <rect x="480" y="510" width="500" height="52" rx="10" class="node"/>
+  <text x="498" y="533" class="ttl">wYLDS reserve</text>
+  <text x="498" y="551" class="sub">redemption buffer · staging · earns idle</text>
+  <text x="966" y="527" text-anchor="end" class="bd yld">YIELD</text>
+
+  <!-- ENTRY -->
+  <rect x="55" y="266" width="360" height="52" rx="10" class="node"/>
+  <text x="92" y="289" class="ttl">User assets</text>
+  <text x="92" y="307" class="sub">any stablecoin or asset · any CCTP chain</text>
+  <circle cx="68" cy="270" r="13" class="ncirc"/><text x="68" y="275" text-anchor="middle" class="nnum">1</text>
+  <path d="M235,318 L235,352" class="arrow"/>
+  <rect x="55" y="355" width="172" height="58" rx="9" class="node3"/>
+  <text x="71" y="382" class="ttl">CCTP</text>
+  <text x="71" y="400" class="sub">native stablecoin</text>
+  <rect x="243" y="355" width="172" height="58" rx="9" class="node3"/>
+  <text x="259" y="382" class="ttl">Intent solver</text>
+  <text x="259" y="400" class="sub">NEAR · deBridge</text>
+  <circle cx="68" cy="357" r="13" class="ncirc"/><text x="68" y="362" text-anchor="middle" class="nnum">2</text>
+  <path d="M235,413 L235,450" class="arrow"/>
+  <rect x="55" y="453" width="360" height="52" rx="10" class="node"/>
+  <text x="92" y="476" class="ttl">wYLDS</text>
+  <text x="92" y="494" class="sub">canonical internal unit</text>
+  <text x="397" y="473" text-anchor="end" class="bd yld">YIELD</text>
+  <circle cx="68" cy="457" r="13" class="ncirc"/><text x="68" y="462" text-anchor="middle" class="nnum">3</text>
+  <!-- entry into CP (mint) -->
+  <path d="M415,478 L448,360" class="arrow"/>
+  <text x="372" y="430" fill="#A29BFE" font-size="10.5" font-weight="600">in → mint</text>
+
+  <!-- RAIL -->
+  <rect x="1012" y="300" width="36" height="262" rx="9" class="rail"/>
+  <text x="1030" y="431" class="raillbl" text-anchor="middle" transform="rotate(-90 1030 431)">wYLDS over CCIP</text>
+  <!-- instruct -->
+  <path d="M982,476 L1078,476" class="arrow"/>
+  <circle cx="1030" cy="476" r="13" class="ncirc"/><text x="1030" y="481" text-anchor="middle" class="nnum">5</text>
+  <text x="1000" y="466" fill="#A29BFE" font-size="10" font-weight="600">instruct</text>
+  <text x="987" y="503" fill="#A29BFE" font-size="9.5" font-weight="600">+5% net increment</text>
+  <text x="987" y="515" fill="#7A74A8" font-size="9">to winning proposer</text>
+  <!-- state back -->
+  <path d="M1078,540 L982,540" class="arrow"/>
+  <text x="1000" y="556" fill="#A29BFE" font-size="10" font-weight="600">state · value</text>
+
+  <!-- EXECUTION PANEL -->
+  <rect x="1080" y="258" width="470" height="346" rx="16" class="panel"/>
+  <!-- M1 Solana module -->
+  <rect x="1100" y="272" width="430" height="134" rx="11" class="node"/>
+  <text x="1118" y="298" class="ttl">Solana module</text>
+  <text x="1118" y="316" class="sub">local · same chain (no CCIP)</text>
+  <text x="1118" y="342" class="mid">Holds PRIME / AUTO / SMB · atomic lever / delever</text>
+  <text x="1512" y="296" text-anchor="end" class="bd atom">ATOMIC</text>
+  <rect x="1118" y="354" width="250" height="30" rx="7" class="innerb3"/>
+  <text x="1132" y="373" class="sub">Borrow market · Kamino</text>
+  <!-- M2 EVM modules -->
+  <rect x="1100" y="424" width="430" height="134" rx="11" class="node"/>
+  <text x="1118" y="450" class="ttl">EVM modules</text>
+  <text x="1118" y="468" class="sub">Base · Arbitrum · BNB · ... (via CCIP)</text>
+  <text x="1118" y="494" class="mid">Holds tokens · atomic lever / delever</text>
+  <text x="1512" y="448" text-anchor="end" class="bd atom">ATOMIC</text>
+  <rect x="1118" y="506" width="250" height="30" rx="7" class="innerb3"/>
+  <text x="1132" y="525" class="sub">Borrow market · Morpho</text>
+  <circle cx="1113" cy="426" r="13" class="ncirc"/><text x="1113" y="431" text-anchor="middle" class="nnum">6</text>
+  <!-- safety reflex note -->
+  <text x="1100" y="582" class="sub">Safety proposal (delever) · feasibility-first · graduated · unpaid · keeper + any holder</text>
+
+  <!-- CONTROL AUTHORITY BAR -->
+  <rect x="55" y="624" width="1495" height="60" rx="12" class="ca"/>
+  <text x="76" y="650" class="zlabel" font-size="12">CONTROL AUTHORITY</text>
+  <text x="76" y="671" fill="#fff" font-size="13" font-weight="500">One action: propose the next state. Accept rule is feasibility-first, then carry. Safety proposals run local and pay nothing; performance proposals run central and pay 5%. Lever stays box-bounded.</text>
+
+  <!-- FEES BAR -->
+  <rect x="55" y="690" width="1495" height="60" rx="12" class="ca"/>
+  <text x="76" y="716" class="zlabel" font-size="12">FEES</text>
+  <text x="76" y="737" fill="#fff" font-size="13" font-weight="500">2% admin on NAV · 15% performance above wYLDS yield · high-water mark · accrued in NAV · net routes to HASH burn / Figure / steward (governed) · no protocol fee at entry or exit</text>
+
+  <!-- REDEMPTION RETURN -->
+  <text x="800" y="772" text-anchor="middle" fill="#A29BFE" font-size="12" font-weight="600">REDEEM · burn shares &#8594; atomic unwind &#8594; wYLDS back via CCIP &#8594; exiter bears 100% of cost · no cooldown</text>
+  <path d="M1300,784 L150,784" class="arrowd"/>
+
+  <!-- LEGEND -->
+  <rect x="55" y="816" width="26" height="15" rx="4" class="node"/>
+  <text x="90" y="828" class="subw">Figure / Hastra native</text>
+  <rect x="290" y="816" width="26" height="15" rx="4" class="node3"/>
+  <text x="325" y="828" class="subw">Third-party rail / venue</text>
+  <text x="540" y="828" class="bd gov">GOVERNED</text><text x="620" y="828" class="subw">constraint-bounded</text>
+  <text x="770" y="828" class="bd gov">AUTO</text><text x="815" y="828" class="subw">no manager</text>
+  <text x="945" y="828" class="bd atom">ATOMIC</text><text x="1005" y="828" class="subw">one transaction</text>
+  <text x="1150" y="828" class="bd yld">YIELD</text><text x="1195" y="828" class="subw">earns idle</text>
+  <text x="1545" y="828" text-anchor="end" class="subw">Numbers 1&#8211;6 trace a deposit and allocate</text>
+</svg>
+</div>
+</section>
+
+<div class="band" id="flow">
+  <div class="mw">
+    <div class="k">System &amp; transaction flow</div>
+    <h2>What we build, how value moves</h2>
+    <p>Where authority sits and the order operations fire. One read for engineering, one read for everyone else.</p>
+  </div>
+</div>
+<div class="sysflow">
+  <div class="wrap">
+  <div class="legend">
+    <div class="lg"><span class="sw native"></span>Figure / Hastra native</div>
+    <div class="lg"><span class="sw third"></span>Third-party rail or venue</div>
+    <div class="lg"><span class="tagk gov">Governed</span>inside the constraint box</div>
+    <div class="lg"><span class="tagk auto">Auto</span>runs with no manager</div>
+    <div class="lg"><span class="tagk atom">Atomic</span>one transaction, never half-built</div>
+    <div class="lg"><span class="tagk yld">Yield-bearing</span>earns while idle</div>
+  </div>
+</div>
+
+<!-- A · GOVERNANCE -->
+<section>
+  <div class="wrap">
+    <div class="shead"><div class="snum">A</div><h2>Who sets the rules</h2></div>
+    <p class="sub">Holders own the envelope and the steward. The steward proposes the numbers inside it. The controller runs inside whatever survives that process.</p>
+    <div class="gov-lane">
+      <div class="gov-node"><div class="h">HASH holders</div><div class="b">Vote the envelope<small>Eligible asset classes, leverage and concentration ceilings, risk-budget ranges, who the steward is, fee and burn.</small></div></div>
+      <div class="gov-arrow">→</div>
+      <div class="gov-node"><div class="h">Risk steward</div><div class="b">Proposes the values<small>Per-period caps, trigger thresholds, correlation assumptions. Figure is first steward, revocable by vote.</small></div></div>
+      <div class="gov-arrow">→</div>
+      <div class="gov-node"><div class="h">Ratify by exception</div><div class="b">Timelock + veto<small>Proposal goes live after a delay unless holders veto.</small></div></div>
+      <div class="gov-arrow">→</div>
+      <div class="gov-node"><div class="h">Constraint box</div><div class="b">Enforced onchain<small>Every controller action is validated against the box and reverts if outside it.</small></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- B · SYSTEM MAP -->
+<section>
+  <div class="wrap">
+    <div class="shead"><div class="snum">B</div><h2>The system</h2></div>
+    <p class="sub">Two zones. Heterogeneous at the edge, where any asset routes into one canonical unit. Canonical in the core, where one unit moves on one rail and positions live on their own chains.</p>
+    <div class="zones">
+
+      <div class="zone">
+        <div class="zone-h">1 · Entry</div>
+        <div class="zone-s">Any asset in. Routing cost borne by the user.</div>
+        <div class="node plain"><div class="nm">Any stablecoin or asset</div><div class="ds">USDC, USDT, PYUSD, RLUSD, or arbitrary asset.</div></div>
+        <div class="or">ROUTED VIA</div>
+        <div class="node third"><div class="nm">CCTP</div><div class="ds">Native stablecoin path. Burn and mint, no pooled bridge balance.</div></div>
+        <div class="node third"><div class="nm">Intent solver</div><div class="ds">NEAR / deBridge. Optimizes arbitrary asset into wYLDS. Bounded failure: swap clears or it does not.</div></div>
+        <div class="or">SETTLES TO</div>
+        <div class="node"><div class="nm">wYLDS</div><div class="ds">Canonical internal unit.</div><div class="pills"><span class="tagk yld">Yield-bearing</span></div></div>
+      </div>
+
+      <div class="zarrow">→</div>
+
+      <div class="zone">
+        <div class="zone-h">2 · Control plane</div>
+        <div class="zone-s">Solana, home base. One token of record.</div>
+        <div class="node"><div class="nm">Share token + NAV</div><div class="ds">Base or Enhanced share mints here. Accounting, NAV, and fee accrual: 2% admin and 15% performance above wYLDS.</div></div>
+        <div class="node"><div class="nm">Proposers</div><div class="ds">Figure's keeper runs continuously. Anyone deployed in the vault can also propose. Off-chain search, stake-gated, keeper waives its own slice.</div><div class="pills"><span class="tagk auto">Auto</span></div></div>
+        <div class="node"><div class="nm">Onchain verifier</div><div class="ds">Checks each proposal against the box and the score-beats-cost test. Accepts or rejects. No search, no trusted operator.</div><div class="pills"><span class="tagk gov">Governed</span></div></div>
+        <div class="node"><div class="nm">Constraint box</div><div class="ds">Caps, bands, footprint, health floor, risk budget. Set by governance.</div><div class="pills"><span class="tagk gov">Governed</span></div></div>
+        <div class="node"><div class="nm">wYLDS reserve</div><div class="ds">Redemption buffer and rebalance staging. Earns while parked.</div><div class="pills"><span class="tagk yld">Yield-bearing</span></div></div>
+      </div>
+
+      <div class="zarrow">→</div>
+
+      <div class="zone">
+        <div class="zone-h">3 · Execution</div>
+        <div class="zone-s">Per chain. Positions stay where the token lives.</div>
+        <div class="node"><div class="nm">Chain module</div><div class="ds">One per chain. Holds Hastra tokens (PRIME, AUTO, SMB) locally. Credit token is never bridged.</div></div>
+        <div class="or">LEVERS VIA</div>
+        <div class="node"><div class="nm">Flashloan lever / delever</div><div class="ds">Borrow, buy, post, borrow, repay. In reverse to unwind. One transaction.</div><div class="pills"><span class="tagk atom">Atomic</span></div></div>
+        <div class="node third"><div class="nm">Borrow market</div><div class="ds">Morpho, Kamino. The leverage leg. Required to lever a token, not to hold it.</div></div>
+      </div>
+
+    </div>
+
+    <div class="rail">
+      <div class="ic">⇆</div>
+      <div class="tx"><b>Cross-chain rail: wYLDS over CCIP.</b><small>Value crosses chains as wYLDS, never as the credit token. CCIP carries control and state alongside it. Conservative and auditable, chosen over intents for the levered core.</small></div>
+    </div>
+  </div>
+</section>
+
+<!-- C · CONTROL AUTHORITY -->
+<section>
+  <div class="wrap">
+    <div class="shead"><div class="snum">C</div><h2>Control authority</h2></div>
+    <p class="sub">Safety is local. Optimization is central. The brain is disposable: lose the optimizer and nothing is liquidated, nothing is lost.</p>
+
+    <div class="callout">
+      <div class="lbl">One action, two classes</div>
+      <p><b>A delever is a proposal whose improvement is feasibility, not yield.</b> One accept rule, lexicographic: feasibility first, carry second. Safety proposals verify locally and pay nothing because they remove carry. Performance proposals run central and pay 5%. Lever authority stays bounded by the box regardless of caller.</p>
+    </div>
+
+    <div class="mini-h">Three tiers</div>
+    <div class="cols3">
+      <div class="zone">
+        <div class="zone-h">Tier 1 · Local</div>
+        <div class="zone-s">Per chain. Onchain. Trustless, always on.</div>
+        <div class="node"><div class="nm">Atomic lever / delever</div><div class="ds">Executes locally.</div><div class="pills"><span class="tagk atom">Atomic</span></div></div>
+        <div class="node"><div class="nm">Constraint box</div><div class="ds">Rejects out-of-envelope actions.</div><div class="pills"><span class="tagk gov">Governed</span></div></div>
+        <div class="node"><div class="nm">Safety proposal (delever)</div><div class="ds">Feasibility-restoring, condition-gated, graduated. Unpaid. Keeper plus any deployed holder.</div></div>
+      </div>
+      <div class="zone">
+        <div class="zone-h">Tier 2 · Control plane</div>
+        <div class="zone-s">Solana. Onchain. Needs Solana liveness, not the optimizer.</div>
+        <div class="node"><div class="nm">Share token + NAV</div><div class="ds">Redemption slice math.</div></div>
+        <div class="node"><div class="nm">Eligible-set registry</div><div class="ds">Governance-controlled membership.</div><div class="pills"><span class="tagk gov">Governed</span></div></div>
+        <div class="node"><div class="nm">Global breaker flag</div><div class="ds">Systemic halt state.</div></div>
+      </div>
+      <div class="zone">
+        <div class="zone-h">Tier 3 · Optimizer</div>
+        <div class="zone-s">Off-chain. Disposable.</div>
+        <div class="node"><div class="nm">Targets + rotations</div><div class="ds">Computes allocation, initiates levers.</div><div class="pills"><span class="tagk auto">Auto</span></div></div>
+        <div class="node"><div class="nm">Primary keepers</div><div class="ds">Backed up by the permissionless path.</div></div>
+        <div class="node plain"><div class="nm">If it dies</div><div class="ds">System degrades to safe, not optimizing. No loss.</div></div>
+      </div>
+    </div>
+
+    <div class="mini-h">Where triggers fire</div>
+    <div class="cols2">
+      <div class="zone">
+        <div class="zone-h">Local safety triggers</div>
+        <div class="zone-s">Read local state. Fire on the chain. Action: safety proposal, graduated, unpaid.</div>
+        <div class="node plain"><div class="nm">Health buffer near floor</div><div class="ds">Delever to restore the buffer.</div></div>
+        <div class="node plain"><div class="nm">Borrow utilization high</div><div class="ds">Delever as borrow gets scarce.</div></div>
+        <div class="node plain"><div class="nm">Swap depth below exit size</div><div class="ds">Reduce to stay atomically exitable.</div></div>
+        <div class="node plain"><div class="nm">Local venue breaker</div><div class="ds">Local depeg or exploit. Full unwind to wYLDS.</div></div>
+      </div>
+      <div class="zone">
+        <div class="zone-h">Central optimization triggers</div>
+        <div class="zone-s">Need the global view. Fire on the control plane. Action: rotation, cost-gated.</div>
+        <div class="node plain"><div class="nm">Carry compression</div><div class="ds">Spread on a pair compresses or inverts.</div></div>
+        <div class="node plain"><div class="nm">Relative carry shift</div><div class="ds">A better pair appears. Only the plane sees all pairs at once.</div></div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="lbl">Global breaker · the one central safety power</div>
+      <p>Halt-only. Stops new leverage and forces delever to wYLDS, nothing else. <b>Multisig of Figure employees at launch, then governance.</b> Two propagation paths: the Solana flag broadcasts over CCIP, and the guardian trips per-chain breakers directly.</p>
+    </div>
+  </div>
+</section>
+
+<!-- D · SEQUENCES -->
+<section>
+  <div class="wrap">
+    <div class="shead"><div class="snum">D</div><h2>Transaction sequences</h2></div>
+    <p class="sub">The order operations fire for the four things the vault does.</p>
+
+    <div class="seq feature">
+      <div class="seq-h"><span class="t">Deposit</span><span class="tagk auto">Auto</span></div>
+      <div class="flow">
+        <div class="step"><div class="k">1</div><div class="v">User sends asset<small>Any stablecoin or asset, any CCTP chain.</small></div></div>
+        <div class="sarrow">→</div>
+        <div class="step"><div class="k">2</div><div class="v">Route to wYLDS<small>CCTP or intent solver. Cost on the user.</small></div></div>
+        <div class="sarrow">→</div>
+        <div class="step"><div class="k">3</div><div class="v">Mint shares at NAV<small>On Solana.</small></div></div>
+        <div class="sarrow">→</div>
+        <div class="step"><div class="k">4</div><div class="v">Controller assigns target<small>Token, chain, leverage.</small></div></div>
+        <div class="sarrow">→</div>
+        <div class="step"><div class="k">5</div><div class="v">Move via CCIP<small>wYLDS to target chain if not home.</small></div></div>
+        <div class="sarrow">→</div>
+        <div class="step"><div class="k">6</div><div class="v">Atomic lever<small>Flashloan loop. Position live.</small></div></div>
+      </div>
+    </div>
+
+    <div class="seq feature">
+      <div class="seq-h"><span class="t">Optimization rotation</span><span class="tagk auto">Auto</span><span class="tagk gov">Governed</span><span style="font-size:12px;color:var(--ink-faint);font-weight:600">Central</span></div>
+      <div class="flow">
+        <div class="step"><div class="k">1</div><div class="v">Proposal submitted<small>Off-chain search posts a target. Permissionless.</small></div></div>
+        <div class="sarrow">→</div>
+        <div class="step"><div class="k">2</div><div class="v">Verify onchain<small>Satisfies the box, and beats the book by more than round-trip cost.</small></div></div>
+        <div class="sarrow">→</div>
+        <div class="step"><div class="k">3</div><div class="v">Delever on chain X<small>Atomic. Rests in wYLDS.</small></div></div>
+        <div class="sarrow">→</div>
+        <div class="step"><div class="k">4</div><div class="v">Move via CCIP<small>wYLDS to chain Y.</small></div></div>
+        <div class="sarrow">→</div>
+        <div class="step"><div class="k">5</div><div class="v">Lever on chain Y<small>Atomic. If it fails, capital sits safe.</small></div></div>
+      </div>
+      <div class="note">Delever-first. Every intermediate resting state is idle wYLDS: unlevered, yield-bearing, no liquidation risk. Never lever-first. When an external proposer's target wins, they stream 5% of the net increment over the keeper while their allocation stays best, taken before NAV.</div>
+    </div>
+
+    <div class="seq feature">
+      <div class="seq-h"><span class="t">Safety proposal (delever)</span><span class="tagk atom">Atomic</span><span style="font-size:12px;color:var(--ink-faint);font-weight:600">Local · unpaid</span></div>
+      <div class="flow">
+        <div class="step"><div class="k">1</div><div class="v">Local condition true<small>Health, utilization, depth, or breaker.</small></div></div>
+        <div class="sarrow">→</div>
+        <div class="step"><div class="k">2</div><div class="v">Keeper or holder proposes<small>Keeper normal path · any deployed holder backstop.</small></div></div>
+        <div class="sarrow">→</div>
+        <div class="step"><div class="k">3</div><div class="v">Verify: feasibility first<small>Accepts any move toward the rails. Else reverts.</small></div></div>
+        <div class="sarrow">→</div>
+        <div class="step"><div class="k">4</div><div class="v">Graduated delever<small>Soft: restore buffer. Breaker: full unwind to wYLDS.</small></div></div>
+        <div class="sarrow">→</div>
+        <div class="step"><div class="k">5</div><div class="v">Pays nothing<small>Removes carry, so the reward rule pays zero. Wins over a pending lever.</small></div></div>
+      </div>
+      <div class="note">One action, one accept rule. A delever is a proposal whose improvement is feasibility, not yield. It is unpaid because reward pays on realized carry and safety removes carry. No bounty, so no adverse selection.</div>
+    </div>
+
+    <div class="seq feature">
+      <div class="seq-h"><span class="t">Redeem</span><span class="tagk atom">Atomic</span><span style="font-size:12px;color:var(--ink-faint);font-weight:600">No cooldown</span></div>
+      <div class="flow">
+        <div class="step"><div class="k">1</div><div class="v">Burn shares<small>Any time. No lockup.</small></div></div>
+        <div class="sarrow">→</div>
+        <div class="step"><div class="k">2</div><div class="v">Identify slice<small>Pro-rata across positions.</small></div></div>
+        <div class="sarrow">→</div>
+        <div class="step"><div class="k">3</div><div class="v">Atomic unwind<small>Flashloan closes the slice per chain.</small></div></div>
+        <div class="sarrow">→</div>
+        <div class="step"><div class="k">4</div><div class="v">Return via CCIP<small>wYLDS back to control plane.</small></div></div>
+        <div class="sarrow">→</div>
+        <div class="step"><div class="k">5</div><div class="v">Settle to user<small>Out-asset of choice. Exiter bears 100% of cost.</small></div></div>
+      </div>
+      <div class="note">No-cooldown is feasible because the footprint cap keeps every position atomically exitable. The same constraint that bounds risk makes instant exit honest to staying holders. Redemption initiation pauses if the Solana control plane is down (v1).</div>
+    </div>
+
+  </div>
+</section>
+</div>
+
+<div class="band" id="strategy">
+  <div class="mw">
+    <div class="k">The strategy</div>
+    <h2>The Z-Axis, in full</h2>
+    <p>One engine, three axes — the framework that governs every allocation the system above executes.</p>
+  </div>
+</div>
+<div class="strategy">
+  <section class="body">
   <div class="wrap">
     <div class="sec-head"><div class="sec-num">01</div><h2>One engine, three axes</h2></div>
     <p class="lead">The vault is the framework, implemented. <strong>X is which token. Y is which chain it lives on. Z is the leverage.</strong> A single controller searches over (token, chain, leverage) for the best risk-adjusted net carry and holds the result.</p>
@@ -336,10 +905,11 @@
     <p class="copy"><strong>Holders stay sovereign over the envelope and the steward.</strong> The numbers sit with someone equipped to set them. Expanding the eligible set is a holder vote, not a Figure decision. The Z-axis is the substance that gives Hastra governance something real to govern.</p>
   </div>
 </section>
+</div>
 
-<footer>
-  <div class="wrap">
-    <div><b>Hastra Strategy Vaults</b> · The Z-Axis · Strategy draft</div>
+<footer class="sitefoot">
+  <div class="mw">
+    <div><b>Hastra Strategy Vaults</b> · System map · Transaction flow · The Z-Axis</div>
     <div>Any asset in at the edge · wYLDS over CCIP in the core · HASH-governed envelope</div>
   </div>
 </footer>
