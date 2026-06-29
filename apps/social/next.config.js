@@ -7,6 +7,8 @@ const nextConfig = {
     return [
       // Serve /public/rwahouse.html at clean /rwahouse URL
       { source: '/rwahouse', destination: '/rwahouse.html' },
+      // Serve /public/hash.html at clean /hash URL
+      { source: '/hash', destination: '/hash.html' },
     ];
   },
 };
