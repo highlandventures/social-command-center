@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hastra Strategy Vaults — The Z-Axis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --hero-top:#1B0F3B; --hero-bottom:#0C0E18;
+    --accent:#6C5CE7; --accent-light:#A29BFE;
+    --ink:#14121C; --ink-soft:#43404F; --ink-faint:#6E6B7B;
+    --surface:#FFFFFF; --surface-alt:#F6F5FB;
+    --line:#E4E1F0; --line-strong:#CFC9E8; --maxw:1080px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--ink);background:var(--surface);line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 32px}
+
+  .hero{background:linear-gradient(155deg,var(--hero-top) 0%,var(--hero-bottom) 100%);color:#fff;padding:96px 0 88px;position:relative;overflow:hidden}
+  .hero::after{content:"";position:absolute;right:-120px;top:-120px;width:420px;height:420px;background:radial-gradient(circle,rgba(108,92,231,0.45) 0%,rgba(108,92,231,0) 70%);pointer-events:none}
+  .eyebrow{font-size:12px;font-weight:600;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent-light);margin-bottom:28px}
+  .hero h1{font-size:clamp(46px,7vw,84px);font-weight:800;line-height:0.98;letter-spacing:-0.03em;margin-bottom:10px}
+  .hero h1 .z{display:block;color:var(--accent-light);font-weight:600;font-size:clamp(20px,3vw,30px);letter-spacing:0.02em;margin-top:18px}
+  .hero p.lede{font-size:clamp(17px,2vw,21px);color:rgba(255,255,255,0.82);max-width:660px;margin-top:28px;font-weight:400}
+  .axes{display:flex;gap:14px;margin-top:44px;flex-wrap:wrap}
+  .axis{border:1px solid rgba(162,155,254,0.4);border-radius:10px;padding:14px 18px;min-width:188px;background:rgba(255,255,255,0.03)}
+  .axis .k{font-size:11px;letter-spacing:0.16em;text-transform:uppercase;color:var(--accent-light);font-weight:700}
+  .axis .v{font-size:15px;color:rgba(255,255,255,0.9);margin-top:5px;font-weight:500}
+  .axis.now{border-color:var(--accent);background:rgba(108,92,231,0.16)}
+
+  section.body{padding:72px 0;border-bottom:1px solid var(--line)}
+  section.body:nth-of-type(even){background:var(--surface-alt)}
+  .sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:32px}
+  .sec-num{font-size:13px;font-weight:700;color:var(--accent);letter-spacing:0.08em;padding-top:6px;min-width:28px}
+  .sec-head h2{font-size:clamp(26px,3.4vw,38px);font-weight:700;letter-spacing:-0.02em;line-height:1.08}
+  .lead{font-size:19px;color:var(--ink-soft);max-width:780px;font-weight:400}
+  .lead strong{color:var(--ink);font-weight:600}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:36px}
+  p.copy{font-size:16px;color:var(--ink-soft);max-width:780px;margin-top:18px}
+  p.copy strong{color:var(--ink);font-weight:600}
+  p.copy + p.copy{margin-top:14px}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:30px}
+  section.body:nth-of-type(even) .card{background:#fff}
+  .card.feature{border-left:4px solid var(--accent)}
+  .card .tag{font-size:11px;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;color:var(--accent);margin-bottom:12px}
+  .card h3{font-size:22px;font-weight:700;letter-spacing:-0.01em;margin-bottom:6px}
+  .card .subt{font-size:13px;color:var(--ink-faint);font-weight:500;margin-bottom:16px}
+  .card p{font-size:15px;color:var(--ink-soft)}
+  .spectrum{font-size:13px;color:var(--ink-faint);margin-top:18px;font-weight:500}
+  .spectrum b{color:var(--accent)}
+
+  .tokens{display:flex;gap:14px;margin-top:30px;flex-wrap:wrap}
+  .tok{border:1px solid var(--line-strong);border-radius:12px;padding:18px 22px;min-width:200px;flex:1;background:#fff}
+  .tok .n{font-size:17px;font-weight:700}
+  .tok .d{font-size:13px;color:var(--ink-faint);margin-top:4px}
+  .tok .stat{font-size:12px;color:var(--accent);font-weight:600;margin-top:10px;letter-spacing:0.04em}
+
+  .rule-box{margin-top:28px;border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:24px 28px;max-width:840px}
+  section.body:nth-of-type(even) .rule-box{background:#fff}
+  .rule-box .lbl{font-size:12px;letter-spacing:0.14em;text-transform:uppercase;font-weight:700;color:var(--accent);margin-bottom:8px}
+  .rule-box p{font-size:16px;color:var(--ink);font-weight:500}
+  .rule-box p + p{margin-top:10px}
+
+  .flow{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:34px}
+  .flow .step{border:1px solid var(--line);border-radius:12px;padding:22px;background:#fff}
+  section.body:nth-of-type(even) .flow .step{background:#fff}
+  .flow .step .num{font-size:12px;font-weight:700;color:var(--accent);letter-spacing:0.1em}
+  .flow .step h4{font-size:16px;font-weight:700;margin:8px 0 8px}
+  .flow .step p{font-size:14px;color:var(--ink-soft)}
+
+  .callout{margin-top:28px;background:linear-gradient(150deg,var(--hero-top),var(--hero-bottom));color:#fff;border-radius:14px;padding:30px 34px;max-width:880px}
+  .callout .lbl{font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent-light);font-weight:700;margin-bottom:10px}
+  .callout p{font-size:17px;color:rgba(255,255,255,0.9)}
+  .callout p strong{color:#fff}
+
+  .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--accent);background:rgba(108,92,231,0.1);border-radius:999px;padding:5px 12px;margin-left:12px;vertical-align:middle}
+  .cons-list{list-style:none;margin-top:8px}
+  .cons-list li{font-size:15px;color:var(--ink-soft);padding:12px 0;border-top:1px solid var(--line);display:flex;gap:14px;align-items:flex-start}
+  .cons-list li:first-child{border-top:none}
+  .cons-list li .name{color:var(--ink);font-weight:600;min-width:200px}
+  .outstanding-note{margin-top:22px;font-size:14px;color:var(--ink-faint);border-left:3px solid var(--line-strong);padding-left:16px}
+
+  footer{background:var(--hero-bottom);color:rgba(255,255,255,0.7);padding:48px 0;font-size:13px}
+  footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px}
+  footer b{color:#fff;font-weight:600}
+
+  @media (max-width:760px){.grid2,.flow{grid-template-columns:1fr}.cons-list li{flex-direction:column;gap:4px}.cons-list li .name{min-width:0}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Hastra · Strategy</div>
+    <h1>Strategy Vaults<span class="z">The Z-Axis</span></h1>
+    <p class="lede">One deposit. Diversified credit. Allocated and levered programmatically across chains, inside a governed constraint box, with no manager.</p>
+    <div class="axes">
+      <div class="axis"><div class="k">X — Asset classes</div><div class="v">Which token</div></div>
+      <div class="axis"><div class="k">Y — Chains</div><div class="v">Where the token lives</div></div>
+      <div class="axis now"><div class="k">Z — Leverage</div><div class="v">How hard the carry is run</div></div>
+    </div>
+  </div>
+</header>
+
+<section class="body">
+  <div class="wrap">
+    <div class="sec-head"><div class="sec-num">01</div><h2>One engine, three axes</h2></div>
+    <p class="lead">The vault is the framework, implemented. <strong>X is which token. Y is which chain it lives on. Z is the leverage.</strong> A single controller searches over (token, chain, leverage) for the best risk-adjusted net carry and holds the result.</p>
+    <p class="copy">The asset-class tokens already give investors a self-directed layer. Anyone who wants to set their own mix buys PRIME, AUTO, and the rest, and weights them. The vault is the other product. It is for the buyer who wants one optimized decision instead of a portfolio to manage.</p>
+    <p class="copy">Everything the vault touches stays inside the set Hastra governs. The vault composes positions that already exist. It introduces no asset of its own.</p>
+  </div>
+</section>
+
+<section class="body">
+  <div class="wrap">
+    <div class="sec-head"><div class="sec-num">02</div><h2>Two vaults</h2></div>
+    <p class="lead">Two points on the risk axis is enough for the one-decision buyer. More than two rebuilds the granularity the tokens already provide. Allocation tilt and leverage move together, so each vault reads as a single risk choice.</p>
+    <div class="grid2">
+      <div class="card feature">
+        <div class="tag">Base</div>
+        <h3>Conservative allocation, lower leverage</h3>
+        <div class="subt">Smaller risk budget</div>
+        <p>Weighted to the lower-coupon, deeper-liquidity end of the eligible set. Leverage held in a low band. Built for the left of the client spectrum: RIAs, treasuries, wealth managers seeking deliberate allocation with a thinner tail.</p>
+      </div>
+      <div class="card feature">
+        <div class="tag">Enhanced</div>
+        <h3>Aggressive allocation, higher leverage</h3>
+        <div class="subt">Larger risk budget</div>
+        <p>Tilts to the higher-coupon asset classes and runs the higher leverage band. A genuinely different book, not Base times a multiple. Built for the right of the spectrum: DeFi-native and crypto-native allocators.</p>
+      </div>
+    </div>
+    <p class="spectrum">Client spectrum: <b>Base</b> serves left of midpoint, <b>Enhanced</b> serves right.</p>
+  </div>
+</section>
+
+<section class="body">
+  <div class="wrap">
+    <div class="sec-head"><div class="sec-num">03</div><h2>What the vaults hold</h2></div>
+    <p class="lead">The eligible set is a governance-controlled registry, not a hard-coded list. A token is eligible when it is live. Whether the vault holds it, and at what leverage, is the controller's call.</p>
+    <div class="tokens">
+      <div class="tok"><div class="n">PRIME</div><div class="d">Democratized Prime yield token</div><div class="stat">Live · Solana</div></div>
+      <div class="tok"><div class="n">AUTO</div><div class="d">Near-prime consumer auto</div><div class="stat">Sequencing in</div></div>
+      <div class="tok"><div class="n">SMB</div><div class="d">Cash-flow lending</div><div class="stat">Pipeline</div></div>
+    </div>
+    <div class="rule-box">
+      <div class="lbl">Eligibility</div>
+      <p>Necessary condition: the token is live, with a yield. Sufficient condition: the controller judges its yield and diversifying effect additive to the book.</p>
+      <p>A borrow market on a chain is the condition for levering a token there, not for holding it. A live token with no borrow market can sit in the book unlevered if it improves the risk-adjusted frontier.</p>
+    </div>
+    <p class="copy">Membership is set by governance vote, not coded into the contracts. PRIME on Solana qualifies and levers today. AUTO and SMB enter as they go live, levering wherever a borrow market exists. The set expands as the X and Y axes fill in.</p>
+  </div>
+</section>
+
+<section class="body">
+  <div class="wrap">
+    <div class="sec-head"><div class="sec-num">04</div><h2>How the controller chooses</h2></div>
+    <p class="lead">Risk-adjusted net carry. Net carry per unit of risk budget consumed, not raw carry.</p>
+    <p class="copy">Net carry on a levered position is yield, plus (leverage minus one) times the spread between yield and borrow cost, after fees. While the spread is positive, more leverage means more carry, until a cap or the risk budget binds.</p>
+    <p class="copy">Each candidate (token, chain, leverage) scores as marginal net carry divided by marginal risk budget consumed. Budget scales with position size, leverage, the governed credit-risk weight of the token, and the inverse of pair liquidity depth. A token less correlated with the current book consumes less marginal budget, so a modest-yield diversifier can earn an unlevered slot. Capital flows to the highest scores until budget or a cap binds.</p>
+    <div class="flow">
+      <div class="step"><div class="num">DECISION 1</div><h4>Correlation inputs</h4><p>Credit tokens have thin onchain price history. Start with governed correlation assumptions by asset-class bucket, not realtime estimation. Upgrade later.</p></div>
+      <div class="step"><div class="num">DECISION 2</div><h4>No-trade band</h4><p>Every move costs slippage, flashloan fee, and gas. Act only when the expected gain in risk-adjusted carry beats round-trip cost. This prevents churn.</p></div>
+      <div class="step"><div class="num">DECISION 3</div><h4>Trust model</h4><p>Search runs off-chain and competitive. Verification runs onchain. No privileged operator, because the chain re-checks every proposal against the box.</p></div>
+    </div>
+    <div class="rule-box">
+      <div class="lbl">Trust model · verify onchain, propose permissionlessly</div>
+      <p>Searching the eligible set is expensive and wants fresh global data. Verifying a proposed answer is cheap and local. So the search stays off-chain and open to anyone, and the chain verifies.</p>
+      <p>Anyone deployed submits a target allocation. The onchain program does not search. It applies one accept rule, lexicographic: feasibility first, carry second. Outside the guardrails it accepts any move toward feasibility. Inside them it accepts only a move that beats the current book by more than round-trip cost and stays feasible. If it passes, it executes. Submission is stake-gated and permissionless, so a better verified target always wins, and Figure's keeper holds no special role beyond running continuously.</p>
+      <p>Onchain optimization is a trust goal, not a performance goal. Enforcement, scoring, the no-trade check, and the accept-or-reject decision all live in the program and are publicly verifiable. The optimizer is not a trusted party. It is a competitive proposer against an onchain referee.</p>
+    </div>
+    <p class="copy">Each leg's box check executes on the chain where the leg lands, with fresh local data, atomically with the flashloan. The global score comparison is the only part that rides cross-chain data, and optimization tolerates that latency where safety would not.</p>
+    <div class="callout">
+      <div class="lbl">The lever that separates the two vaults</div>
+      <p>Governance sets the credit-risk weight per token. <strong>Base and Enhanced differ by total risk budget.</strong> Same controller, same objective, two boxes of different size.</p>
+    </div>
+  </div>
+</section>
+
+<section class="body">
+  <div class="wrap">
+    <div class="sec-head"><div class="sec-num">05</div><h2>Getting in: two zones</h2></div>
+    <p class="lead">Any asset in at the edge. One canonical unit in the core. The front-end looks the same regardless of the user's chain.</p>
+    <div class="grid2">
+      <div class="card feature">
+        <div class="tag">Edge · Entry</div>
+        <h3>Any asset routes to wYLDS</h3>
+        <p>Deposit any stablecoin or asset, on any CCTP-supported chain. Stablecoins route via CCTP. Arbitrary assets route via an intent solver, NEAR or deBridge, into wYLDS. Routing slippage and fees are shown to the user and borne by the user. They are never socialized into NAV.</p>
+      </div>
+      <div class="card feature">
+        <div class="tag">Core · Canonical</div>
+        <h3>wYLDS over CCIP</h3>
+        <p>wYLDS is the internal unit. It is yield-bearing, so capital in transit and capital in reserve both earn. Value crosses chains as wYLDS over CCIP, which also carries control and state. The credit token is never bridged. It stays where it lives, under one share NAV on Solana, the home base.</p>
+      </div>
+    </div>
+    <div class="rule-box">
+      <div class="lbl">Why the split is the risk control</div>
+      <p>Intents run only at the entry boundary, where the failure mode is bounded: the swap clears or it does not, and the vault's internal state never depends on the solver. The levered core stays on wYLDS over CCIP. Messy and optimized at the edge, canonical and auditable in the engine.</p>
+    </div>
+  </div>
+</section>
+
+<section class="body">
+  <div class="wrap">
+    <div class="sec-head"><div class="sec-num">06</div><h2>Lever and delever with flashloans</h2></div>
+    <p class="lead">Each lever and delever is a single atomic transaction. The position is never half-built. Atomicity is the safety property, not a convenience.</p>
+    <div class="grid2">
+      <div class="card">
+        <div class="tag">Lever up</div>
+        <p>Flashloan, buy the token, post it as collateral, borrow against it, repay the flashloan. The levered position opens in one transaction with no intermediate capital and no mid-build exposure.</p>
+      </div>
+      <div class="card">
+        <div class="tag">Delever</div>
+        <p>The same loop in reverse. Flashloan to repay debt, withdraw collateral, sell the token, repay the flashloan. The position closes cleanly in one transaction.</p>
+      </div>
+    </div>
+    <p class="copy"><strong>Atomicity cannot cross chains.</strong> The lever loop has to settle on the chain where the token and borrow market live. So execution is necessarily per-chain. Solana steers allocation across chains, each chain's module runs its own atomic build and unwind. The binding constraint per pair is what fits in one atomic transaction: borrow-market depth and token swap depth on that pair.</p>
+  </div>
+</section>
+
+<section class="body">
+  <div class="wrap">
+    <div class="sec-head"><div class="sec-num">07</div><h2>Redemption</h2></div>
+    <p class="lead">No cooldown. The exiter bears one hundred percent of exit costs.</p>
+    <p class="copy">Instant redemption works because the flashloan atomically unwinds a pro-rata slice and returns wYLDS in one transaction. The exiter pays their own slippage plus flashloan fee on the slice being unwound. That is a fee, not a lockup, so it honors no-cooldown while staying holders are untouched.</p>
+    <div class="callout">
+      <div class="lbl">Why this is honest</div>
+      <p>The footprint cap guarantees the vault never holds a position larger than it can unwind in a single atomic transaction. <strong>No-cooldown is feasible precisely because every position stays atomically exitable.</strong> The same constraint that bounds risk is the one that makes instant exit fair to staying holders.</p>
+    </div>
+  </div>
+</section>
+
+<section class="body">
+  <div class="wrap">
+    <div class="sec-head"><div class="sec-num">08</div><h2>Constraints and triggers<span class="pill">Thresholds outstanding</span></h2></div>
+    <p class="lead">The controller is autonomous only inside a governance-set constraint box. Dynamic triggers keep it safe and performant. This is a named, load-bearing component, not an afterthought.</p>
+    <div class="grid2" style="margin-top:34px;">
+      <div class="card">
+        <h3 style="margin-bottom:14px;">Bounds</h3>
+        <p style="font-size:13px;color:var(--ink-faint);margin-bottom:14px;">The box the controller lives in.</p>
+        <ul class="cons-list">
+          <li><span class="name">Eligible set</span><span>Which (token, chain) pairs are investable</span></li>
+          <li><span class="name">Per-vault risk budget</span><span>The master dial separating Base and Enhanced</span></li>
+          <li><span class="name">Per-pair leverage cap</span><span>Bound by what unwinds in one atomic flashloan</span></li>
+          <li><span class="name">Target leverage band</span><span>A band per vault, not a point</span></li>
+          <li><span class="name">Concentration caps</span><span>Max allocation per token and per chain</span></li>
+          <li><span class="name">Footprint cap</span><span>Max position vs. pair borrow and swap depth</span></li>
+          <li><span class="name">Health buffer floor</span><span>Minimum distance to liquidation</span></li>
+          <li><span class="name">Min net carry to open</span><span>No leverage into a spread below threshold</span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:14px;">Triggers</h3>
+        <p style="font-size:13px;color:var(--ink-faint);margin-bottom:14px;">Dynamic. Fire actions on realtime onchain data.</p>
+        <ul class="cons-list">
+          <li><span class="name">Carry compression</span><span>Spread on a pair compresses or inverts: delever or exit</span></li>
+          <li><span class="name">Borrow utilization</span><span>Crosses a high threshold: delever as borrow gets scarce</span></li>
+          <li><span class="name">Health buffer</span><span>Approaches the floor: delever to restore it</span></li>
+          <li><span class="name">Swap depth drop</span><span>Falls below atomic-unwind size: reduce position</span></li>
+          <li><span class="name">Relative carry shift</span><span>Moves beyond a band: rebalance toward the better pair</span></li>
+          <li><span class="name">Circuit breaker</span><span>Depeg, venue freeze, or borrow gating: halt, delever, pause entry</span></li>
+        </ul>
+      </div>
+    </div>
+    <p class="outstanding-note">Specific thresholds are deliberately open at this stage. The point that matters now is structural: the bounds and triggers exist, they are the mechanism through which the vault manages risk and performance, and their values are for the model and risk to set before launch.</p>
+  </div>
+</section>
+
+<section class="body">
+  <div class="wrap">
+    <div class="sec-head"><div class="sec-num">09</div><h2>Control authority</h2></div>
+    <p class="lead">There is one action: propose the next state. The objective is risk-adjusted net carry subject to the guardrails. Outside the rails the optimal move restores them. Inside the rails the optimal move improves carry. Same optimizer, same pipe, two regimes.</p>
+    <p class="copy"><strong>The accept rule is lexicographic. Feasibility first, carry second.</strong> Outside the rails, any proposal that moves toward feasibility is an improvement, so it is accepted. That is a safety proposal. Inside the rails, a proposal is accepted only if it raises risk-adjusted carry by more than round-trip cost and stays feasible. That is a performance proposal. The verifier you already have generalizes to this: feasibility dominates, then carry.</p>
+    <p class="copy"><strong>Acceptance optimizes risk-adjusted feasibility-first. Reward pays on realized carry.</strong> The two measures do two jobs. A safety proposal removes exposure, so its realized-carry increment is zero or negative, so it pays nothing, automatically and with no special case. A performance proposal adds realized carry, so it pays. The adverse-selection problem never arises, because safety moves are unpaid by construction, not by rule.</p>
+    <div class="flow">
+      <div class="step"><div class="num">CLASS · SAFETY</div><h4>Feasibility-restoring</h4><p>Verifiable from local state, so it runs and executes locally and fast, no CCIP. Unpaid. Keeper is the normal caller, any deployed holder is the backstop. Wins over a pending performance move.</p></div>
+      <div class="step"><div class="num">CLASS · PERFORMANCE</div><h4>Carry-improving</h4><p>Needs the global score, so it runs central. Paid 5% of the realized net increment over the keeper while the allocation stays best. Stake-gated like any proposal.</p></div>
+      <div class="step"><div class="num">DERIVED · LOCALITY</div><h4>Local versus central</h4><p>A proposal is local exactly when it can be verified from local state, and only feasibility proposals can. Delever-local and lever-central is the consequence, not an assertion. Safety never inherits CCIP latency.</p></div>
+    </div>
+    <p class="copy"><strong>Lever authority is still bounded by the constraint box regardless of caller.</strong> Removing a separate protective-delever primitive does not weaken enforcement. Safety proposals execute only when the onchain condition is true and only toward the safe target, graduated: soft conditions restore the buffer, a breaker forces full unwind to wYLDS. The keeper can delever to safety but can never lever beyond the box. Trust sits in keeper uptime, not keeper discretion.</p>
+    <div class="rule-box">
+      <div class="lbl">Global breaker · the one central safety power</div>
+      <p>A systemic event, wYLDS depeg, CCIP outage, or correlated freeze, is a global judgment a local module cannot make alone. The breaker is halt-only. It stops new leverage and forces delever to wYLDS, nothing else. A multisig of Figure employees holds it at launch, moving to governance. It propagates two ways: the Solana flag broadcasts over CCIP, and the guardian can trip per-chain breakers directly.</p>
+    </div>
+    <p class="copy">Rotations sequence delever-first. A rotation is delever on chain X, move wYLDS over CCIP, lever on chain Y. Three separate atomic transactions, because atomicity cannot cross chains. Delever-first means every intermediate resting state is the safe state: idle wYLDS, unlevered, yield-bearing. If the lever leg fails, capital sits safe and the rotation retries.</p>
+    <div class="callout">
+      <div class="lbl">Failure posture</div>
+      <p>Optimizer down: safe, no new leverage. CCIP down: safe locally, no rotation. Solana plane down: safe, redemption paused. Keeper down: any deployed holder fires the unpaid safety proposal to protect their own NAV. Compromised optimizer: bounded by the box. Compromised guardian: bounded to de-risking, revocable by governance. <strong>Every degraded mode is a safe mode.</strong></p>
+    </div>
+  </div>
+</section>
+
+<section class="body">
+  <div class="wrap">
+    <div class="sec-head"><div class="sec-num">10</div><h2>Fees</h2></div>
+    <p class="lead">The protocol monetizes on ownership and results, not on movement. Two fees, both onchain and accrued in NAV.</p>
+    <div class="grid2">
+      <div class="card feature">
+        <div class="tag">Admin</div>
+        <h3>2% per annum on NAV</h3>
+        <div class="subt">Accrued continuously, reflected in NAV</div>
+        <p>The cost-recovery floor. It keeps the operation funded through a flat period when performance pays nothing. Sized to running cost, not margin.</p>
+      </div>
+      <div class="card feature">
+        <div class="tag">Performance</div>
+        <h3>15% of return above the wYLDS hurdle</h3>
+        <div class="subt">High-water mark on</div>
+        <p>The protocol earns only on the excess the vault creates above idle wYLDS, and only above the prior peak. The thesis priced as a fee: the vault exists to beat the canonical unit, so it is paid when it does.</p>
+      </div>
+    </div>
+    <div class="rule-box">
+      <div class="lbl">No fee at the boundary</div>
+      <p>Entry and exit carry no protocol fee. Entry routing cost is on the enterer, exit unwind cost is on the exiter. Both are cost pass-throughs, not revenue. The boundaries stay frictionless and the no-cooldown promise holds. Charging on movement would tax the behavior the vault is built to attract.</p>
+    </div>
+    <div class="rule-box">
+      <div class="lbl">Proposer fee · 5% of the net increment</div>
+      <p>There is one action, a proposal of the next state, and one reward rule. Figure's keeper runs continuously and keeps the lights on. Anyone deployed in the vault can also propose, and the open proposer market is where genuine decentralization lives. The proposer earns 5% of the realized net incremental carry their accepted allocation produces over the allocation it replaced, streamed while their allocation is live, after the rotation cost is recouped for holders.</p>
+      <p>Because reward pays on realized carry, the safety case settles itself. A feasibility-restoring proposal removes exposure, so its realized-carry increment is zero or negative, so it pays nothing, with no special case. Safety moves are unpaid by construction, which is what retires the adverse-selection risk: no mercenary fires a delever for a bounty, because there is none, while any deployed holder will fire one for free to protect their own NAV.</p>
+      <p>Three properties make the paid case safe and aligned. It is self-funding, because the verifier proves onchain that the new allocation beats the old by more than cost before anyone is paid, so the slice comes from surplus the proposal created, never from the holder's base return. It is gated by deployment, a binary minimum stake held in the specific vault, which is permissionless because anyone can qualify by depositing and earns the vault yield on that stake regardless. And Figure's keeper waives its own slice, so an external proposer is paid only for beating the keeper. Holders keep the entire keeper baseline plus 95% of every increment.</p>
+    </div>
+    <p class="copy">Per rotation the order is fixed: the proposal creates surplus, the verifier proves it, the rotation cost is recouped for holders, the proposer streams their 5% of the net increment while their allocation stays best, and the rest flows into NAV. The proposer stream is an operational cost taken before NAV, so admin and performance fees never touch it.</p>
+    <p class="copy">Net of operational cost and the proposer reward, the fee routes through a governed split: HASH burn for value accrual, a Figure service-provider fee under the service agreement, a risk-steward fee, and an optional protocol reserve. HASH holders set the split. The share routed to burn is a direct input to the HASH accrual model, so the fee take rate is the same lever as the Hastra take rate in that model.</p>
+  </div>
+</section>
+
+<section class="body">
+  <div class="wrap">
+    <div class="sec-head"><div class="sec-num">11</div><h2>Governed by HASH</h2></div>
+    <p class="lead">Figure does not operate Hastra. Figure is a service provider to it. HASH holders lead the governance of that service agreement and the parameters around it.</p>
+    <p class="copy">Holders vote the envelope: the eligible asset classes, the leverage and concentration ceilings, the risk-budget ranges, the fee and burn parameters, and who the risk steward is. These change rarely and holders can judge them.</p>
+    <p class="copy">A risk steward proposes the fine-grained values inside that envelope: the per-period caps, the trigger thresholds, the correlation assumptions. Holders ratify by exception. A proposal goes live after a timelock unless vetoed. Figure can be the first steward, revocable by vote.</p>
+    <p class="copy"><strong>Holders stay sovereign over the envelope and the steward.</strong> The numbers sit with someone equipped to set them. Expanding the eligible set is a holder vote, not a Figure decision. The Z-axis is the substance that gives Hastra governance something real to govern.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div><b>Hastra Strategy Vaults</b> · The Z-Axis · Strategy draft</div>
+    <div>Any asset in at the edge · wYLDS over CCIP in the core · HASH-governed envelope</div>
+  </div>
+</footer>
+
+</body>
+</html>
